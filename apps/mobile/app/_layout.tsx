@@ -16,6 +16,7 @@ import '@/lib/instrument';
 
 import { BootGate } from '@/components/BootGate';
 import { queryClient } from '@/lib/queryClient';
+import { useHapticScreen } from '@/theme/useHapticScreen';
 import { MotionProvider } from '@/theme/motion';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -23,6 +24,16 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 // (product 12 — "typography is the hero"), so a sans flash-of-fallback on the
 // very first frame would be the brand arriving underdressed.
 void SplashScreen.preventAutoHideAsync();
+
+/**
+ * Resets the per-screen haptic budget on each navigation (product 13). Lives as
+ * a child of the router so `usePathname` has a navigation context; renders
+ * nothing.
+ */
+function HapticScreenTracker(): null {
+  useHapticScreen();
+  return null;
+}
 
 /**
  * Root layout (01 §2: routes stay thin and delegate to features).
@@ -56,6 +67,7 @@ export default function RootLayout() {
             <BottomSheetModalProvider>
               <StatusBar style="auto" />
               <BootGate>
+                <HapticScreenTracker />
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="(onboarding)" />
