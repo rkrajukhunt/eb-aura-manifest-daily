@@ -16,5 +16,11 @@ export * from './events/client';
 // Constants (04 §86, product 09)
 export * from './constants/limits';
 
+// Living Memory (09) — harvester + seed live here so both apps can run them (09 §1).
+export * from './memory/harvester';
+export * from './memory/seed';
+export * from './memory/weight';
+export * from './memory/stopwords';
+
 // DB row types — generated from Supabase, re-exported here for both apps.
 export * from './types/database';

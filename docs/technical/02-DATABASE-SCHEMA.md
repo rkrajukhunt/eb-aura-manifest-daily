@@ -48,20 +48,23 @@ Raw answer log (auditing + regeneration source; profile holds the working copy).
 
 ### `memory_items`
 
-| Column             | Type        | Notes                                                                                                                            |
-| ------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `id`, `user_id`    |             |                                                                                                                                  |
-| `category`         | enum        | identity \| dream \| person \| place_lifestyle \| struggle \| phrase \| milestone \| preference \| gratitude_ref \| temp_context |
-| `tier`             | enum        | permanent \| evolving \| temporary \| sensitive                                                                                  |
-| `content`          | text        | plain-language memory ("Dream city is London")                                                                                   |
-| `verbatim`         | text        | exact user wording when applicable                                                                                               |
-| `source`           | enum        | onboarding \| gratitude \| refine \| manifest \| profile_edit \| system                                                          |
-| `source_id`        | uuid        | row that created it (e.g. gratitude entry)                                                                                       |
-| `emotional_weight` | smallint    | 1–5, set at write (09 §3)                                                                                                        |
-| `expires_at`       | timestamptz | temporary tier only                                                                                                              |
-| `last_used_at`     | timestamptz | cadence guard for callbacks                                                                                                      |
-| `use_count`        | int         | anti-repetition                                                                                                                  |
-| `deleted_at`       | timestamptz | user delete = hard delete; this column only for system expiry audit                                                              |
+| Column             | Type        | Notes                                                                                                                                           |
+| ------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `user_id`    |             |                                                                                                                                                 |
+| `category`         | enum        | identity \| dream \| person \| place_lifestyle \| struggle \| phrase \| milestone \| preference \| gratitude_ref \| temp_context                |
+| `tier`             | enum        | permanent \| evolving \| temporary \| sensitive                                                                                                 |
+| `content`          | text        | plain-language memory ("Dream city is London")                                                                                                  |
+| `verbatim`         | text        | exact user wording when applicable                                                                                                              |
+| `source`           | enum        | onboarding \| gratitude \| refine \| manifest \| profile_edit \| system                                                                         |
+| `source_id`        | uuid        | row that created it (e.g. gratitude entry)                                                                                                      |
+| `emotional_weight` | smallint    | 1–5, set at write (09 §3)                                                                                                                       |
+| `expires_at`       | timestamptz | temporary tier only                                                                                                                             |
+| `last_used_at`     | timestamptz | cadence guard for callbacks                                                                                                                     |
+| `use_count`        | int         | anti-repetition                                                                                                                                 |
+| `excluded`         | boolean     | she marked a sensitive item "done/private" (09 §2) → excluded from context entirely. Row survives; it stops being spent. Distinct from deletion |
+| `deleted_at`       | timestamptz | user delete = hard delete; this column only for system expiry audit                                                                             |
+
+Constraints (Phase 4): `emotional_weight between 1 and 5`; and a `temporary` item must carry `expires_at` while a non-temporary must not — the tier/expiry pair cannot drift apart. `expire_temporary_memory()` (service-role only) implements the 09 §2 sweep; Phase 5 attaches its pg_cron schedule.
 
 ### `exact_phrases`
 

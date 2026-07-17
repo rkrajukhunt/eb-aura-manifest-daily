@@ -23,6 +23,25 @@ export type PlaybackSource = 'home' | 'notification' | 'replay' | 'deeplink';
 export type SubscriptionState = 'free' | 'trial' | 'paid' | 'lapsed';
 
 /**
+ * Mirrors the DB enums (02 §2). These are structural labels, not content —
+ * knowing an item was category `struggle` reveals nothing about what it said.
+ */
+export type MemoryCategory =
+  | 'identity'
+  | 'dream'
+  | 'person'
+  | 'place_lifestyle'
+  | 'struggle'
+  | 'phrase'
+  | 'milestone'
+  | 'preference'
+  | 'gratitude_ref'
+  | 'temp_context';
+
+export type MemorySource =
+  'onboarding' | 'gratitude' | 'refine' | 'manifest' | 'profile_edit' | 'system';
+
+/**
  * Super properties attached to every event (13 §2, product 17).
  * `user_pseudo_id` is the PostHog distinct id (Supabase uuid — pseudonymous).
  */
@@ -47,6 +66,19 @@ export interface EventCatalog {
   app_first_open: Record<string, never>;
   /** Mobile. */
   app_open: { source: AppOpenSource };
+
+  // ─── Memory / moat (Phase 4) ───────────────────────────────────────────
+  // Note what is absent: no `content`, no `verbatim`, no term. We count that a
+  // memory happened and what kind — never what it said (13 §2, product 10:
+  // "memory never fuels the funnel").
+  /** Mobile. */
+  memory_item_created: { category: MemoryCategory; source: MemorySource };
+  /** Mobile. */
+  memory_item_deleted: { category: MemoryCategory };
+  /** Mobile. Deliberately payload-free — the excluded term never leaves the device. */
+  never_include_added: Record<string, never>;
+  /** Mobile. Deduped per session (13 §5 flood control). */
+  what_aura_knows_viewed: Record<string, never>;
 }
 
 export type EventName = keyof EventCatalog;

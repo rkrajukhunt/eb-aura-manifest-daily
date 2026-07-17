@@ -28,6 +28,125 @@ export type Database = {
   };
   public: {
     Tables: {
+      exact_phrases: {
+        Row: {
+          created_at: string;
+          id: string;
+          last_used_at: string | null;
+          memory_item_id: string | null;
+          phrase: string;
+          source: Database['public']['Enums']['memory_source'];
+          use_count: number;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          last_used_at?: string | null;
+          memory_item_id?: string | null;
+          phrase: string;
+          source: Database['public']['Enums']['memory_source'];
+          use_count?: number;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          last_used_at?: string | null;
+          memory_item_id?: string | null;
+          phrase?: string;
+          source?: Database['public']['Enums']['memory_source'];
+          use_count?: number;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'exact_phrases_memory_item_id_fkey';
+            columns: ['memory_item_id'];
+            isOneToOne: false;
+            referencedRelation: 'memory_items';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      memory_items: {
+        Row: {
+          category: Database['public']['Enums']['memory_category'];
+          content: string;
+          created_at: string;
+          deleted_at: string | null;
+          emotional_weight: number;
+          excluded: boolean;
+          expires_at: string | null;
+          id: string;
+          last_used_at: string | null;
+          source: Database['public']['Enums']['memory_source'];
+          source_id: string | null;
+          tier: Database['public']['Enums']['memory_tier'];
+          updated_at: string;
+          use_count: number;
+          user_id: string;
+          verbatim: string | null;
+        };
+        Insert: {
+          category: Database['public']['Enums']['memory_category'];
+          content: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          emotional_weight?: number;
+          excluded?: boolean;
+          expires_at?: string | null;
+          id?: string;
+          last_used_at?: string | null;
+          source: Database['public']['Enums']['memory_source'];
+          source_id?: string | null;
+          tier: Database['public']['Enums']['memory_tier'];
+          updated_at?: string;
+          use_count?: number;
+          user_id: string;
+          verbatim?: string | null;
+        };
+        Update: {
+          category?: Database['public']['Enums']['memory_category'];
+          content?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          emotional_weight?: number;
+          excluded?: boolean;
+          expires_at?: string | null;
+          id?: string;
+          last_used_at?: string | null;
+          source?: Database['public']['Enums']['memory_source'];
+          source_id?: string | null;
+          tier?: Database['public']['Enums']['memory_tier'];
+          updated_at?: string;
+          use_count?: number;
+          user_id?: string;
+          verbatim?: string | null;
+        };
+        Relationships: [];
+      };
+      never_include: {
+        Row: {
+          created_at: string;
+          id: string;
+          term: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          term: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          term?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       onboarding_answers: {
         Row: {
           answer: Json | null;
@@ -120,9 +239,22 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      expire_temporary_memory: { Args: never; Returns: number };
     };
     Enums: {
+      memory_category:
+        | 'identity'
+        | 'dream'
+        | 'person'
+        | 'place_lifestyle'
+        | 'struggle'
+        | 'phrase'
+        | 'milestone'
+        | 'preference'
+        | 'gratitude_ref'
+        | 'temp_context';
+      memory_source: 'onboarding' | 'gratitude' | 'refine' | 'manifest' | 'profile_edit' | 'system';
+      memory_tier: 'permanent' | 'evolving' | 'temporary' | 'sensitive';
       work_feeling: 'love_it' | 'fine_for_now' | 'ready_for_new' | 'building_side';
     };
     CompositeTypes: {
@@ -248,6 +380,20 @@ export const Constants = {
   },
   public: {
     Enums: {
+      memory_category: [
+        'identity',
+        'dream',
+        'person',
+        'place_lifestyle',
+        'struggle',
+        'phrase',
+        'milestone',
+        'preference',
+        'gratitude_ref',
+        'temp_context',
+      ],
+      memory_source: ['onboarding', 'gratitude', 'refine', 'manifest', 'profile_edit', 'system'],
+      memory_tier: ['permanent', 'evolving', 'temporary', 'sensitive'],
       work_feeling: ['love_it', 'fine_for_now', 'ready_for_new', 'building_side'],
     },
   },

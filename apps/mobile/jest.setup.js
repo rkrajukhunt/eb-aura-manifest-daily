@@ -1,3 +1,7 @@
+// Tells React this is a test environment so state updates are wrapped in act().
+// Without it React warns on every render and async updates can escape assertions.
+global.IS_REACT_ACT_ENVIRONMENT = true;
+
 // Native modules have no JS implementation under jest — stub the ones the
 // skeleton touches. Real behaviour is covered by Maestro flows on device (15).
 

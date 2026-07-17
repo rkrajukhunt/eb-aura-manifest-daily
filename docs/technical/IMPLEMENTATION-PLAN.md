@@ -10,7 +10,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 1   | Design System & Mobile Foundation         | ⬜     |
 | 2   | Supabase Auth & User Foundation           | ✅     |
 | 3   | Onboarding — "The Conversation"           | ⬜     |
-| 4   | Living Memory & Profile                   | ⬜     |
+| 4   | Living Memory & Profile                   | 🟨     |
 | 5   | AI Generation Backend                     | ⬜     |
 | 6   | Future-Self Letter — WOW                  | ⬜     |
 | 7   | Daily Moments & Audio Player              | ⬜     |
@@ -169,6 +169,36 @@ Known gaps, deliberately deferred:
 - **Tests:** Harvester unit tests (fixtures: quotes, proper nouns, distinctive phrases, stopwords); tier/expiry field logic; RLS for the three tables; RTL: What Aura Knows renders/deletes; seed-routine test (onboarding fixture → expected items).
 - **Edge cases:** Deleting a person referenced by items (items filtered via `people.active`, 09 §4); empty memory states in-voice; duplicate phrase dedup; sensitive items visually private in the list (no special badge that stigmatizes — same rendering, just never in other surfaces).
 - **Definition of Done:** Completing onboarding produces the expected memory seed; What Aura Knows lists it in plain language; deletes are hard deletes; Never-Include persists; events fire.
+
+### Phase 4 — partially built (2026-07-17) — 🟨
+
+Built out of order (founder call) because the memory **data layer** is verifiable against a real database on the Linux dev machine, whereas its **UI surfaces** need the Phase 1 design system. e2e was explicitly descoped by the founder for this phase; the RLS suite was kept — it is release-blocking (15 §6) and this is the phase where the sensitive tier lands.
+
+**Done:**
+
+- `memory_items`, `exact_phrases`, `never_include` — schema + GRANTs + RLS + indexes, incl. the partial index for the expiry sweep. `expire_temporary_memory()` is defined and verified; Phase 5 attaches the pg_cron schedule.
+- Phrase harvester + onboarding seed + emotional weight in `@aura/shared` (09 §1/§3) — pure, deterministic, exhaustively unit-tested.
+- Memory data access, TanStack Query hooks, optimistic delete, `seedMemoryForUser` write path for Phase 3 to call on completion.
+- "What Aura Knows" screen — behaviour and copy only; styling is placeholder.
+- Analytics: `memory_item_created`, `memory_item_deleted`, `never_include_added`, `what_aura_knows_viewed`.
+
+**Decisions and findings:**
+
+1. **Two DB invariants the schema now enforces**, rather than trusting callers: a `temporary` item must carry `expires_at` and a non-temporary must not (the tier/expiry pair can't drift), and `emotional_weight` is constrained to 1–5.
+2. **`excluded` column added to `memory_items`** — 09 §2 requires a "done/private" flag that 02 §2's table did not list. Distinct from deletion: the row survives, it just stops being spent. 02 §2 updated.
+3. **Harvester bug — names sliced in half.** Window scanning produced `"wake up in New"` from `"…in New York someday"`. Echoing a half-name back to her is the worst failure this module has. Fixed by masking quoted spans and proper nouns out of the text before the window scan; regression-tested.
+4. **Harvester bug — short names dropped.** A 4-char minimum silently discarded `"Ivy"`, so a user whose daughter is named Ivy would never hear her name echoed — while the Letter's whole promise is naming her people (product 08). Proper nouns now have their own 2-char floor.
+5. **Phrase dedupe is an expression index** `(user_id, lower(phrase))`, which PostgREST's `onConflict` cannot name (it takes plain columns only). The seed write path therefore reads existing phrases and filters, rather than upserting — a batch insert would fail wholesale on one repeat, and a retried seed must never cost her the rest of her memory.
+6. **Sensitive items render identically to everything else** on What Aura Knows — no badge, no lock, no muted styling. A marker on the one screen she reviews would stigmatize the thing she was bravest to tell us; the tier does its work invisibly in what generation may spend. Pinned by a test comparing rendered styles.
+
+**Not built — deferred, and why:**
+
+- **Profile tab** (basics, dream, people, lifestyle tags, free-text note) and **edit flows as sheets** — need the Phase 1 design system (`Sheet`, `Card`, `SelectCard`) and, for people, the Phase 3 `people` table.
+- **Never-Include UI** — hooks and data access exist and are used by nothing yet; the screen needs Phase 1.
+- **Inactive-people filtering** (09 §4) — untestable until Phase 3 creates `people`. `memory_items.source_id` is deliberately a plain uuid with no FK, since its targets live in different tables across phases.
+- **Profile-edit and gratitude write paths** — those surfaces land in Phases 4-UI/8.
+- **e2e** — descoped by the founder for this phase.
+- Nothing here is verified on a device.
 
 ## Phase 5 — AI Generation Backend
 
