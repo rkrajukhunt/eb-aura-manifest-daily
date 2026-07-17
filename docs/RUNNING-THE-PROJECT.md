@@ -175,6 +175,18 @@ cd apps/mobile
 pnpm exec expo run:ios
 ```
 
+> **Requires `SENTRY_DISABLE_AUTO_UPLOAD=true` in `apps/mobile/.env`.** Without it the native
+> build compiles fine and then dies at the very last step — `Bundle React Native code and images`
+> — with `error: An organization ID or slug is required (provide with --org)` and
+> `xcodebuild exited with error code 65`. The `@sentry/react-native/expo` plugin tries to upload
+> source maps, but the generated `ios/sentry.properties` carries no org/project and there is no
+> auth token locally. Source maps only matter for builds real users run, so skipping the upload
+> costs nothing in dev. Release builds leave the flag unset and supply `SENTRY_ORG`,
+> `SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN` through EAS secrets.
+
+Verified end state: `Build Succeeded`, `0 error(s)`, app installed and opened on the simulator as
+`com.aura.manifestdaily.dev`.
+
 ### Every run after that
 
 ```bash
@@ -275,16 +287,17 @@ CI runs it in a separate `live-suite` job. Skip it locally unless you're changin
 
 ## 10. Troubleshooting
 
-| Symptom                                                        | Cause & fix                                                                                               |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Cannot find module '@aura/shared'`                            | `packages/shared/dist` missing → `pnpm build`                                                             |
-| Backend exits at boot with `Invalid environment configuration` | zod rejected `apps/backend/.env`. It prints the offending **names only** (never values) — fix those keys. |
-| `Missing/invalid Expo env: ...`                                | `apps/mobile/.env` missing a var. Note the error says `.env.local`; the real file is **`.env`**.          |
-| Health returns `"db": false`                                   | Wrong `SUPABASE_URL`/service-role key, or the hosted project is unreachable.                              |
-| Env change didn't take effect in the app                       | `EXPO_PUBLIC_*` is inlined at build time → restart Metro with `--clear`.                                  |
-| `Cannot connect to the Docker daemon`                          | You ran `pnpm dev` / a `db:*` script. On live Supabase use `pnpm dev:apps`.                               |
-| Expo Go crashes on native modules                              | Expected — build the dev client: `pnpm exec expo run:ios`.                                                |
-| Device can't reach the API                                     | `localhost` on a phone means the phone. Use your Mac's LAN IP.                                            |
+| Symptom                                                                         | Cause & fix                                                                                                       |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `Cannot find module '@aura/shared'`                                             | `packages/shared/dist` missing → `pnpm build`                                                                     |
+| Backend exits at boot with `Invalid environment configuration`                  | zod rejected `apps/backend/.env`. It prints the offending **names only** (never values) — fix those keys.         |
+| `Missing/invalid Expo env: ...`                                                 | `apps/mobile/.env` missing a var. Note the error says `.env.local`; the real file is **`.env`**.                  |
+| Health returns `"db": false`                                                    | Wrong `SUPABASE_URL`/service-role key, or the hosted project is unreachable.                                      |
+| Env change didn't take effect in the app                                        | `EXPO_PUBLIC_*` is inlined at build time → restart Metro with `--clear`.                                          |
+| `Cannot connect to the Docker daemon`                                           | You ran `pnpm dev` / a `db:*` script. On live Supabase use `pnpm dev:apps`.                                       |
+| Expo Go crashes on native modules                                               | Expected — build the dev client: `pnpm exec expo run:ios`.                                                        |
+| `expo run:ios` fails: `An organization ID or slug is required`, `error code 65` | Sentry source-map upload has no org/auth token. Set `SENTRY_DISABLE_AUTO_UPLOAD=true` in `apps/mobile/.env` (§6). |
+| Device can't reach the API                                                      | `localhost` on a phone means the phone. Use your Mac's LAN IP.                                                    |
 
 ---
 
