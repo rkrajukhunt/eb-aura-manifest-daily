@@ -1,6 +1,6 @@
 # 10 — AUDIO & TTS
 
-*The voice IS the product — the Letter is heard, not read. Implements product docs 08 (letter audio), 09 (player), 12 (player design), 13 (performance budgets). Vendor: **ElevenLabs** behind `TtsProvider`.*
+_The voice IS the product — the Letter is heard, not read. Implements product docs 08 (letter audio), 09 (player), 12 (player design), 13 (performance budgets). Vendor: **ElevenLabs** behind `TtsProvider`._
 
 ---
 
@@ -10,13 +10,14 @@
 // providers/tts/tts-provider.interface.ts
 interface TtsProvider {
   synthesize(req: { text: string; voiceId: string }): Promise<{
-    audio: Buffer;                 // mp3
+    audio: Buffer; // mp3
     wordTimings: { word: string; startMs: number; endMs: number }[];
     durationMs: number;
   }>;
   ping(): Promise<boolean>;
 }
 ```
+
 Adapters: `ElevenLabsTtsProvider`, `MockTtsProvider` (dev/CI — silent audio + synthetic timings).
 
 ## 2. ElevenLabs integration
@@ -37,6 +38,7 @@ Adapters: `ElevenLabsTtsProvider`, `MockTtsProvider` (dev/CI — silent audio + 
 ## 4. Mobile playback stack (05 §7)
 
 `PlayerService` (singleton over `expo-audio`):
+
 - **Modes:** background audio ON, lock-screen/remote controls (play/pause/seek), respects interruptions (pause on call; resume if transient).
 - **Silent-switch:** audio plays through the media channel (ignores silent switch — standard for media apps); the Letter additionally pre-checks volume==0 and shows "Turn your sound on — this is meant to be heard" (product 08 §4).
 - **Pre-buffering:** today's moment audio prefetched on app open and on notification receipt (background fetch of signed URL + file download to cache) → play start <300ms (product 13 budget).
@@ -52,18 +54,19 @@ Adapters: `ElevenLabsTtsProvider`, `MockTtsProvider` (dev/CI — silent audio + 
 
 ## 6. Caching & offline (product 05 — "audio cached; favorites replayable offline")
 
-| Content | Cache policy |
-|---|---|
-| The Letter | cached permanently on device at first play (it's "kept forever" — free tier included) |
-| Today's moment | prefetched; evicted after 7 days |
-| Favorites | cached permanently while favorited; evicted on unfavorite |
-| Everything else | streamed; LRU cache cap 200MB |
-Cache index in MMKV (`{momentId → localPath, cachedAt}`); files in app cache dir; deletion wipes cache (03 §5).
+| Content                                                                                                         | Cache policy                                                                          |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| The Letter                                                                                                      | cached permanently on device at first play (it's "kept forever" — free tier included) |
+| Today's moment                                                                                                  | prefetched; evicted after 7 days                                                      |
+| Favorites                                                                                                       | cached permanently while favorited; evicted on unfavorite                             |
+| Everything else                                                                                                 | streamed; LRU cache cap 200MB                                                         |
+| Cache index in MMKV (`{momentId → localPath, cachedAt}`); files in app cache dir; deletion wipes cache (03 §5). |
 
 ## 7. Cost (the margin driver — 08 §7)
 
 ElevenLabs ≈ $0.10–0.15/1k chars at scale tiers. Daily moment ≈ 900 chars → ~$3–4/user/month worst case. Mitigations (all shipped at V1):
-1. Pre-generation skip for inactive users (>7 days) — the biggest saver; most cost scales with *active* users only.
+
+1. Pre-generation skip for inactive users (>7 days) — the biggest saver; most cost scales with _active_ users only.
 2. One-a-day pacing + refine/on-demand caps (08 §7).
 3. Affirmations are **text-only** at V1 (no TTS) — product docs treat them as cards.
 4. Volume pricing negotiation once >1k MAU (flagged for founder).

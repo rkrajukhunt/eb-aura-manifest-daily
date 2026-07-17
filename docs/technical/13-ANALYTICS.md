@@ -1,6 +1,6 @@
 # 13 — ANALYTICS & EXPERIMENTATION
 
-*PostHog. Implements product doc 17 exactly — same event names, same privacy rule: **no free-text content, struggles, people names, or memory contents ever enter analytics** — only structural metadata.*
+_PostHog. Implements product doc 17 exactly — same event names, same privacy rule: **no free-text content, struggles, people names, or memory contents ever enter analytics** — only structural metadata._
 
 ---
 
@@ -34,12 +34,12 @@ Ownership: mobile emits UX events; backend emits generation/webhook/cron events.
 
 ## 5. Experiments (PostHog feature flags — product 17 §flags)
 
-| Flag | Variants | Scope |
-|---|---|---|
-| `exp_trial_variant` | on / off | maps to RC offering (12 §1) |
-| `exp_paywall_hero` | annual / weekly_first | plan card order |
-| `exp_ondemand_limit` | 2 / 3 / 5 | Manifest weekly cap (server reads flag via PostHog API at credit check) |
-Rules: assignment evaluated once at first exposure, persisted to `experiment_assignments` (analytic mirror + server-side reads); flags never change mid-session; new users only for pricing experiments (no switching an existing subscriber's paywall).
+| Flag                                                                                                                                                                                                                                                     | Variants              | Scope                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `exp_trial_variant`                                                                                                                                                                                                                                      | on / off              | maps to RC offering (12 §1)                                             |
+| `exp_paywall_hero`                                                                                                                                                                                                                                       | annual / weekly_first | plan card order                                                         |
+| `exp_ondemand_limit`                                                                                                                                                                                                                                     | 2 / 3 / 5             | Manifest weekly cap (server reads flag via PostHog API at credit check) |
+| Rules: assignment evaluated once at first exposure, persisted to `experiment_assignments` (analytic mirror + server-side reads); flags never change mid-session; new users only for pricing experiments (no switching an existing subscriber's paywall). |
 
 ## 6. Dashboards (launch set, product 17)
 

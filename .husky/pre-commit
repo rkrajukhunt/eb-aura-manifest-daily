@@ -1,0 +1,3 @@
+pnpm exec lint-staged
+# 01 §1: typecheck gates commits too — turbo scopes this to affected workspaces.
+pnpm turbo typecheck

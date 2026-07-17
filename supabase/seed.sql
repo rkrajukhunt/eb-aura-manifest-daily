@@ -1,0 +1,5 @@
+-- Local dev seed (01 §5). Runs on `pnpm db:reset`.
+--
+-- Empty at Phase 0 — there are no tables yet. From Phase 2 this seeds a test user
+-- and, from Phase 5, the golden-persona fixtures the generation suites read
+-- (15 §2). Never put anything resembling real user data here.

@@ -1,23 +1,23 @@
 # 14 — SECURITY & PRIVACY
 
-*Privacy is the brand (product doc 18 — "privacy failures are brand failures"). This doc turns product 18 into technical controls.*
+_Privacy is the brand (product doc 18 — "privacy failures are brand failures"). This doc turns product 18 into technical controls._
 
 ---
 
 ## 1. Security baseline
 
-| Control | Implementation |
-|---|---|
-| Transport | TLS everywhere (Supabase, backend, vendors) |
-| At rest | Supabase managed encryption (Postgres + Storage) |
-| AuthN | Supabase JWT; backend guard verifies on every route (03 §3) |
-| AuthZ | **RLS on every user table** (02 §5) — the primary boundary; backend service-role writes are pipeline-only |
-| Secrets | server/EAS env only; never in repo; `.env.example` names only (01 §6) |
-| Audio | private bucket + signed expiring URLs (1h), never public (10 §3) |
-| Rate limiting | per-user throttles on backend (04 §7); Supabase built-in auth limits |
-| Webhooks | shared-secret header check (07 §3) |
-| Dependencies | Dependabot + `pnpm audit` in CI |
-| Mobile secrets | none — mobile holds only public keys (anon key, PostHog, RC public key) |
+| Control        | Implementation                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------- |
+| Transport      | TLS everywhere (Supabase, backend, vendors)                                                               |
+| At rest        | Supabase managed encryption (Postgres + Storage)                                                          |
+| AuthN          | Supabase JWT; backend guard verifies on every route (03 §3)                                               |
+| AuthZ          | **RLS on every user table** (02 §5) — the primary boundary; backend service-role writes are pipeline-only |
+| Secrets        | server/EAS env only; never in repo; `.env.example` names only (01 §6)                                     |
+| Audio          | private bucket + signed expiring URLs (1h), never public (10 §3)                                          |
+| Rate limiting  | per-user throttles on backend (04 §7); Supabase built-in auth limits                                      |
+| Webhooks       | shared-secret header check (07 §3)                                                                        |
+| Dependencies   | Dependabot + `pnpm audit` in CI                                                                           |
+| Mobile secrets | none — mobile holds only public keys (anon key, PostHog, RC public key)                                   |
 
 ## 2. RLS policy catalog (verification list for 15 §6)
 
@@ -25,18 +25,19 @@ Per 02 §5: own-rows CRUD on `profiles, people, onboarding_answers, memory_items
 
 ## 3. Data minimization map (product 18 §1)
 
-| Data | Collected? | Where | Leaves the system? |
-|---|---|---|---|
-| Name, dream, people, struggle, free text | yes (product-essential) | Postgres | Only to LLM/TTS for that user's generation, under no-training terms (§8) |
-| Email | only at claim | Supabase Auth | no |
-| Age/gender/career | optional profile fields, never required | Postgres | no |
-| Location/contacts | **never** | — | — |
-| Analytics | structural metadata only (13 §2 — compile-time enforced) | PostHog | pseudonymous |
-| Ads/tracking SDKs | **never** (no ATT prompt needed) | — | — |
+| Data                                     | Collected?                                               | Where         | Leaves the system?                                                       |
+| ---------------------------------------- | -------------------------------------------------------- | ------------- | ------------------------------------------------------------------------ |
+| Name, dream, people, struggle, free text | yes (product-essential)                                  | Postgres      | Only to LLM/TTS for that user's generation, under no-training terms (§8) |
+| Email                                    | only at claim                                            | Supabase Auth | no                                                                       |
+| Age/gender/career                        | optional profile fields, never required                  | Postgres      | no                                                                       |
+| Location/contacts                        | **never**                                                | —             | —                                                                        |
+| Analytics                                | structural metadata only (13 §2 — compile-time enforced) | PostHog       | pseudonymous                                                             |
+| Ads/tracking SDKs                        | **never** (no ATT prompt needed)                         | —             | —                                                                        |
 
 ## 4. Sensitive-tier enforcement points (product 18 §5)
 
 The struggle + crisis-adjacent items are `tier=sensitive`. Technical guarantees:
+
 1. Prompt assembly injects sensitive items only into letter/moment **body** context (09 §4).
 2. QA gate strips sensitive tokens from titles/share surfaces (08 §5).
 3. Notification builder has no memory access at all (11 §3).
@@ -47,6 +48,7 @@ The struggle + crisis-adjacent items are `tier=sensitive`. Technical guarantees:
 ## 5. Crisis detection (resolves product 20-Q6)
 
 **Layered design:**
+
 1. **Keyword screen** (backend, deterministic): curated multilingual-ready list of self-harm/abuse/acute-distress terms + patterns; versioned in repo; conservative (high recall).
 2. **Classifier confirm:** keyword hit → cheap LLM yes/no classification with strict rubric (avoids false positives on e.g. "my job is killing me" idioms). Both steps < 2s.
 3. **Response:** endpoint 422 `crisis_support` → mobile shows product-18 copy ("Some things are heavier than an app should hold alone…") + region resources (config per launch region: US 988, UK/IE Samaritans, CA/AU lines); conversation never blocked; no generation on that theme; nothing stored in analytics; input itself is stored (it's the user's data) but flagged sensitive.
@@ -59,12 +61,12 @@ The struggle + crisis-adjacent items are `tier=sensitive`. Technical guarantees:
 
 ## 7. GDPR/CCPA rights mapping (product 18 §platform)
 
-| Right | Mechanism |
-|---|---|
-| Access | "What Aura Knows" (in-app, complete memory view) |
-| Rectification | Profile/memory editing |
-| Erasure | Per-item delete + full account deletion |
-| Portability | V1.1 "download my data" (flagged; schema-ready) |
+| Right             | Mechanism                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| Access            | "What Aura Knows" (in-app, complete memory view)                                               |
+| Rectification     | Profile/memory editing                                                                         |
+| Erasure           | Per-item delete + full account deletion                                                        |
+| Portability       | V1.1 "download my data" (flagged; schema-ready)                                                |
 | Objection/consent | Consent at S1 (ts stored); notification prefs; no marketing without opt-in (none exists at V1) |
 
 ## 8. Vendor compliance checklist (release gate)

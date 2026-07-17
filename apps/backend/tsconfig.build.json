@@ -1,0 +1,11 @@
+{
+  // `nest build` uses this file by default. Excluding tests keeps rootDir at ./src,
+  // so the entrypoint emits to dist/main.js — which is what `pnpm start` runs.
+  // The base tsconfig.json deliberately includes test/ so typecheck still covers it.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts"]
+}

@@ -1,16 +1,16 @@
 # 15 — TESTING STRATEGY
 
-*Test what protects the product: generation quality rules, privacy boundaries, money paths, and the wow funnel. Skip ceremony elsewhere.*
+_Test what protects the product: generation quality rules, privacy boundaries, money paths, and the wow funnel. Skip ceremony elsewhere._
 
 ---
 
 ## 1. Pyramid by workspace
 
-| Layer | Backend (`apps/backend`) | Mobile (`apps/mobile`) | Shared |
-|---|---|---|---|
-| Unit | Jest: QA gate, prompt builders, memory sampler, phrase harvester, crisis keyword screen, credit logic, cron window math | Jest + RTL: hooks, stores, copy catalog, karaoke word-index math, cache policy | zod contract schemas |
-| Integration | Nest testing module + Supabase local: pipeline with `MockLlm/MockTts`, webhook handlers, cron jobs | RTL component tests with mocked providers (screens render states: empty/loading/error/success per product 09) | contract tests (§4) |
-| E2E | supertest against running app + local Supabase + mock providers | **Maestro** flows on simulator (§3) | — |
+| Layer       | Backend (`apps/backend`)                                                                                                | Mobile (`apps/mobile`)                                                                                        | Shared               |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Unit        | Jest: QA gate, prompt builders, memory sampler, phrase harvester, crisis keyword screen, credit logic, cron window math | Jest + RTL: hooks, stores, copy catalog, karaoke word-index math, cache policy                                | zod contract schemas |
+| Integration | Nest testing module + Supabase local: pipeline with `MockLlm/MockTts`, webhook handlers, cron jobs                      | RTL component tests with mocked providers (screens render states: empty/loading/error/success per product 09) | contract tests (§4)  |
+| E2E         | supertest against running app + local Supabase + mock providers                                                         | **Maestro** flows on simulator (§3)                                                                           | —                    |
 
 ## 2. The highest-value suites (build first, never skip)
 
@@ -22,12 +22,12 @@
 
 ## 3. Maestro e2e critical paths (staging, mock providers where needed)
 
-| Flow | Asserts |
-|---|---|
+| Flow                                                                      | Asserts                                                                                                         |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Install → onboarding → letter → paywall → dismiss → Home** (the funnel) | resume-mid-flow, edit-guard, skip S10, letter plays with karaoke, paywall shows honest pricing, free tier lands |
-| Daily ritual | moment plays <300ms from cached, affirmation reveal, gratitude save offline→sync, done-state |
-| Purchase (sandbox) | annual purchase → claim sheet → entitlement unlocks Manifest |
-| Deletion | typed confirm → signed out → fresh onboarding |
+| Daily ritual                                                              | moment plays <300ms from cached, affirmation reveal, gratitude save offline→sync, done-state                    |
+| Purchase (sandbox)                                                        | annual purchase → claim sheet → entitlement unlocks Manifest                                                    |
+| Deletion                                                                  | typed confirm → signed out → fresh onboarding                                                                   |
 
 ## 4. Contract tests
 

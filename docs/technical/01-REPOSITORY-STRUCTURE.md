@@ -1,6 +1,6 @@
 # 01 — REPOSITORY STRUCTURE
 
-*Monorepo layout, tooling, and conventions. See 00 §D8 for the decision rationale.*
+_Monorepo layout, tooling, and conventions. See 00 §D8 for the decision rationale._
 
 ---
 
@@ -102,9 +102,11 @@ packages/shared/
 │   ├── contracts/                # zod schemas per endpoint (07-API-CONTRACTS)
 │   ├── events/                   # typed analytics event catalog (13)
 │   ├── constants/                # limits (manifest credits, refine cap), enums
-│   └── types/                    # DB row types (generated from Supabase), shared unions
+│   └── types/                    # database.types.ts (generated — see §5), shared unions
 └── package.json
 ```
+
+Built with `tsc` to `dist/` (CommonJS + declarations); consumers import the built output. Limits in `constants/` are **defaults** — the backend overrides them from env so they stay tunable without a redeploy (04 §6).
 
 Rule: **mobile and backend never define a request/response or event shape locally** — always import from `@aura/shared`. This is what keeps 07's contracts honest.
 
@@ -114,26 +116,27 @@ Rule: **mobile and backend never define a request/response or event shape locall
 supabase/
 ├── migrations/                   # timestamped SQL (schema + RLS in same migration)
 ├── seed.sql                      # local dev seed
-├── config.toml
-└── types/                        # `supabase gen types typescript` output → consumed by shared
+└── config.toml
 ```
 
-Migration workflow: write SQL migration → `supabase db reset` locally → regenerate types → CI applies to staging on merge, production on release (16).
+Migration workflow: write SQL migration → `supabase db reset` locally → `pnpm db:types` → CI applies to staging on merge, production on release (16).
+
+**Generated types location (Phase 0 decision).** `supabase gen types typescript` writes to `packages/shared/src/types/database.types.ts`, not a `supabase/types/` directory. `@aura/shared` is a compiled package (the NestJS backend consumes its `dist`, not its source — otherwise `tsc`'s `rootDir` rejects cross-package source imports), so anything it re-exports must live inside its own source tree. Keeping the generated file there also matches the §4 rule that row shapes reach both apps only via `@aura/shared`. The file is **committed** so CI can typecheck without booting Docker; it is regenerated, never hand-edited.
 
 ## 6. Environment variables
 
-| Name | Where | Notes |
-|---|---|---|
-| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile | Public by design; RLS is the boundary |
-| `EXPO_PUBLIC_API_URL` | mobile | Backend base URL per env |
-| `EXPO_PUBLIC_POSTHOG_KEY` | mobile | |
-| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | mobile | |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | backend | Service role never leaves server |
-| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL` | backend | Provider abstraction switch (08) |
-| `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` | backend | |
-| `REVENUECAT_WEBHOOK_AUTH` | backend | Shared secret header |
-| `POSTHOG_SERVER_KEY` | backend | |
-| `SENTRY_DSN_MOBILE` / `SENTRY_DSN_BACKEND` | each | |
+| Name                                                         | Where   | Notes                                 |
+| ------------------------------------------------------------ | ------- | ------------------------------------- |
+| `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` | mobile  | Public by design; RLS is the boundary |
+| `EXPO_PUBLIC_API_URL`                                        | mobile  | Backend base URL per env              |
+| `EXPO_PUBLIC_POSTHOG_KEY`                                    | mobile  |                                       |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY`                             | mobile  |                                       |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`                 | backend | Service role never leaves server      |
+| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_MODEL`                 | backend | Provider abstraction switch (08)      |
+| `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID`                 | backend |                                       |
+| `REVENUECAT_WEBHOOK_AUTH`                                    | backend | Shared secret header                  |
+| `POSTHOG_SERVER_KEY`                                         | backend |                                       |
+| `SENTRY_DSN_MOBILE` / `SENTRY_DSN_BACKEND`                   | each    |                                       |
 
 `.env.example` lists names + comments only. EAS secrets hold mobile values per profile; backend host holds server values (16).
 

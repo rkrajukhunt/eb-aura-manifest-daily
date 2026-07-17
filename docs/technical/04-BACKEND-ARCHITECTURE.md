@@ -1,6 +1,6 @@
 # 04 — BACKEND ARCHITECTURE (NestJS)
 
-*The thin backend (00 §D1). It owns exactly five things: AI generation, quality gating, scheduled jobs, webhooks, and push dispatch. Everything else belongs to Supabase.*
+_The thin backend (00 §D1). It owns exactly five things: AI generation, quality gating, scheduled jobs, webhooks, and push dispatch. Everything else belongs to Supabase._
 
 ---
 
@@ -60,6 +60,7 @@ queued → running → succeeded
               ↘ provider_error → retrying(≤2, backoff 2s/8s) → …
 retrying exhausted → failed
 ```
+
 - Worker model at V1: **in-process queue** (p-queue per artifact class with concurrency caps: letters 4, daily batch 8, ondemand 4). No Redis/BullMQ until scale demands it — the job table is the durable record; on boot, `running` jobs older than 5 min are re-queued. (Explicitly noted as the V1 simplicity choice; BullMQ is the upgrade path, slot documented in 16 §7.)
 - `error` column stores provider/QA codes only — **never user content**.
 
@@ -67,15 +68,15 @@ retrying exhausted → failed
 
 All crons are idempotent and timezone-aware (`profiles.timezone`).
 
-| Cron | Schedule | Action |
-|---|---|---|
-| `pregenerate-daily` | every 15 min | Users whose `arrival_time` (local) falls in [now+15m, now+30m) and `last_active_at` ≤ 7 days and no `ready` moment for today → enqueue daily generation. On success → schedule arrival push at `arrival_time`. |
-| `expire-temporary-memory` | hourly | `memory_items` tier=temporary past `expires_at` → delete or convert (09 §5) |
-| `milestone-letters` | daily per-tz | Users hitting D7 (V1; D30/D100 V1.1) → milestone generation + in-app arrival (full-screen next open), push at arrival time |
-| `trial-reminder` | daily | Trials converting in 2 days → honest reminder push (product 15 checklist #3) |
-| `winback-note` | daily | Lapsed +3 days → one free mini-moment + warm note; never repeats (product 06) |
-| `soften-notifications` | daily | `ignored_arrival_count ≥ 3` → set `softened`, drop to 3/week pattern (11 §5) |
-| `anon-sweep` | weekly | Anonymous users inactive >90 days → full wipe (03 §2.3) |
+| Cron                      | Schedule     | Action                                                                                                                                                                                                         |
+| ------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pregenerate-daily`       | every 15 min | Users whose `arrival_time` (local) falls in [now+15m, now+30m) and `last_active_at` ≤ 7 days and no `ready` moment for today → enqueue daily generation. On success → schedule arrival push at `arrival_time`. |
+| `expire-temporary-memory` | hourly       | `memory_items` tier=temporary past `expires_at` → delete or convert (09 §5)                                                                                                                                    |
+| `milestone-letters`       | daily per-tz | Users hitting D7 (V1; D30/D100 V1.1) → milestone generation + in-app arrival (full-screen next open), push at arrival time                                                                                     |
+| `trial-reminder`          | daily        | Trials converting in 2 days → honest reminder push (product 15 checklist #3)                                                                                                                                   |
+| `winback-note`            | daily        | Lapsed +3 days → one free mini-moment + warm note; never repeats (product 06)                                                                                                                                  |
+| `soften-notifications`    | daily        | `ignored_arrival_count ≥ 3` → set `softened`, drop to 3/week pattern (11 §5)                                                                                                                                   |
+| `anon-sweep`              | weekly       | Anonymous users inactive >90 days → full wipe (03 §2.3)                                                                                                                                                        |
 
 Cron runs are logged (`job`, `window`, `users_processed`, `failures`) for the generation-quality dashboard (13 §6).
 

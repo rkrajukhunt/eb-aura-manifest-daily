@@ -1,6 +1,6 @@
 # 05 — MOBILE ARCHITECTURE (Expo React Native)
 
-*Implements product docs 11 (IA), 12 (design system), 13 (motion & haptics). Navigation detail → 06. Stack: Expo (dev client + EAS), Expo Router, TanStack Query, Zustand.*
+_Implements product docs 11 (IA), 12 (design system), 13 (motion & haptics). Navigation detail → 06. Stack: Expo (dev client + EAS), Expo Router, TanStack Query, Zustand._
 
 ---
 
@@ -13,12 +13,12 @@
 
 ## 2. State management
 
-| Kind | Tool | Examples |
-|---|---|---|
-| Server state | **TanStack Query** over Supabase client + backend api client | profile, moments list, memory items, gratitude history, job polling |
-| Client state | **Zustand** (small stores) | player state (track, position, minimized), onboarding draft, app boot state |
-| Persistent local | **MMKV** | onboarding draft (resume — product 07), audio cache index, "seen" flags |
-| Entitlement | RevenueCat SDK (`useEntitlement` hook wraps listener) | gating everywhere |
+| Kind             | Tool                                                         | Examples                                                                    |
+| ---------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Server state     | **TanStack Query** over Supabase client + backend api client | profile, moments list, memory items, gratitude history, job polling         |
+| Client state     | **Zustand** (small stores)                                   | player state (track, position, minimized), onboarding draft, app boot state |
+| Persistent local | **MMKV**                                                     | onboarding draft (resume — product 07), audio cache index, "seen" flags     |
+| Entitlement      | RevenueCat SDK (`useEntitlement` hook wraps listener)        | gating everywhere                                                           |
 
 Rules: no server data in Zustand; TanStack Query keys namespaced per feature (`['moments','today']`); mutations optimistic where UX demands instant feel (gratitude save, favorite) with rollback + silent retry queue.
 
@@ -83,6 +83,7 @@ cold start → splash (static orb)
 → route: !onboarding_completed_at → (onboarding) : (tabs)/home
 → prefetch: today's moment (+audio), affirmation state, gratitude today
 ```
+
 Target cold start → interactive Home < 2s on iPhone 12; deep links (notification) bypass Home → player (06 §5).
 
 ## 10. Quality bars (release-blocking, product 12/13)

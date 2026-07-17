@@ -1,24 +1,24 @@
 # IMPLEMENTATION PLAN
 
-*Phased build plan for Aura V1. Each phase is sized for independent implementation by Claude Code. Statuses are updated as phases complete. Before implementing any phase: read PROJECT-KNOWLEDGE.md, this plan, the phase's referenced docs, and inspect the existing codebase. Never start the next phase without explicit approval.*
+_Phased build plan for Aura V1. Each phase is sized for independent implementation by Claude Code. Statuses are updated as phases complete. Before implementing any phase: read PROJECT-KNOWLEDGE.md, this plan, the phase's referenced docs, and inspect the existing codebase. Never start the next phase without explicit approval._
 
 **Status legend:** ⬜ not started · 🟨 in progress · ✅ done
 
-| # | Phase | Status |
-|---|---|---|
-| 0 | Repository & Development Foundation | ⬜ |
-| 1 | Design System & Mobile Foundation | ⬜ |
-| 2 | Supabase Auth & User Foundation | ⬜ |
-| 3 | Onboarding — "The Conversation" | ⬜ |
-| 4 | Living Memory & Profile | ⬜ |
-| 5 | AI Generation Backend | ⬜ |
-| 6 | Future-Self Letter — WOW | ⬜ |
-| 7 | Daily Moments & Audio Player | ⬜ |
-| 8 | Affirmations & Gratitude | ⬜ |
-| 9 | Notifications & Daily Habit Loop | ⬜ |
-| 10 | Subscriptions & Paywall | ⬜ |
-| 11 | Analytics & Experimentation | ⬜ |
-| 12 | Polish, Performance & App Store Readiness | ⬜ |
+| #   | Phase                                     | Status |
+| --- | ----------------------------------------- | ------ |
+| 0   | Repository & Development Foundation       | ✅     |
+| 1   | Design System & Mobile Foundation         | ⬜     |
+| 2   | Supabase Auth & User Foundation           | ⬜     |
+| 3   | Onboarding — "The Conversation"           | ⬜     |
+| 4   | Living Memory & Profile                   | ⬜     |
+| 5   | AI Generation Backend                     | ⬜     |
+| 6   | Future-Self Letter — WOW                  | ⬜     |
+| 7   | Daily Moments & Audio Player              | ⬜     |
+| 8   | Affirmations & Gratitude                  | ⬜     |
+| 9   | Notifications & Daily Habit Loop          | ⬜     |
+| 10  | Subscriptions & Paywall                   | ⬜     |
+| 11  | Analytics & Experimentation               | ⬜     |
+| 12  | Polish, Performance & App Store Readiness | ⬜     |
 
 ## Dependency graph
 
@@ -67,6 +67,25 @@ Rationale: Phase 10 (paywall) is pulled forward right after the Letter because t
 - **Tests:** CI green: unit test harness runs in all 3 workspaces (one trivial test each); health e2e (supertest).
 - **Edge cases:** Node/pnpm versions pinned; `.env.example` complete; fresh-clone bootstrap documented in README (one command to running local stack).
 - **Definition of Done:** Fresh clone → `pnpm i && pnpm dev` runs backend + local Supabase; Expo dev client builds and boots on simulator; CI passes; `01-REPOSITORY-STRUCTURE.md` matches reality.
+
+### Phase 0 — as built (2026-07-17)
+
+Versions: Expo SDK 57.0.7 · React Native 0.86 · NestJS 11 · Node 22.12.0 · pnpm 10.4.1 · Turborepo 2 · TypeScript 5.9.
+
+Decisions taken during implementation (each already reflected in the docs it touches):
+
+1. **Bundle id `com.aura.manifestdaily`** (founder, 2026-07-17). Variant suffixes `.dev`/`.staging` let all three builds coexist on one device. Brand stays isolated to `app.config.ts`.
+2. **`@aura/shared` is a compiled package**, and generated DB types live in `packages/shared/src/types/database.types.ts` rather than `supabase/types/` — `tsc`'s `rootDir` rejects cross-package source imports, so anything shared re-exports must sit inside its own tree. 01 §4/§5 updated.
+3. **TypeScript pinned to 5.9 monorepo-wide**, excluded from Expo's version check. Expo SDK 57 suggests TS 6, but `ts-jest@29` declares peer `>=4.3 <6` and `@nestjs/cli@11` pins 5.7.3 — one TS across all workspaces beats matching the suggestion. Revisit when ts-jest supports TS 6.
+4. **Health probes are real, not stubbed.** `db`/`storage` hit Supabase over HTTP since `SupabaseModule` doesn't exist until Phase 2. **Phase 2 should swap them for the injected service-role client** (a real query beats a gateway 200) and must mark `/v1/health` public when the global auth guard lands — otherwise the host health check reads 401 as "down".
+5. **Anonymous sign-in + manual linking enabled** in `supabase/config.toml` now (00 §D2, 03 §2.2) so the auth model is identical in every environment from day one.
+
+Known gaps, deliberately deferred:
+
+- **EAS project not initialised** — `eas.json` profiles exist but `eas init` needs the founder's Expo account; `extra.eas.projectId` reads from `EAS_PROJECT_ID`. `submit.production` carries `TODO_PHASE_10` placeholders (needs App Store Connect).
+- **`migrate-staging.yml` / `release.yml` not written** (01 §7) — they need real staging/production projects; they belong with Phase 12 deployment.
+- **Simulator boot unverified** — built on Linux, so `expo run:ios` was never executed. The iOS bundle exports cleanly (Hermes, 3.8MB), which proves the module graph resolves, but _founder must confirm the dev client boots on a simulator_ to close the DoD.
+- No app icon or splash asset yet (Phase 12).
 
 ## Phase 1 — Design System & Mobile Foundation
 

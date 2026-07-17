@@ -1,0 +1,14 @@
+{
+  "extends": "@aura/config/tsconfig/node.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "rootDir": "./",
+    "outDir": "./dist"
+    // No `paths` for @aura/shared on purpose: it resolves through the pnpm
+    // workspace link to packages/shared/dist. Pointing at its source would drag
+    // those files into this program and break rootDir. Turbo's `^build` ordering
+    // guarantees dist exists first.
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,4 @@
+{
+  "//": "No eslint here — this package IS the eslint config and has none of its own.",
+  "*.{js,json}": ["prettier --write"]
+}

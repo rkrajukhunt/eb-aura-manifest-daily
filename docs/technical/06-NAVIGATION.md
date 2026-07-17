@@ -1,6 +1,6 @@
 # 06 — NAVIGATION (Expo Router)
 
-*Implements product doc 11 (Information Architecture) exactly: four tabs, sheets for input, covers for moments, no hamburgers, no "More" tab.*
+_Implements product doc 11 (Information Architecture) exactly: four tabs, sheets for input, covers for moments, no hamburgers, no "More" tab._
 
 ---
 
@@ -34,12 +34,12 @@ app/
 
 ## 2. Presentation rules (product 11)
 
-| Pattern | Used for | Mechanism |
-|---|---|---|
-| Push (interactive back-swipe) | drill-ins: collections, history, What Aura Knows, settings | native-stack default |
-| **Full-screen cover, no chrome** | Letter, milestone letters, anniversary echo, player, first paywall | `presentation: 'fullScreenModal'`; tab bar + status distractions suppressed |
-| **Bottom sheet (detents)** | Manifest Anything input · Refine · Guided affirmation flow (multi-step) · Share preview · Add/edit person · Add lifestyle tag · Edit-guard · Locked-feature (free tier) · Notification prefs · Claim-account | `@gorhom/bottom-sheet` wrapped by design-system `Sheet` (medium/large detents, grabber, 40% dim) |
-| Mini-player | audio continuity | persistent bar rendered in `(tabs)/_layout` above TabBar while player minimized; tap → re-cover |
+| Pattern                          | Used for                                                                                                                                                                                                     | Mechanism                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Push (interactive back-swipe)    | drill-ins: collections, history, What Aura Knows, settings                                                                                                                                                   | native-stack default                                                                             |
+| **Full-screen cover, no chrome** | Letter, milestone letters, anniversary echo, player, first paywall                                                                                                                                           | `presentation: 'fullScreenModal'`; tab bar + status distractions suppressed                      |
+| **Bottom sheet (detents)**       | Manifest Anything input · Refine · Guided affirmation flow (multi-step) · Share preview · Add/edit person · Add lifestyle tag · Edit-guard · Locked-feature (free tier) · Notification prefs · Claim-account | `@gorhom/bottom-sheet` wrapped by design-system `Sheet` (medium/large detents, grabber, 40% dim) |
+| Mini-player                      | audio continuity                                                                                                                                                                                             | persistent bar rendered in `(tabs)/_layout` above TabBar while player minimized; tap → re-cover  |
 
 ## 3. Gating logic (root `_layout`)
 
@@ -50,6 +50,7 @@ letter generated, unseen   → /letter
 letter seen, paywall unseen→ /paywall   (once — dismiss → free tier, flag stored)
 else                       → (tabs)/home
 ```
+
 State restoration: the gate re-derives from `profiles` + local flags, so the app always reopens where the ritual left off (product 11).
 
 ## 4. Onboarding stack behavior (product 07)
@@ -63,13 +64,13 @@ State restoration: the gate re-derives from `profiles` + local flags, so the app
 
 Scheme `aura://` + universal links (assoc. domain when site exists).
 
-| Link | Target | Source |
-|---|---|---|
-| `aura://moment/{id}` | `/player?momentId=` (bypasses Home; one tap to value) | arrival notification |
-| `aura://letter/{id}` | `/letter?momentId=` | milestone notification |
-| `aura://affirmation/today` | `(tabs)/affirmations` | affirmation nudge |
-| `aura://auth/callback#…` | `/auth/callback` | magic link |
-Cold-start deep links resolve after boot gate (§3) — link is honored post-gate unless onboarding is incomplete (then it queues to Home after completion; a notification can't skip the wow funnel).
+| Link                                                                                                                                                                                                | Target                                                | Source                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------- |
+| `aura://moment/{id}`                                                                                                                                                                                | `/player?momentId=` (bypasses Home; one tap to value) | arrival notification   |
+| `aura://letter/{id}`                                                                                                                                                                                | `/letter?momentId=`                                   | milestone notification |
+| `aura://affirmation/today`                                                                                                                                                                          | `(tabs)/affirmations`                                 | affirmation nudge      |
+| `aura://auth/callback#…`                                                                                                                                                                            | `/auth/callback`                                      | magic link             |
+| Cold-start deep links resolve after boot gate (§3) — link is honored post-gate unless onboarding is incomplete (then it queues to Home after completion; a notification can't skip the wow funnel). |
 
 ## 6. Tab bar
 

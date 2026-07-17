@@ -1,19 +1,19 @@
 # 16 — DEPLOYMENT & OPERATIONS
 
-*Environments, CI/CD, release process, monitoring. Repo/CI file layout → 01 §7.*
+_Environments, CI/CD, release process, monitoring. Repo/CI file layout → 01 §7._
 
 ---
 
 ## 1. Environments (00 §5)
 
-| | local | staging | production |
-|---|---|---|---|
-| Supabase | CLI (Docker) | project `aura-staging` | project `aura-prod` |
-| Backend | `pnpm dev` | Railway service (staging env) | Railway service (prod env) |
-| Mobile | Expo dev client, sim/device | TestFlight internal, EAS profile `staging` | App Store, EAS profile `production` |
-| LLM/TTS | `mock` providers | real keys (test tier) | real keys (no-retention prod accounts) |
-| RevenueCat | — | sandbox project | prod project |
-| PostHog | disabled (or local no-op) | staging project | prod project |
+|            | local                       | staging                                    | production                             |
+| ---------- | --------------------------- | ------------------------------------------ | -------------------------------------- |
+| Supabase   | CLI (Docker)                | project `aura-staging`                     | project `aura-prod`                    |
+| Backend    | `pnpm dev`                  | Railway service (staging env)              | Railway service (prod env)             |
+| Mobile     | Expo dev client, sim/device | TestFlight internal, EAS profile `staging` | App Store, EAS profile `production`    |
+| LLM/TTS    | `mock` providers            | real keys (test tier)                      | real keys (no-retention prod accounts) |
+| RevenueCat | —                           | sandbox project                            | prod project                           |
+| PostHog    | disabled (or local no-op)   | staging project                            | prod project                           |
 
 Region: Supabase + Railway co-located `us-east` (US-first market, product 02).
 
@@ -22,7 +22,7 @@ Region: Supabase + Railway co-located `us-east` (US-first market, product 02).
 - Source of truth: `supabase/migrations/*.sql` (schema + RLS together, 01 §5).
 - Local: `supabase db reset` + regenerate types → commit.
 - **Staging:** applied by CI on merge to `main` (`supabase db push` with staging access token).
-- **Production:** applied by the release workflow (tag) *before* backend deploy; migrations must be backward-compatible with the previous backend (expand-migrate-contract discipline for breaking shape changes).
+- **Production:** applied by the release workflow (tag) _before_ backend deploy; migrations must be backward-compatible with the previous backend (expand-migrate-contract discipline for breaking shape changes).
 
 ## 3. Mobile releases (EAS)
 
@@ -51,16 +51,16 @@ Region: Supabase + Railway co-located `us-east` (US-first market, product 02).
 
 ## 6. Monitoring & alerting
 
-| Signal | Tool | Alert threshold |
-|---|---|---|
-| Crashes (mobile) | Sentry RN | new-issue spike |
-| Backend errors + traces | Sentry Node | error rate >1% of requests |
-| Generation failures | PostHog `generation_failed` + Sentry | >3% of jobs/hour |
-| **QA flags / never-include leak** | PostHog `generation_qa_flagged` | leak = page immediately (P1, product 18) |
-| Latency | pipeline `latency_ms` p90 | letter >40s p90 sustained |
-| Uptime | Railway health checks + external ping on `/v1/health` | down >2 min |
-| Cron health | cron run logs (04 §5) | pre-generation window with 0 processed while eligible users exist |
-| Cost | vendor dashboards (LLM/TTS spend) | weekly review; alert at 2× forecast |
+| Signal                            | Tool                                                  | Alert threshold                                                   |
+| --------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------- |
+| Crashes (mobile)                  | Sentry RN                                             | new-issue spike                                                   |
+| Backend errors + traces           | Sentry Node                                           | error rate >1% of requests                                        |
+| Generation failures               | PostHog `generation_failed` + Sentry                  | >3% of jobs/hour                                                  |
+| **QA flags / never-include leak** | PostHog `generation_qa_flagged`                       | leak = page immediately (P1, product 18)                          |
+| Latency                           | pipeline `latency_ms` p90                             | letter >40s p90 sustained                                         |
+| Uptime                            | Railway health checks + external ping on `/v1/health` | down >2 min                                                       |
+| Cron health                       | cron run logs (04 §5)                                 | pre-generation window with 0 processed while eligible users exist |
+| Cost                              | vendor dashboards (LLM/TTS spend)                     | weekly review; alert at 2× forecast                               |
 
 ## 7. Documented upgrade paths (build when needed, not before)
 

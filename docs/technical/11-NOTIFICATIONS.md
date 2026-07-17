@@ -1,6 +1,6 @@
 # 11 — NOTIFICATIONS
 
-*The companion's voice outside the app. Implements product docs 09 §9.6, 16 §notification policy, 07 §S11. Hard rules: name-first, in-voice, zero guilt, sensitive-tier never appears, auto-soften on ignore.*
+_The companion's voice outside the app. Implements product docs 09 §9.6, 16 §notification policy, 07 §S11. Hard rules: name-first, in-voice, zero guilt, sensitive-tier never appears, auto-soften on ignore._
 
 ---
 
@@ -17,13 +17,13 @@
 
 ## 3. Notification catalog
 
-| Type | Timing | Copy pattern (from `copy` catalog, product 14 rules) | Payload deep link |
-|---|---|---|---|
-| Moment arrival | `arrival_time` (after pre-gen success) | "{name} — this morning's is about {title-derived theme}." | `aura://moment/{id}` |
-| Affirmation nudge (opt-in) | per `notification_prefs` | "{name} — today's words are waiting." | `aura://affirmation/today` |
-| D7 milestone | arrival time on day 7 | "{name} — I wrote you something. It's been a week." | `aura://letter/{id}` |
-| Trial reminder | trial day 5 | "Your trial converts in 2 days — keep or cancel, both fine." (honesty rule, product 15 §checklist 3) | settings/subscription |
-| Win-back note | lapse +3 days, once | warm, references dream area only | `aura://moment/{id}` |
+| Type                       | Timing                                 | Copy pattern (from `copy` catalog, product 14 rules)                                                 | Payload deep link          |
+| -------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------- |
+| Moment arrival             | `arrival_time` (after pre-gen success) | "{name} — this morning's is about {title-derived theme}."                                            | `aura://moment/{id}`       |
+| Affirmation nudge (opt-in) | per `notification_prefs`               | "{name} — today's words are waiting."                                                                | `aura://affirmation/today` |
+| D7 milestone               | arrival time on day 7                  | "{name} — I wrote you something. It's been a week."                                                  | `aura://letter/{id}`       |
+| Trial reminder             | trial day 5                            | "Your trial converts in 2 days — keep or cancel, both fine." (honesty rule, product 15 §checklist 3) | settings/subscription      |
+| Win-back note              | lapse +3 days, once                    | warm, references dream area only                                                                     | `aura://moment/{id}`       |
 
 **Copy safety invariants:** copy assembled ONLY from `name` + moment `title` (QA-guaranteed sensitive-free, 08 §5) + fixed in-voice templates. The notification builder has no access to memory items or free text — enforced by module boundary (09 §5). Banned-phrase lint applies to templates (15 §5). No notification exists purely to reopen the app (product 09 hard rule) — every send maps to real new content or a billing fact.
 

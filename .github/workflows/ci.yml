@@ -1,0 +1,76 @@
+name: CI
+
+# 01 §7: every PR runs lint + typecheck + test, backend build, expo-doctor.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A new push supersedes an in-flight run on the same ref.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Providers are `mock` in CI: no vendor keys, no network, no spend (04 §6, 15).
+  LLM_PROVIDER: mock
+  TTS_PROVIDER: mock
+
+jobs:
+  verify:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm turbo lint
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Test
+        run: pnpm turbo test
+
+      - name: Build
+        run: pnpm turbo build
+
+  mobile-doctor:
+    name: expo-doctor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: expo-doctor
+        working-directory: apps/mobile
+        # expo-doctor reads app.config.ts, which imports src/lib/env — so the
+        # public vars must be present. Values are fake; nothing is contacted.
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:3000
+        run: npx -y expo-doctor@latest

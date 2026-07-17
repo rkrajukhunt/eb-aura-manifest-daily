@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Aura Node (NestJS)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "lib": ["ES2023"],
+    "types": ["node", "jest"],
+
+    // NestJS DI reads parameter types at runtime from these.
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    // Nest's DI + decorator patterns are not single-file transpilable.
+    "isolatedModules": false,
+
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": true
+  }
+}

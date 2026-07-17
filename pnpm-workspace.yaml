@@ -1,0 +1,6 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Note: `onlyBuiltDependencies` lives in the root package.json under "pnpm" —
+# pnpm 10.4 does not read it from this file.

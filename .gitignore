@@ -1,2 +1,40 @@
 .claude/settings.local.json
 .DS_Store
+
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# env — names are documented in .env.example; values never land in git
+.env
+.env.*
+!.env.example
+
+# expo
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# test / coverage
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
