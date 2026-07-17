@@ -28,12 +28,20 @@ export const envSchema = z
     // `mock` powers local dev and CI: no network, no spend (04 §6, 15).
     LLM_PROVIDER: z.enum(['openai', 'anthropic', 'mock']).default('mock'),
     LLM_API_KEY: z.string().optional(),
-    /** Exact model id is pinned by the Phase 5 bake-off (08 §2). */
-    LLM_MODEL: z.string().optional(),
+    LLM_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
+    /**
+     * Per-tier model ids (08 §2). Pinned by the Phase 5 bake-off; the generation
+     * layer maps artifact → tier → id. Defaults are placeholders the founder
+     * confirms after the bake-off — kept as env so no redeploy is needed.
+     */
+    LLM_MODEL_FLAGSHIP: z.string().default('gpt-4.1'),
+    LLM_MODEL_MID: z.string().default('gpt-4.1-mini'),
+    LLM_MODEL_MINI: z.string().default('gpt-4.1-nano'),
 
     TTS_PROVIDER: z.enum(['elevenlabs', 'mock']).default('mock'),
     ELEVENLABS_API_KEY: z.string().optional(),
     ELEVENLABS_VOICE_ID: z.string().optional(),
+    ELEVENLABS_MODEL: z.string().default('eleven_multilingual_v2'),
 
     // ─── Third party ────────────────────────────────────────────────────
     REVENUECAT_WEBHOOK_AUTH: z.string().optional(),

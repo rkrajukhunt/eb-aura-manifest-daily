@@ -57,6 +57,42 @@ export type OnboardingScreenId =
 
 export type OnboardingAnswerType = 'text' | 'choice' | 'multi_choice' | 'people' | 'time' | 'none';
 
+/** The eight artifacts (mirrors JobArtifact in contracts/generation). */
+export type JobArtifactName =
+  | 'letter'
+  | 'daily'
+  | 'ondemand'
+  | 'refine'
+  | 'affirmation_daily'
+  | 'affirmation_guided'
+  | 'milestone'
+  | 'winback';
+
+/**
+ * Why a generation failed — a code, never content. `crisis` is deliberately
+ * ABSENT: the crisis path is an uncounted, non-stigmatizing metric (08 §8), so
+ * it must not be expressible as a failure reason here.
+ */
+export type GenerationFailureReason =
+  | 'provider_timeout'
+  | 'provider_error'
+  | 'qa_failed'
+  | 'malformed_output'
+  | 'tts_failed'
+  | 'storage_failed'
+  | 'internal';
+
+/** The eight QA rules (08 §5). */
+export type QaRule =
+  | 'verbatim_tokens'
+  | 'name_first'
+  | 'banned_phrases'
+  | 'never_include'
+  | 'length'
+  | 'negative_frame'
+  | 'sensitive_title'
+  | 'date_close';
+
 /**
  * Super properties attached to every event (13 §2, product 17).
  * `user_pseudo_id` is the PostHog distinct id (Supabase uuid — pseudonymous).
@@ -113,6 +149,19 @@ export interface EventCatalog {
   never_include_added: Record<string, never>;
   /** Mobile. Deduped per session (13 §5 flood control). */
   what_aura_knows_viewed: Record<string, never>;
+
+  // ─── Generation (Phase 5, backend-emitted, 13 §3) ──────────────────────
+  // Structural metadata only — never a token of what was generated (13 §2).
+  /** Backend. */
+  letter_generation_started: Record<string, never>;
+  /** Backend. */
+  letter_generation_succeeded: { latency_s: number };
+  /** Backend. `reason` is a code, never user content. */
+  letter_generation_failed: { reason: GenerationFailureReason };
+  /** Backend. Any artifact. */
+  generation_failed: { surface: JobArtifactName; reason: GenerationFailureReason };
+  /** Backend. One per QA rule that tripped (08 §5). */
+  generation_qa_flagged: { rule: QaRule };
 }
 
 export type EventName = keyof EventCatalog;

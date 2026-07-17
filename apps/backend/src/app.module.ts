@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AccountModule } from './account/account.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
+import { GenerationModule } from './generation/generation.module';
 import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { buildLoggerConfig } from './observability/logger.config';
@@ -47,6 +48,7 @@ import { SupabaseModule } from './supabase/supabase.module';
     ProvidersModule,
     HealthModule,
     AccountModule,
+    GenerationModule,
   ],
 })
 export class AppModule {}

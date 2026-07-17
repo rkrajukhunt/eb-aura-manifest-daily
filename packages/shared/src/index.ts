@@ -8,6 +8,7 @@
 // Contracts (07)
 export * from './contracts/health';
 export * from './contracts/errors';
+export * from './contracts/generation';
 
 // Analytics catalog (13, product 17)
 export * from './events/types';

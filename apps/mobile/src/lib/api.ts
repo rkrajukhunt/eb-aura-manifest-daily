@@ -1,4 +1,10 @@
-import { apiErrorSchema, healthResponseSchema, type ApiErrorKey } from '@aura/shared';
+import {
+  apiErrorSchema,
+  healthResponseSchema,
+  jobAcceptedSchema,
+  jobStatusResponseSchema,
+  type ApiErrorKey,
+} from '@aura/shared';
 import type { z } from 'zod';
 
 import { env } from './env';
@@ -100,4 +106,21 @@ async function parse<TSchema extends z.ZodTypeAny>(
 
 export const api = {
   health: () => request({ path: '/v1/health', schema: healthResponseSchema, authenticated: false }),
+
+  /**
+   * Requests the Letter (07 §1). Idempotency-Key makes a retry safe — a dropped
+   * response must never spawn a second letter.
+   */
+  requestLetter: (idempotencyKey: string) =>
+    request({
+      path: '/v1/generation/letter',
+      method: 'POST',
+      body: {},
+      idempotencyKey,
+      schema: jobAcceptedSchema,
+    }),
+
+  /** Polls a generation job (04 §2 — mobile polls at 1.5s). */
+  jobStatus: (jobId: string) =>
+    request({ path: `/v1/generation/jobs/${jobId}`, schema: jobStatusResponseSchema }),
 };

@@ -10,6 +10,17 @@ export interface LlmGenerateRequest {
   prompt: string;
   maxTokens: number;
   timeoutMs: number;
+  /**
+   * Exact model id for this call (08 §2 tiering). The generation layer resolves
+   * artifact → tier → env id and passes it; the adapter stays dumb about tiers.
+   * Omitted for `ping`, where the adapter uses its cheapest default.
+   */
+  model?: string;
+  /**
+   * Ask the provider to return strict JSON (08 §3). Adapters that support a
+   * response-format flag use it; the pipeline parses defensively regardless.
+   */
+  json?: boolean;
 }
 
 export interface LlmGenerateResponse {

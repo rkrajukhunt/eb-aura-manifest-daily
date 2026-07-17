@@ -11,7 +11,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 2   | Supabase Auth & User Foundation           | ✅     |
 | 3   | Onboarding — "The Conversation"           | 🟨     |
 | 4   | Living Memory & Profile                   | 🟨     |
-| 5   | AI Generation Backend                     | ⬜     |
+| 5   | AI Generation Backend                     | 🟨     |
 | 6   | Future-Self Letter — WOW                  | ⬜     |
 | 7   | Daily Moments & Audio Player              | ⬜     |
 | 8   | Affirmations & Gratitude                  | ⬜     |
@@ -266,6 +266,26 @@ The deferred UI landed once Phase 1's design system existed: Profile tab (basics
 - **Tests:** THE core suites (15 §2): QA gate exhaustive, prompt builders, memory sampler, crisis screen, job state machine (retry/idempotency), pipeline integration with mocks, golden tests scaffold (20 personas); RLS for new tables.
 - **Edge cases:** Provider timeout/500 (retry then fail gracefully); QA double-fail fallback; malformed LLM JSON (defensive parse + one retry); TTS failure after LLM success (retry TTS only); crisis input on letter path (letter generated WITHOUT struggle theme + supportive flag returned); Storage upload failure (job retry).
 - **Definition of Done:** `POST /v1/generation/letter` for a seeded test user yields a `ready` moment with QA-passing text, mp3 in Storage, word timings; all required test suites green; latency <40s p90 against real vendors in staging; vendor no-retention terms verified (14 §8 items for LLM/TTS checked).
+
+### Phase 5 — as built (2026-07-18) — 🟨 pipeline proven on mock; unit suites + vendor bake-off pending
+
+Tests were deferred this phase by the founder — the pipeline was proven end-to-end instead by driving it against the live local stack (see below).
+
+**Built:** schema (moments, affirmations, generation_jobs, usage_credits) with the engagement-column GRANT rule (a user can set `favorited_at` but CANNOT overwrite `body` — verified at the DB); private `audio` bucket + its own-folder RLS; the `expire-temporary-memory` pg_cron activated. Fetch-based OpenAI + ElevenLabs adapters (no SDK deps) behind the existing interfaces, per-tier model ids in env (08 §2). `MemoryContextService` (09 §4 sampler: recency×weight×novelty, sensitive only for body artifacts, inactive-people filtered, cadence directives computed here). Eight versioned prompt builders sharing the voice constitution (cache-friendly stable prefix). The 8-rule `QaService` and the two-layer `CrisisDetectionService` (keyword screen → LLM classifier confirm, fail-safe toward support). `JobsService` state machine: in-process concurrency queues (hand-rolled — p-queue is ESM-only, the jose trap again), idempotency, QA-retry (1) vs provider-retry (2s/8s) lanes, boot re-queue of stale `running` jobs. `POST /v1/generation/letter` (one-per-user, 202+job) and `GET /jobs/:id`. Mobile: zod api client + `useGenerationJob` polling hook. Backend AnalyticsModule now emits the generation events.
+
+**Proven end-to-end against the live stack (mock providers):**
+
+- Seeded user → `POST /letter` → job succeeded on attempt 1 → `ready` moment with name-first body, dream city woven in, all 8 QA rules passed, mp3 in Storage, 149 word timings, `qa_report` stamped with prompt version.
+- Crisis-on-letter edge: a struggle containing a crisis phrase → letter still generated, `supportive:true`, and the phrase did NOT leak into the body (14 §5, the plan's edge case).
+
+**Two real bugs the live run caught (a unit test written to the same assumption would have missed both):**
+
+1. **QA date-close was too strict** — it checked only the literal last sentence, but product 08's own canonical close ("…on a Friday in July. I remember. Keep going.") puts the date line third-from-last. Now scans the closing region (last 3 sentences).
+2. **The mock LLM returned plain text, not JSON** — so the pipeline could never reach `ready` locally, making the whole flow unrunnable and untestable. The mock now harvests the prompt's context tokens and returns QA-passing JSON (its whole purpose under 04 §6).
+
+**Decisions:** LLM interface gained `model` (tier resolution) + `json` (response-format) fields — kept the adapter dumb about tiers. Only the Letter endpoint is live; moment/manifest/refine/affirmation are Phases 7/8 and simply absent (a 404 is honest; a 501 stub would over-promise this controller).
+
+**Not done — deferred:** the core unit suites (QA exhaustive, prompt builders, memory sampler, crisis screen, job state machine, RLS for the 4 new tables, golden 20-persona tests) — 15 §2's highest-value tests, explicitly deferred this phase and owed before this phase is ✅. The OpenAI model-tier bake-off (08 §2) and the vendor no-retention verification (14 §8) are founder/staging items. No real vendor call has been made — only mock.
 
 ## Phase 6 — Future-Self Letter — WOW
 

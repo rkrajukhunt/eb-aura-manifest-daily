@@ -28,6 +28,57 @@ export type Database = {
   };
   public: {
     Tables: {
+      affirmations: {
+        Row: {
+          created_at: string;
+          feeling: string | null;
+          goal_area: string | null;
+          id: string;
+          kind: Database['public']['Enums']['affirmation_kind'];
+          revealed_at: string | null;
+          saved_at: string | null;
+          status: Database['public']['Enums']['affirmation_status'];
+          technique: string | null;
+          text: string;
+          tone: string | null;
+          updated_at: string;
+          user_id: string;
+          why_line: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          feeling?: string | null;
+          goal_area?: string | null;
+          id?: string;
+          kind: Database['public']['Enums']['affirmation_kind'];
+          revealed_at?: string | null;
+          saved_at?: string | null;
+          status?: Database['public']['Enums']['affirmation_status'];
+          technique?: string | null;
+          text: string;
+          tone?: string | null;
+          updated_at?: string;
+          user_id: string;
+          why_line?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          feeling?: string | null;
+          goal_area?: string | null;
+          id?: string;
+          kind?: Database['public']['Enums']['affirmation_kind'];
+          revealed_at?: string | null;
+          saved_at?: string | null;
+          status?: Database['public']['Enums']['affirmation_status'];
+          technique?: string | null;
+          text?: string;
+          tone?: string | null;
+          updated_at?: string;
+          user_id?: string;
+          why_line?: string | null;
+        };
+        Relationships: [];
+      };
       exact_phrases: {
         Row: {
           created_at: string;
@@ -65,6 +116,56 @@ export type Database = {
             columns: ['memory_item_id'];
             isOneToOne: false;
             referencedRelation: 'memory_items';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      generation_jobs: {
+        Row: {
+          artifact: Database['public']['Enums']['job_artifact'];
+          attempt: number;
+          created_at: string;
+          error: string | null;
+          finished_at: string | null;
+          id: string;
+          idempotency_key: string | null;
+          latency_ms: number | null;
+          moment_id: string | null;
+          status: Database['public']['Enums']['job_status'];
+          user_id: string;
+        };
+        Insert: {
+          artifact: Database['public']['Enums']['job_artifact'];
+          attempt?: number;
+          created_at?: string;
+          error?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          idempotency_key?: string | null;
+          latency_ms?: number | null;
+          moment_id?: string | null;
+          status?: Database['public']['Enums']['job_status'];
+          user_id: string;
+        };
+        Update: {
+          artifact?: Database['public']['Enums']['job_artifact'];
+          attempt?: number;
+          created_at?: string;
+          error?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          idempotency_key?: string | null;
+          latency_ms?: number | null;
+          moment_id?: string | null;
+          status?: Database['public']['Enums']['job_status'];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'generation_jobs_moment_id_fkey';
+            columns: ['moment_id'];
+            isOneToOne: false;
+            referencedRelation: 'moments';
             referencedColumns: ['id'];
           },
         ];
@@ -125,6 +226,80 @@ export type Database = {
           verbatim?: string | null;
         };
         Relationships: [];
+      };
+      moments: {
+        Row: {
+          audio_path: string | null;
+          body: string | null;
+          completed_at: string | null;
+          created_at: string;
+          desire_text: string | null;
+          duration_ms: number | null;
+          favorited_at: string | null;
+          id: string;
+          milestone_day: number | null;
+          played_at: string | null;
+          qa_report: Json | null;
+          refine_of: string | null;
+          scheduled_for: string | null;
+          status: Database['public']['Enums']['moment_status'];
+          title: string | null;
+          type: Database['public']['Enums']['moment_type'];
+          updated_at: string;
+          user_id: string;
+          word_timings: Json | null;
+        };
+        Insert: {
+          audio_path?: string | null;
+          body?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          desire_text?: string | null;
+          duration_ms?: number | null;
+          favorited_at?: string | null;
+          id?: string;
+          milestone_day?: number | null;
+          played_at?: string | null;
+          qa_report?: Json | null;
+          refine_of?: string | null;
+          scheduled_for?: string | null;
+          status?: Database['public']['Enums']['moment_status'];
+          title?: string | null;
+          type: Database['public']['Enums']['moment_type'];
+          updated_at?: string;
+          user_id: string;
+          word_timings?: Json | null;
+        };
+        Update: {
+          audio_path?: string | null;
+          body?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          desire_text?: string | null;
+          duration_ms?: number | null;
+          favorited_at?: string | null;
+          id?: string;
+          milestone_day?: number | null;
+          played_at?: string | null;
+          qa_report?: Json | null;
+          refine_of?: string | null;
+          scheduled_for?: string | null;
+          status?: Database['public']['Enums']['moment_status'];
+          title?: string | null;
+          type?: Database['public']['Enums']['moment_type'];
+          updated_at?: string;
+          user_id?: string;
+          word_timings?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'moments_refine_of_fkey';
+            columns: ['refine_of'];
+            isOneToOne: false;
+            referencedRelation: 'moments';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       never_include: {
         Row: {
@@ -264,6 +439,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      usage_credits: {
+        Row: {
+          manifest_used: number;
+          user_id: string;
+          week_start: string;
+        };
+        Insert: {
+          manifest_used?: number;
+          user_id: string;
+          week_start: string;
+        };
+        Update: {
+          manifest_used?: number;
+          user_id?: string;
+          week_start?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -272,6 +465,18 @@ export type Database = {
       expire_temporary_memory: { Args: never; Returns: number };
     };
     Enums: {
+      affirmation_kind: 'daily' | 'guided';
+      affirmation_status: 'candidate' | 'kept';
+      job_artifact:
+        | 'letter'
+        | 'daily'
+        | 'ondemand'
+        | 'refine'
+        | 'affirmation_daily'
+        | 'affirmation_guided'
+        | 'milestone'
+        | 'winback';
+      job_status: 'queued' | 'running' | 'qa_failed' | 'retrying' | 'succeeded' | 'failed';
       memory_category:
         | 'identity'
         | 'dream'
@@ -285,6 +490,8 @@ export type Database = {
         | 'temp_context';
       memory_source: 'onboarding' | 'gratitude' | 'refine' | 'manifest' | 'profile_edit' | 'system';
       memory_tier: 'permanent' | 'evolving' | 'temporary' | 'sensitive';
+      moment_status: 'forming' | 'generating' | 'ready' | 'failed' | 'replaced';
+      moment_type: 'letter' | 'daily' | 'ondemand' | 'milestone' | 'winback';
       work_feeling: 'love_it' | 'fine_for_now' | 'ready_for_new' | 'building_side';
     };
     CompositeTypes: {
@@ -410,6 +617,19 @@ export const Constants = {
   },
   public: {
     Enums: {
+      affirmation_kind: ['daily', 'guided'],
+      affirmation_status: ['candidate', 'kept'],
+      job_artifact: [
+        'letter',
+        'daily',
+        'ondemand',
+        'refine',
+        'affirmation_daily',
+        'affirmation_guided',
+        'milestone',
+        'winback',
+      ],
+      job_status: ['queued', 'running', 'qa_failed', 'retrying', 'succeeded', 'failed'],
       memory_category: [
         'identity',
         'dream',
@@ -424,6 +644,8 @@ export const Constants = {
       ],
       memory_source: ['onboarding', 'gratitude', 'refine', 'manifest', 'profile_edit', 'system'],
       memory_tier: ['permanent', 'evolving', 'temporary', 'sensitive'],
+      moment_status: ['forming', 'generating', 'ready', 'failed', 'replaced'],
+      moment_type: ['letter', 'daily', 'ondemand', 'milestone', 'winback'],
       work_feeling: ['love_it', 'fine_for_now', 'ready_for_new', 'building_side'],
     },
   },

@@ -14,6 +14,8 @@ interface LlmProvider {
     prompt: string;
     maxTokens: number;
     timeoutMs: number;
+    model?: string; // Phase 5: exact model id (tier resolved by the generation layer, §2)
+    json?: boolean; // Phase 5: request strict JSON (response_format); parsed defensively regardless
   }): Promise<{ text: string; usage: { inputTokens: number; outputTokens: number } }>;
   ping(): Promise<boolean>;
 }
