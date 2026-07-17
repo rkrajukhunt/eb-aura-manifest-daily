@@ -11,7 +11,7 @@ export type ColorScheme = 'light' | 'dark';
 
 export interface ColorTokens {
   bg: { base: string; gradientTop: string; gradientMid: string; gradientBottom: string };
-  surface: { card: string; cardGlassy: string; border: string; sheet: string };
+  surface: { card: string; cardGlassy: string; border: string; sheet: string; scrim: string };
   text: { primary: string; secondary: string; label: string; onCta: string; destructive: string };
   cta: { background: string; pressed: string; disabled: string };
   accent: { lavender: string; sky: string; sage: string; blush: string };
@@ -31,6 +31,7 @@ const light: ColorTokens = {
     cardGlassy: 'rgba(251, 249, 246, 0.72)',
     border: 'rgba(42, 37, 64, 0.08)',
     sheet: palette.warmWhite,
+    scrim: 'rgba(0, 0, 0, 0.4)',
   },
   text: {
     primary: palette.ink,
@@ -66,6 +67,7 @@ const dark: ColorTokens = {
     cardGlassy: 'rgba(42, 37, 64, 0.72)',
     border: 'rgba(181, 169, 214, 0.14)',
     sheet: palette.dusk,
+    scrim: 'rgba(0, 0, 0, 0.4)',
   },
   text: {
     // Soft lavender rather than pure white: warm, never harsh.

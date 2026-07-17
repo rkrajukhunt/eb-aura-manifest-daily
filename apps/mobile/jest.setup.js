@@ -9,6 +9,13 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 // on the JS thread. Without it, importing the library throws in a test env.
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 
+// Its native view manager doesn't exist under jest; a plain View preserves
+// children and layout, which is all the tests reason about.
+jest.mock('expo-linear-gradient', () => {
+  const { View } = require('react-native');
+  return { LinearGradient: View };
+});
+
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),

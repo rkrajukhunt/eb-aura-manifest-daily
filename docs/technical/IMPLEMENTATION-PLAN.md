@@ -9,7 +9,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 0   | Repository & Development Foundation       | ✅     |
 | 1   | Design System & Mobile Foundation         | 🟨     |
 | 2   | Supabase Auth & User Foundation           | ✅     |
-| 3   | Onboarding — "The Conversation"           | ⬜     |
+| 3   | Onboarding — "The Conversation"           | 🟨     |
 | 4   | Living Memory & Profile                   | 🟨     |
 | 5   | AI Generation Backend                     | ⬜     |
 | 6   | Future-Self Letter — WOW                  | ⬜     |
@@ -187,6 +187,21 @@ Known gaps, deliberately deferred:
 - **Tests:** RTL per screen (input/skip/reflection states); draft-resume unit tests; edit-guard flow test; Maestro: full flow incl. kill-and-resume, edit an earlier answer, skip S10.
 - **Edge cases:** App killed mid-flow → exact-screen resume; offline → answers cached, sync on reconnect with honest copy; emoji/very-long name gentle trim; empty free-text nudge ("even one word helps me"); VoiceOver labels; Dynamic Type chips→list.
 - **Definition of Done:** Full conversation runs on device matching product 07 screen specs (copy, animation, haptics); data lands correctly in `profiles`/`onboarding_answers`/`people`; completion event fires with correct duration; founder walkthrough sign-off on feel.
+
+### Phase 3 — as built (2026-07-17) — 🟨 code-complete, device walkthrough pending
+
+**Built:** `people` migration (+GRANTs+RLS, 6 live tests); S1–S11 as thin routes over feature screens sharing one `ConversationScreen` shell + `useConversation` hook; MMKV-persisted draft store (exact-screen resume, never rewinds past where she parked, skips count as answered); edit-guard sheet (revise-never-restart, nested edits keep the original return point); reflection beats (600ms typing dots, soft tick, Reduce Motion keeps the pause but drops the dots); commit path writing every answer to BOTH `onboarding_answers` (audit) and the working copy (profile/people), offline answers queued and drained; completion stamps `onboarding_completed_at` + timezone, seeds Living Memory via Phase 4's `seedMemoryForUser`, fires `onboarding_completed`; funnel events in the typed catalog (free text traced only as `char_count_bucket`).
+
+**Decisions / deviations:**
+
+1. **"Restore purchase" absent from S1** rather than inert — a dead button is dishonest; it lands with RevenueCat (Phase 10).
+2. **S11 "pick a time" is hour chips**, not a native wheel — a new native module for one screen wasn't worth a dev-client rebuild mid-phase; hour granularity serves the 15-minute cron windows (04 §5). Swappable in Phase 12 without touching the data shape.
+3. **S9 people sync is replace-all-mine** — retried/edited submissions can't duplicate her circle; safe while onboarding is the only writer.
+4. **S6 at the 2-cap replaces the oldest pick** instead of dead-tapping.
+5. RNTL v14 `fireEvent` is async — every state-dependent test awaits it (a sync call passes vacuously; two of ours initially did).
+6. S4's echo uses the Phase 4 harvester on-device; nothing distinctive → generic "Noted." (silence over a wrong guess).
+
+**Founder walkthrough checklist:** full conversation on device (copy/animation/haptics feel); kill mid-flow → exact-screen resume; edit an earlier answer via the sheet; skip S10 via "Not today"; rows land in `profiles`/`onboarding_answers`/`people`; memory seed appears in What Aura Knows; airplane-mode answers sync on reconnect. Maestro flows deferred to device availability.
 
 ## Phase 4 — Living Memory & Profile
 

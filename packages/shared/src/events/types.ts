@@ -41,6 +41,22 @@ export type MemoryCategory =
 export type MemorySource =
   'onboarding' | 'gratitude' | 'refine' | 'manifest' | 'profile_edit' | 'system';
 
+/** S1–S11 (product 07). Stable ids — they are analytics keys and resume anchors. */
+export type OnboardingScreenId =
+  | 's01-welcome'
+  | 's02-meet-aura'
+  | 's03-name'
+  | 's04-self-description'
+  | 's05-work-feeling'
+  | 's06-values'
+  | 's07-dream-home'
+  | 's08-dream-city'
+  | 's09-people'
+  | 's10-struggle'
+  | 's11-arrival-time';
+
+export type OnboardingAnswerType = 'text' | 'choice' | 'multi_choice' | 'people' | 'time' | 'none';
+
 /**
  * Super properties attached to every event (13 §2, product 17).
  * `user_pseudo_id` is the PostHog distinct id (Supabase uuid — pseudonymous).
@@ -66,6 +82,24 @@ export interface EventCatalog {
   app_first_open: Record<string, never>;
   /** Mobile. */
   app_open: { source: AppOpenSource };
+
+  // ─── First-session funnel (Phase 3, product 17) ───────────────────────
+  /** Mobile. Fires at S1 view — the funnel's top after app_first_open. */
+  onboarding_started: Record<string, never>;
+  /** Mobile. */
+  onboarding_screen_viewed: { screen_id: OnboardingScreenId };
+  /**
+   * Mobile. `char_count_bucket` is the ONLY trace of free text — never length,
+   * never content (13 §2).
+   */
+  onboarding_answer_submitted: {
+    screen_id: OnboardingScreenId;
+    answer_type: OnboardingAnswerType;
+    skipped: boolean;
+    char_count_bucket: CharCountBucket;
+  };
+  /** Mobile. Fires once, when S11 commits. */
+  onboarding_completed: { duration_s: number; questions_answered: number };
 
   // ─── Memory / moat (Phase 4) ───────────────────────────────────────────
   // Note what is absent: no `content`, no `verbatim`, no term. We count that a

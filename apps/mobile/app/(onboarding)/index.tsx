@@ -1,9 +1,15 @@
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { Redirect } from 'expo-router';
+
+import { screenRoute } from '@/features/onboarding/flow';
+import { resumeScreen, useOnboardingDraft } from '@/stores/onboardingDraft';
 
 /**
- * Placeholder for S1 (welcome + price-honesty line). Phase 3 replaces this with
- * the real S1–S11 conversation per product 07.
+ * Entry to the conversation: fresh drafts land on S1; a killed-mid-flow app
+ * resumes at the exact screen she left (product 07 global edges). The draft
+ * store is MMKV-persisted, so this works on a cold start.
  */
-export default function OnboardingPlaceholder() {
-  return <PlaceholderScreen title="Onboarding" phase="Phase 3 — S1–S11" />;
+export default function OnboardingEntry() {
+  const state = useOnboardingDraft();
+
+  return <Redirect href={screenRoute(resumeScreen(state)) as never} />;
 }
