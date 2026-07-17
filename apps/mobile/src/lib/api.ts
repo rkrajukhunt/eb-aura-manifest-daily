@@ -34,14 +34,36 @@ interface RequestOptions<TSchema extends z.ZodTypeAny> {
   authenticated?: boolean;
 }
 
-async function request<TSchema extends z.ZodTypeAny>({
+export async function request<TSchema extends z.ZodTypeAny>(
+  options: RequestOptions<TSchema>,
+): Promise<z.infer<TSchema>> {
+  const res = await send(options);
+
+  // A JWT can expire mid-session (03 §2 edge cases). Supabase usually refreshes
+  // ahead of time, but on a clock skew or a long background it won't — so refresh
+  // once and retry rather than bouncing her to an error for a solvable problem.
+  if (res.status === 401 && options.authenticated !== false) {
+    const { data, error } = await supabase.auth.refreshSession();
+
+    if (error || !data.session) {
+      throw new ApiRequestError('unauthorized', 401, 'Session refresh failed');
+    }
+
+    // Exactly one retry: a second 401 after a fresh token is a real rejection,
+    // and looping would hammer the backend.
+    return parse(await send(options), options.schema);
+  }
+
+  return parse(res, options.schema);
+}
+
+async function send<TSchema extends z.ZodTypeAny>({
   path,
-  schema,
   method = 'GET',
   body,
   idempotencyKey,
   authenticated = true,
-}: RequestOptions<TSchema>): Promise<z.infer<TSchema>> {
+}: RequestOptions<TSchema>): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
   if (authenticated) {
@@ -53,12 +75,17 @@ async function request<TSchema extends z.ZodTypeAny>({
 
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
-  const res = await fetch(new URL(path, env.EXPO_PUBLIC_API_URL), {
+  return fetch(new URL(path, env.EXPO_PUBLIC_API_URL), {
     method,
     headers,
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
+}
 
+async function parse<TSchema extends z.ZodTypeAny>(
+  res: Response,
+  schema: TSchema,
+): Promise<z.infer<TSchema>> {
   const json: unknown = await res.json().catch(() => null);
 
   if (!res.ok) {

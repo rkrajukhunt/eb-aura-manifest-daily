@@ -1,0 +1,12 @@
+{
+  "//": "Suites needing a LIVE local Supabase (pnpm db:start): the required RLS suite (15 §2.4, §6) and the deletion e2e. Separate from `test` so the default suite stays Docker-free.",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": "test/live/.*\\.(rls|e2e)-spec\\.ts$",
+  "setupFiles": ["<rootDir>/test/live/setup.ts"],
+  "transform": {
+    "^.+\\.ts$": "ts-jest"
+  },
+  "testTimeout": 30000
+}

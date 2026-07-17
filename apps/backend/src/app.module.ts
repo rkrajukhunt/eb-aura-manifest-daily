@@ -3,17 +3,20 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AccountModule } from './account/account.module';
+import { AuthModule } from './auth/auth.module';
 import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { buildLoggerConfig } from './observability/logger.config';
 import { ProvidersModule } from './providers/providers.module';
+import { SupabaseModule } from './supabase/supabase.module';
 
 /**
  * The thin backend's root (04 §1).
  *
- * Modules arriving in later phases: AuthModule (2), MemoryModule (4),
- * GenerationModule + SafetyModule (5), SchedulerModule + NotificationsModule (7/9),
- * WebhooksModule (10), AnalyticsModule (2/11).
+ * Modules arriving in later phases: MemoryModule (4), GenerationModule +
+ * SafetyModule (5), SchedulerModule + NotificationsModule (7/9),
+ * WebhooksModule (10), AnalyticsModule (11).
  */
 @Module({
   imports: [
@@ -36,8 +39,12 @@ import { ProvidersModule } from './providers/providers.module';
     }),
 
     SentryModule.forRoot(),
+    SupabaseModule,
+    // Registers the global auth guard — deny by default, opt out with @Public().
+    AuthModule,
     ProvidersModule,
     HealthModule,
+    AccountModule,
   ],
 })
 export class AppModule {}

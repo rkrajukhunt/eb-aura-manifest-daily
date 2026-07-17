@@ -1,8 +1,9 @@
 {
+  "//": "Docker-free e2e: real AppModule, mock providers, stubbed Supabase. Anything needing a live stack lives in test/live and runs via `test:live` — hence the [^/] so this pattern cannot reach into it.",
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": "..",
   "testEnvironment": "node",
-  "testRegex": "test/.*\\.e2e-spec\\.ts$",
+  "testRegex": "test/[^/]+\\.e2e-spec\\.ts$",
   "setupFiles": ["<rootDir>/test/setup-e2e.ts"],
   "transform": {
     "^.+\\.ts$": "ts-jest"

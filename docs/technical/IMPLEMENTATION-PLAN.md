@@ -8,7 +8,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | --- | ----------------------------------------- | ------ |
 | 0   | Repository & Development Foundation       | ✅     |
 | 1   | Design System & Mobile Foundation         | ⬜     |
-| 2   | Supabase Auth & User Foundation           | ⬜     |
+| 2   | Supabase Auth & User Foundation           | ✅     |
 | 3   | Onboarding — "The Conversation"           | ⬜     |
 | 4   | Living Memory & Profile                   | ⬜     |
 | 5   | AI Generation Backend                     | ⬜     |
@@ -116,6 +116,29 @@ Known gaps, deliberately deferred:
 - **Tests:** RLS suite for `profiles`/`onboarding_answers` (the pattern all tables follow); guard unit tests (valid/expired/garbage JWT); boot-flow hook tests; deletion e2e (rows + auth user gone).
 - **Edge cases:** Token refresh + 401-retry in api client; offline first-launch (retry anon sign-in with backoff, honest waiting state); clock skew.
 - **Definition of Done:** Fresh install → anonymous user + profile row exist; kill/relaunch keeps session; deletion wipes and returns to fresh state; RLS tests green in CI.
+
+### Phase 2 — as built (2026-07-17)
+
+Built before Phase 1 (founder call): Phase 2 depends only on Phase 0, and its work is verifiable against a real database, whereas Phase 1 is on-device visual work that the Linux dev machine cannot check.
+
+Decisions and findings:
+
+1. **GRANTs are part of the RLS baseline.** Policies alone deny everything — the `authenticated` role also needs table privileges. The RLS suite caught this (`42501 permission denied`) before it could block Phase 3. **Every later table migration must include both**, or nothing works. `anon` is granted nothing: anonymous _sign-in_ users carry role `authenticated`, so `anon` means no JWT at all.
+2. **JWT verification is asymmetric (ES256 via JWKS).** Local Supabase issues ES256 tokens and serves `/auth/v1/.well-known/jwks.json`, so 03 §3's preferred "no shared secret" path is the one implemented. `jose` caches keys and refetches only on an unseen `kid` — no per-request round-trip, survives rotation.
+3. **jose pinned to 5.x.** jose 6 is ESM-only and cannot be `require`d by the CommonJS NestJS/Jest setup. The JWKS resolver is an injected provider (`JWKS_RESOLVER`) rather than constructed inside the guard, so tests supply a local key set and still exercise real signature verification.
+4. **Auth is global and opt-out** (`@Public()`), not opt-in. Forgetting a guard on a generation endpoint would expose memory; forgetting `@Public()` only breaks that route loudly. `/v1/health` is `@Public()` — an e2e test pins this, since a 401 there makes the load balancer pull the instance.
+5. **Deletion is idempotent.** A retry after deletion returns 204: the JWT still verifies for its remaining lifetime, and the desired state already holds. Storage is wiped _before_ `deleteUser`, because Postgres cascades rows but cannot reach Storage — deleting the user first orphans the audio with no owner left to identify it.
+6. **`values ≤ 2` is a DB check constraint**, not just UI validation (product 07 S6).
+7. **`test:live`** is the Docker-dependent suite (RLS + deletion e2e); `test` stays Docker-free. CI runs both, and the live job also verifies the committed `database.types.ts` matches the migrations.
+
+Verified: 61 tests green — 20 against a live Supabase, including that Alice's unfiltered `select *` cannot surface Bob's struggle text, that a forged `user_id` insert is rejected, that a wrong-key/wrong-issuer JWT is refused, and that deletion actually removes the auth user and cascades the rows.
+
+Known gaps, deliberately deferred:
+
+- **PostHog is a no-op without a key** (16 §1: disabled locally). `identify` + `app_first_open`/`app_open` are wired and unit-tested, but no event has been observed landing in a real PostHog project — needs a staging key.
+- **RevenueCat and PostHog person-deletion** (steps 3–4 of the 03 §5 runbook) are intentionally absent until Phases 10/11 own those integrations.
+- **Boot sequence unverified on device** — same Linux limitation. `useBoot`, `ensureSession` retry/backoff, the route gate and the first-open flag are unit-tested and the app bundles, but "fresh install → anonymous user + profile row" and "kill/relaunch keeps session" are _founder sign-off items_ on a simulator.
+- `BootGate` copy is placeholder; Phase 1 replaces it with the orb + `src/copy/` in-voice lines.
 
 ## Phase 3 — Onboarding — "The Conversation"
 

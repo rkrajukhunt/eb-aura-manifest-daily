@@ -47,6 +47,63 @@ jobs:
       - name: Build
         run: pnpm turbo build
 
+  live-suite:
+    # RLS is a REQUIRED suite (15 §6) and cannot be faked — RLS is enforced by
+    # Postgres, so a mocked version would assert nothing. This job therefore boots
+    # a real Supabase. Separate from `verify` so a Docker hiccup doesn't mask a
+    # lint or type error.
+    name: RLS + deletion (live Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Start Supabase
+        run: pnpm exec supabase start
+
+      - name: Apply migrations
+        run: pnpm exec supabase db reset --no-seed
+
+      - name: Verify committed DB types match the migrations
+        # A stale generated file would let a query typecheck against a schema that
+        # no longer exists (01 §5). This is the one place the generator can run.
+        run: |
+          pnpm db:types
+          git diff --exit-code -- packages/shared/src/types/database.types.ts \
+            || (echo "::error::database.types.ts is stale — run 'pnpm db:types' and commit." && exit 1)
+
+      - name: Export Supabase credentials
+        # `supabase status` must run from the repo root (where supabase/ lives).
+        # Keys are local-only, but masking keeps them out of the run log regardless.
+        run: |
+          eval "$(pnpm exec supabase status -o env)"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$ANON_KEY"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: RLS + deletion suite
+        working-directory: apps/backend
+        run: pnpm test:live
+
+      - name: Stop Supabase
+        if: always()
+        run: pnpm exec supabase stop
+
   mobile-doctor:
     name: expo-doctor
     runs-on: ubuntu-latest

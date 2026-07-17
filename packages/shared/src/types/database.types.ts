@@ -28,7 +28,93 @@ export type Database = {
   };
   public: {
     Tables: {
-      [_ in never]: never;
+      onboarding_answers: {
+        Row: {
+          answer: Json | null;
+          created_at: string;
+          id: string;
+          screen_id: string;
+          skipped: boolean;
+          user_id: string;
+        };
+        Insert: {
+          answer?: Json | null;
+          created_at?: string;
+          id?: string;
+          screen_id: string;
+          skipped?: boolean;
+          user_id: string;
+        };
+        Update: {
+          answer?: Json | null;
+          created_at?: string;
+          id?: string;
+          screen_id?: string;
+          skipped?: boolean;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          arrival_time: string | null;
+          created_at: string;
+          dream_city: string | null;
+          dream_home: string | null;
+          free_text_note: string | null;
+          is_anonymous: boolean;
+          last_active_at: string;
+          name: string | null;
+          onboarding_completed_at: string | null;
+          self_description: string | null;
+          struggle: string | null;
+          timezone: string | null;
+          updated_at: string;
+          user_id: string;
+          values: string[] | null;
+          voice_id: string | null;
+          work_feeling: Database['public']['Enums']['work_feeling'] | null;
+        };
+        Insert: {
+          arrival_time?: string | null;
+          created_at?: string;
+          dream_city?: string | null;
+          dream_home?: string | null;
+          free_text_note?: string | null;
+          is_anonymous?: boolean;
+          last_active_at?: string;
+          name?: string | null;
+          onboarding_completed_at?: string | null;
+          self_description?: string | null;
+          struggle?: string | null;
+          timezone?: string | null;
+          updated_at?: string;
+          user_id: string;
+          values?: string[] | null;
+          voice_id?: string | null;
+          work_feeling?: Database['public']['Enums']['work_feeling'] | null;
+        };
+        Update: {
+          arrival_time?: string | null;
+          created_at?: string;
+          dream_city?: string | null;
+          dream_home?: string | null;
+          free_text_note?: string | null;
+          is_anonymous?: boolean;
+          last_active_at?: string;
+          name?: string | null;
+          onboarding_completed_at?: string | null;
+          self_description?: string | null;
+          struggle?: string | null;
+          timezone?: string | null;
+          updated_at?: string;
+          user_id?: string;
+          values?: string[] | null;
+          voice_id?: string | null;
+          work_feeling?: Database['public']['Enums']['work_feeling'] | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -37,7 +123,7 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      [_ in never]: never;
+      work_feeling: 'love_it' | 'fine_for_now' | 'ready_for_new' | 'building_side';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -161,6 +247,8 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      work_feeling: ['love_it', 'fine_for_now', 'ready_for_new', 'building_side'],
+    },
   },
 } as const;

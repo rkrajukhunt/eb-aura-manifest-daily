@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest && jest --config ./test/jest-e2e.json",
     "test:unit": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:live": "jest --config ./test/jest-live.json --runInBand"
   },
   "dependencies": {
     "@aura/shared": "workspace:*",
@@ -20,6 +21,8 @@
     "@nestjs/core": "^11.0.7",
     "@nestjs/platform-express": "^11.0.7",
     "@sentry/nestjs": "^9.1.0",
+    "@supabase/supabase-js": "^2.110.7",
+    "jose": "^5.10.0",
     "nestjs-pino": "^4.3.0",
     "pino-http": "^10.4.0",
     "reflect-metadata": "^0.2.2",

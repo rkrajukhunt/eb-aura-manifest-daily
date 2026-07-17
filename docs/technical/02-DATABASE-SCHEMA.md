@@ -153,12 +153,25 @@ Logged once per user per flag (PostHog is the assignment engine; this is the ana
 Baseline for every user table:
 
 ```sql
+-- GRANTs are half of the baseline — policies alone deny everything.
+-- RLS decides WHICH ROWS a role may touch; GRANT decides whether it may touch the
+-- table at all. Omitting this yields `42501 permission denied` on the user's OWN rows.
+grant select, insert, update, delete on <t> to authenticated;
+grant all on <t> to service_role;
+-- `anon` is granted nothing. Anonymous sign-in users (00 §D2) carry the
+-- `authenticated` role — `anon` means no JWT at all, and no such caller has
+-- business reading user data. Defense in depth if a policy is ever dropped.
+
 alter table <t> enable row level security;
-create policy "own rows select" on <t> for select using (auth.uid() = user_id);
-create policy "own rows insert" on <t> for insert with check (auth.uid() = user_id);
-create policy "own rows update" on <t> for update using (auth.uid() = user_id);
-create policy "own rows delete" on <t> for delete using (auth.uid() = user_id);
+create policy "own rows select" on <t> for select using ((select auth.uid()) = user_id);
+create policy "own rows insert" on <t> for insert with check ((select auth.uid()) = user_id);
+create policy "own rows update" on <t> for update using ((select auth.uid()) = user_id);
+create policy "own rows delete" on <t> for delete using ((select auth.uid()) = user_id);
 ```
+
+Wrap the call as `(select auth.uid())`: Postgres then evaluates it once per query instead of once per row. Same semantics, materially faster on scans.
+
+Established in Phase 2 against `profiles` / `onboarding_answers`; the RLS suite in `apps/backend/test/live/` is the template for every later table's tests (15 §2.4).
 
 Exceptions (deny-by-default, no user policies; service-role only):
 
