@@ -248,6 +248,10 @@ Built out of order (founder call) because the memory **data layer** is verifiabl
 - **e2e** — descoped by the founder for this phase.
 - Nothing here is verified on a device.
 
+### Phase 4 — completed off-device (2026-07-17)
+
+The deferred UI landed once Phase 1's design system existed: Profile tab (basics / dream / people / note, edits as sheets showing "I'll write differently from now on" on save), Never-Include screen over the existing hooks, people management (remove = `active=false`, never a delete — the row stays for history, generation stops using it). Profile edits update the matching permanent `memory_items` in place (09 §1) so What Aura Knows never keeps telling her a corrected truth; the free-text note writes an evolving `place_lifestyle` item. Remaining device items fold into the founder checklist: What Aura Knows/Never-Include/Profile walkthrough on device. Status stays 🟨 only for that walkthrough.
+
 ## Phase 5 — AI Generation Backend
 
 - **Objective:** The full generation pipeline: providers, memory context assembly, prompt builders, QA gate, crisis detection, TTS, storage, job machine (docs 08, 09 §4–5, 10 §1–3, 04).

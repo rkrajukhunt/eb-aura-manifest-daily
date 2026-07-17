@@ -1,6 +1,6 @@
-import { PlaceholderScreen } from '@/components/PlaceholderScreen';
+import { ProfileTab } from '@/features/profile/ProfileTab';
 
-/** Real Profile tab (basics, dream, people, "What Aura Knows") lands in Phase 4. */
-export default function ProfileScreen() {
-  return <PlaceholderScreen title="Profile" phase="Phase 4" />;
+/** Thin route (01 §2) — the feature owns the logic. */
+export default function ProfileRoute() {
+  return <ProfileTab />;
 }
