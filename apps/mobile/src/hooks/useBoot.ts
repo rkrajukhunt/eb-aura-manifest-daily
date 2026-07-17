@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { analytics, initAnalytics } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { ensureSession, identifyForObservability } from '@/lib/auth';
+import { buildSuperProperties } from '@/lib/superProperties';
 import { useAppState } from '@/stores/appState';
 
 /**
@@ -27,6 +28,9 @@ export function useBoot(): void {
 
         initAnalytics();
         identifyForObservability(userId);
+        // Super properties before identify so every event this session carries
+        // them (13 §2). subscription_state updates when RC lands (Phase 10).
+        analytics.register(buildSuperProperties());
         analytics.identify(userId);
 
         emitAppOpen('cold');

@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AccountModule } from './account/account.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
@@ -40,6 +41,7 @@ import { SupabaseModule } from './supabase/supabase.module';
 
     SentryModule.forRoot(),
     SupabaseModule,
+    AnalyticsModule,
     // Registers the global auth guard — deny by default, opt out with @Public().
     AuthModule,
     ProvidersModule,

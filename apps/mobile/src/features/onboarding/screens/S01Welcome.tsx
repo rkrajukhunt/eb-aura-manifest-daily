@@ -2,6 +2,7 @@ import { View } from 'react-native';
 
 import { Label, Orb, PillButton, Screen, SerifDisplay } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
+import { analytics } from '@/lib/analytics';
 import { useOnboardingDraft } from '@/stores/onboardingDraft';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -33,6 +34,11 @@ export function S01Welcome() {
           title={onboardingCopy.s01Welcome.primary}
           onPress={() => {
             // The funnel clock starts at consent, not at install (product 17).
+            // `onboarding_started` fires exactly once — startedAt is the guard,
+            // so a resume that lands back on S1 cannot double-count the funnel.
+            if (useOnboardingDraft.getState().startedAt === null) {
+              analytics.capture('onboarding_started');
+            }
             start();
             advance();
           }}

@@ -1,10 +1,9 @@
 import { type HealthResponse } from '@aura/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
-import type { Env } from '../config/env.schema';
 import { LLM_PROVIDER, type LlmProvider } from '../providers/llm/llm-provider.interface';
 import { TTS_PROVIDER, type TtsProvider } from '../providers/tts/tts-provider.interface';
+import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
 
 /** 07 §4: provider pings are cached for 60s so health checks can't amplify vendor spend. */
 const CACHE_TTL_MS = 60_000;
@@ -18,7 +17,7 @@ export class HealthService {
   private cache: { at: number; value: HealthResponse } | null = null;
 
   constructor(
-    private readonly config: ConfigService<Env, true>,
+    @Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient,
     @Inject(LLM_PROVIDER) private readonly llm: LlmProvider,
     @Inject(TTS_PROVIDER) private readonly tts: TtsProvider,
   ) {}
@@ -29,8 +28,8 @@ export class HealthService {
     }
 
     const [db, storage, llm, tts] = await Promise.all([
-      this.probe('db', () => this.pingSupabase('/rest/v1/')),
-      this.probe('storage', () => this.pingSupabase('/storage/v1/bucket')),
+      this.probe('db', () => this.probeDb()),
+      this.probe('storage', () => this.probeStorage()),
       this.probe('llm', () => this.llm.ping()),
       this.probe('tts', () => this.tts.ping()),
     ]);
@@ -54,21 +53,21 @@ export class HealthService {
   }
 
   /**
-   * Phase 0 has no SupabaseModule yet (that lands in Phase 2), so reachability is
-   * checked over plain HTTP. Phase 2 should swap this for the injected
-   * service-role client — a real query is a stronger signal than a 200 from the gateway.
+   * A real query through the service-role client — a stronger signal than a 200
+   * from the gateway, and the same path the generation pipeline will write on.
    */
-  private async pingSupabase(path: string): Promise<boolean> {
-    const url = new URL(path, this.config.get('SUPABASE_URL', { infer: true }));
-    const key = this.config.get('SUPABASE_SERVICE_ROLE_KEY', { infer: true });
+  private async probeDb(): Promise<boolean> {
+    const { error } = await this.supabase
+      .from('profiles')
+      .select('user_id', { count: 'exact', head: true })
+      .limit(1);
 
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: { apikey: key, Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-    });
+    return error === null;
+  }
 
-    return res.ok;
+  private async probeStorage(): Promise<boolean> {
+    const { error } = await this.supabase.storage.listBuckets();
+    return error === null;
   }
 }
 

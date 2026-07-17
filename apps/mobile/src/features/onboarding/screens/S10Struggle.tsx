@@ -32,7 +32,8 @@ export function S10Struggle() {
       >
         <ReflectionBeat
           line={onboardingCopy.s10Struggle.reflection}
-          onDone={() => setTimeout(() => void submit(text.trim()), REFLECTION_READ_MS)}
+          holdMs={REFLECTION_READ_MS}
+          onDone={() => void submit(text.trim())}
         />
       </ConversationScreen>
     );

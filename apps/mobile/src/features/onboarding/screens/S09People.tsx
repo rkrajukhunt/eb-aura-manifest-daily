@@ -62,7 +62,8 @@ export function S09People() {
       {reflectionFor !== null && (
         <ReflectionBeat
           line={onboardingCopy.s09People.reflection.replace('{name}', reflectionFor)}
-          onDone={() => setTimeout(() => setReflectionFor(null), 1200)}
+          holdMs={1200}
+          onDone={() => setReflectionFor(null)}
         />
       )}
 

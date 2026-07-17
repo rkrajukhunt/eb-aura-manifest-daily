@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 
 import { Input, PillButton, TextButton } from '@/components';
@@ -33,6 +33,7 @@ export function EditFieldSheet({
   const { colors, radii, spacing, typography } = useTheme();
   const [value, setValue] = useState(initialValue);
   const [saved, setSaved] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Re-opening for a different field must not show the previous field's text.
   useEffect(() => {
@@ -42,11 +43,19 @@ export function EditFieldSheet({
     }
   }, [open, initialValue]);
 
+  // The close timer must die with the sheet, not fire into an unmounted world.
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
   const save = () => {
     onSave(value);
     setSaved(true);
     // Let the contract line land before the sheet leaves.
-    setTimeout(onClose, 1200);
+    closeTimer.current = setTimeout(onClose, 1200);
   };
 
   return (

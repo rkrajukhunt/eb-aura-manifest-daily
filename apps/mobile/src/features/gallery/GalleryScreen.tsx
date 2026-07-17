@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import {
   Card,
@@ -46,7 +46,6 @@ function GalleryWorld({ title }: { title: string }) {
   const [selectedCard, setSelectedCard] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [orbState, setOrbState] = useState<OrbState>('idle');
-  const [reduce, setReduce] = useState(false);
 
   const orbStates: OrbState[] = ['idle', 'listening', 'generating', 'speaking'];
 
@@ -139,9 +138,9 @@ function GalleryWorld({ title }: { title: string }) {
         />
       </Section>
 
-      <Section label="REDUCE MOTION (SIMULATED — SYSTEM SETTING WINS ON DEVICE)">
-        <Switch value={reduce} onValueChange={setReduce} />
-      </Section>
+      {/* Reduce Motion is checked via the SYSTEM setting (Settings →
+          Accessibility → Motion) — a in-gallery toggle can't reach the real
+          MotionProvider and a control that does nothing would lie. */}
     </View>
   );
 }

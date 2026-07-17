@@ -1,45 +1,48 @@
-import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
 import { LLM_PROVIDER, type LlmProvider } from '../providers/llm/llm-provider.interface';
 import { TTS_PROVIDER, type TtsProvider } from '../providers/tts/tts-provider.interface';
+import { SUPABASE_CLIENT } from '../supabase/supabase.module';
 import { HealthService } from './health.service';
-
-const CONFIG = {
-  SUPABASE_URL: 'http://supabase.local',
-  SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
-} as const;
 
 describe('HealthService', () => {
   let service: HealthService;
   let llmPing: jest.Mock<Promise<boolean>, []>;
   let ttsPing: jest.Mock<Promise<boolean>, []>;
-  let fetchMock: jest.Mock;
+  let dbSelect: jest.Mock;
+  let listBuckets: jest.Mock;
 
-  beforeEach(async () => {
-    llmPing = jest.fn().mockResolvedValue(true);
-    ttsPing = jest.fn().mockResolvedValue(true);
-    fetchMock = jest.fn().mockResolvedValue({ ok: true });
-    global.fetch = fetchMock as unknown as typeof fetch;
-
+  const buildService = async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         HealthService,
         {
-          provide: ConfigService,
-          useValue: { get: (key: keyof typeof CONFIG) => CONFIG[key] },
+          provide: SUPABASE_CLIENT,
+          useValue: {
+            from: jest.fn(() => ({
+              select: jest.fn(() => ({ limit: dbSelect })),
+            })),
+            storage: { listBuckets },
+          },
         },
         { provide: LLM_PROVIDER, useValue: { ping: llmPing } as unknown as LlmProvider },
         { provide: TTS_PROVIDER, useValue: { ping: ttsPing } as unknown as TtsProvider },
       ],
     }).compile();
 
-    service = moduleRef.get(HealthService);
+    return moduleRef.get(HealthService);
+  };
+
+  beforeEach(async () => {
+    llmPing = jest.fn().mockResolvedValue(true);
+    ttsPing = jest.fn().mockResolvedValue(true);
+    dbSelect = jest.fn().mockResolvedValue({ error: null });
+    listBuckets = jest.fn().mockResolvedValue({ data: [], error: null });
+
+    service = await buildService();
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.restoreAllMocks());
 
   it('reports every dependency up when all probes succeed', async () => {
     await expect(service.check()).resolves.toEqual({
@@ -61,6 +64,24 @@ describe('HealthService', () => {
     expect(result).toMatchObject({ status: 'ok', llm: false, tts: true });
   });
 
+  it('probes the database with a real query, not a gateway ping', async () => {
+    await service.check();
+
+    expect(dbSelect).toHaveBeenCalled();
+  });
+
+  it('marks db down on a query error rather than throwing', async () => {
+    dbSelect.mockResolvedValue({ error: { message: 'connection refused' } });
+
+    await expect(service.check()).resolves.toMatchObject({ db: false, storage: true });
+  });
+
+  it('marks storage down on a bucket-list error', async () => {
+    listBuckets.mockResolvedValue({ data: null, error: { message: 'unreachable' } });
+
+    await expect(service.check()).resolves.toMatchObject({ db: true, storage: false });
+  });
+
   it('caches probe results for 60s so health checks cannot amplify vendor spend', async () => {
     await service.check(0);
     await service.check(59_000);
@@ -73,23 +94,5 @@ describe('HealthService', () => {
     await service.check(60_001);
 
     expect(llmPing).toHaveBeenCalledTimes(2);
-  });
-
-  it('probes db and storage against the configured Supabase URL', async () => {
-    await service.check();
-
-    const probedUrls = fetchMock.mock.calls.map(([url]) => String(url));
-    expect(probedUrls).toEqual(
-      expect.arrayContaining([
-        'http://supabase.local/rest/v1/',
-        'http://supabase.local/storage/v1/bucket',
-      ]),
-    );
-  });
-
-  it('marks db down on a non-ok response rather than throwing', async () => {
-    fetchMock.mockResolvedValue({ ok: false });
-
-    await expect(service.check()).resolves.toMatchObject({ db: false, storage: false });
   });
 });

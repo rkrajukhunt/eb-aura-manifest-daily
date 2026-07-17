@@ -18,21 +18,38 @@ const TYPING_MS = 600;
  * Under Reduce Motion the dots are skipped (they are pure motion), but the
  * pause itself is kept: the timing carries the meaning, not the pixels.
  */
-export function ReflectionBeat({ line, onDone }: { line: string; onDone?: () => void }) {
+export function ReflectionBeat({
+  line,
+  onDone,
+  holdMs = 0,
+}: {
+  line: string;
+  /** Fires after the line has landed AND been held long enough to read. */
+  onDone?: () => void;
+  /** Dwell after landing. Owned here so the timer dies with the component. */
+  holdMs?: number;
+}) {
   const { colors, spacing, typography } = useTheme();
   const { reduceMotion } = useMotion();
   const [landed, setLanded] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let holdTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const typingTimer = setTimeout(() => {
       setLanded(true);
       // Soft tick as the reflection lands (product 13 haptic table).
       void haptic('reflectionLanded');
-      onDone?.();
+      holdTimer = setTimeout(() => onDone?.(), holdMs);
     }, TYPING_MS);
 
-    return () => clearTimeout(timer);
-  }, [onDone]);
+    // Both timers die with the component — a screen-level setTimeout would
+    // outlive navigation and fire into an unmounted world.
+    return () => {
+      clearTimeout(typingTimer);
+      if (holdTimer) clearTimeout(holdTimer);
+    };
+  }, [onDone, holdMs]);
 
   if (!landed) {
     return reduceMotion ? (

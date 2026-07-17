@@ -28,7 +28,8 @@ export function S08DreamCity() {
       >
         <ReflectionBeat
           line={onboardingCopy.s08DreamCity.reflection.replace('{city}', city.trim())}
-          onDone={() => setTimeout(() => void submit(city.trim()), REFLECTION_READ_MS)}
+          holdMs={REFLECTION_READ_MS}
+          onDone={() => void submit(city.trim())}
         />
       </ConversationScreen>
     );
