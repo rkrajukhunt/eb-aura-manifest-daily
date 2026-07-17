@@ -18,7 +18,7 @@ describe('kv', () => {
     // worth that (05 §3).
     kv.set('broken', { ok: true });
     // Simulate corruption by writing a raw non-JSON string past the typed helper.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { storage } = require('./storage');
     storage.set('broken', '{not json');
 

@@ -5,6 +5,17 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 // Native modules have no JS implementation under jest — stub the ones the
 // skeleton touches. Real behaviour is covered by Maestro flows on device (15).
 
+// Reanimated's official jest mock: animations resolve instantly, worklets run
+// on the JS thread. Without it, importing the library throws in a test env.
+jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(async () => undefined),
+  notificationAsync: jest.fn(async () => undefined),
+  ImpactFeedbackStyle: { Light: 'light', Medium: 'medium', Soft: 'soft', Heavy: 'heavy' },
+  NotificationFeedbackType: { Success: 'success', Warning: 'warning', Error: 'error' },
+}));
+
 // MMKV v4 is a Nitro module with no JS fallback; `createMMKV` is the factory.
 jest.mock('react-native-mmkv', () => {
   const store = new Map();

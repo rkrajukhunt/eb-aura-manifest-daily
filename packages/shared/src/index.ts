@@ -16,6 +16,10 @@ export * from './events/client';
 // Constants (04 §86, product 09)
 export * from './constants/limits';
 
+// Companion-voice ban lists (product 14) — read by the mobile copy lint and the
+// backend QA gate alike.
+export * from './constants/voice';
+
 // Living Memory (09) — harvester + seed live here so both apps can run them (09 §1).
 export * from './memory/harvester';
 export * from './memory/seed';

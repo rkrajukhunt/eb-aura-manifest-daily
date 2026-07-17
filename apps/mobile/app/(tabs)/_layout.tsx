@@ -1,16 +1,17 @@
 import { Tabs } from 'expo-router';
 
+import { TabBar } from '@/components/TabBar';
+
 /**
  * Four tabs, exactly as product 11 / 06 §1 specify: Home · Affirmations ·
- * Gratitude · Profile. No hamburger, no "More" tab — that is a product rule, not
- * a default.
+ * Gratitude · Profile. No hamburger, no "More" tab — that is a product rule.
  *
- * Phase 1 replaces this with the floating pill TabBar and hosts the mini-player
- * here (06 §1). Until then these are stock tabs so the shell is navigable.
+ * The floating pill TabBar is the design system's (Phase 1). This layout also
+ * hosts the mini-player above the bar from Phase 7 (06 §1).
  */
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
       <Tabs.Screen name="affirmations" options={{ title: 'Affirmations' }} />
       <Tabs.Screen name="gratitude" options={{ title: 'Gratitude' }} />

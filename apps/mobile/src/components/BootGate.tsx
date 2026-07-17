@@ -1,24 +1,24 @@
 import { useRouter } from 'expo-router';
 import { useEffect, type ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { bootCopy } from '@/copy/boot';
 import { useBoot } from '@/hooks/useBoot';
 import { useProfile } from '@/hooks/useProfile';
 import { resolveBootRoute } from '@/lib/routeGate';
 import { useAppState } from '@/stores/appState';
+import { useTheme } from '@/theme/ThemeProvider';
 
 /**
- * Holds the app on the splash until the session and profile exist, then routes
- * per 05 §9.
- *
- * Copy here is placeholder-plain. Phase 1 brings the orb and the real in-voice
- * lines from `src/copy/` — but the rule already applies: never a spinner, never
- * an error code, one honest line (05 §8, product 14).
+ * Holds the app on a quiet themed view until the session and profile exist,
+ * then routes per 05 §9. The idle orb joins this screen when the boot flow is
+ * polished in Phase 3 — the failure line is already in-voice (05 §8).
  */
 export function BootGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const status = useAppState((s) => s.status);
   const userId = useAppState((s) => s.userId);
+  const { colors, spacing, typography } = useTheme();
 
   useBoot();
 
@@ -29,24 +29,25 @@ export function BootGate({ children }: { children: ReactNode }) {
     router.replace(resolveBootRoute(profile));
   }, [status, profile, router]);
 
-  if (status === 'failed') {
-    return (
-      <View style={styles.center}>
-        {/* Phase 1: in-voice copy + retry. Honest waiting, no codes (05 §8). */}
-        <Text style={styles.line}>I can&apos;t reach you right now. I&apos;ll keep trying.</Text>
-      </View>
-    );
-  }
+  const holding = (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: spacing.lg,
+        backgroundColor: colors.bg.base,
+      }}
+    >
+      {status === 'failed' && (
+        <Text style={[typography.body, { color: colors.text.secondary, textAlign: 'center' }]}>
+          {bootCopy.cantReach}
+        </Text>
+      )}
+    </View>
+  );
 
-  if (status === 'booting' || !profile) {
-    // Static holding view — the breathing orb replaces this in Phase 1.
-    return <View style={styles.center} />;
-  }
+  if (status === 'failed' || status === 'booting' || !profile) return holding;
 
   return <>{children}</>;
 }
-
-const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  line: { fontSize: 16, textAlign: 'center' },
-});

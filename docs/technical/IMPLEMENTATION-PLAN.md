@@ -7,7 +7,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | #   | Phase                                     | Status |
 | --- | ----------------------------------------- | ------ |
 | 0   | Repository & Development Foundation       | ✅     |
-| 1   | Design System & Mobile Foundation         | ⬜     |
+| 1   | Design System & Mobile Foundation         | 🟨     |
 | 2   | Supabase Auth & User Foundation           | ✅     |
 | 3   | Onboarding — "The Conversation"           | ⬜     |
 | 4   | Living Memory & Profile                   | 🟨     |
@@ -101,6 +101,39 @@ Known gaps, deliberately deferred:
 - **Tests:** RTL renders for each component (incl. Dynamic Type reflow breakpoint); haptics guard unit tests (≤2/screen dev warning, 500ms spacing); copy-lint script scaffold (banned phrases).
 - **Edge cases:** Reduce Motion on every animation; dark mode on every component; fontScale >1.3 chip→list reflow.
 - **Definition of Done:** Storybook-style gallery screen shows all components in light/dark; Orb runs 60fps on iPhone 12-class device in all 4 states; founder eyeballs "calm is the brand" on device.
+
+### Phase 1 — as built (2026-07-17) — 🟨 code-complete, device sign-off pending
+
+Everything verifiable off-device is done and green; the two DoD items that require an iPhone (60fps orb, "calm is the brand") are the founder's checklist below.
+
+**Built:**
+
+- `src/theme`: palette (raw values live ONLY there), semantic tokens per scheme, 8pt spacing, radii, durations; serif (bundled Fraunces) + sans typography with Dynamic Type clamps (serif clamps 0.85–1.4 so Letter karaoke survives accessibility sizes; UI sans scales freely); chip→list reflow breakpoint at fontScale 1.3; `ThemeProvider`/`useTheme` (throws outside provider — an unthemed screen must fail loudly).
+- Haptics (product-13 table, complete): typed `HapticEvent` union with **no `error` and no `paywall` member — the banned haptics are unrepresentable**, not just discouraged; 500ms min interval; ≤2/screen dev warning; system-setting kill switch. 13 guard tests.
+- Motion: `fadeRise`, `chipSelectScale`, `crossfade`, `sheetSpring`, `MotionProvider` (+`LetterMotionProvider` at 1.2×); Reduce Motion collapses everything to crossfades and reacts to mid-session toggles.
+- 16 components, RTL-tested: Screen (gradient), Card (solid/glassy), PillButton, TextButton, Chip, SelectCard, Input, Sheet (gorhom v5, medium/large detents, 40% dim), TabBar (floating pill, active periwinkle), Label, SerifDisplay, CountdownChip (minute tick, no seconds, no animation), WeekDots (no missed-day state exists — shame-free by construction), Skeleton, EmptyState, **Orb** (Skia: 4 states, breath/glow/shimmer on shared values only, halo overscan, hidden from VoiceOver as presence-not-information).
+- Copy lint wired as a jest suite over `src/copy/**`: banned phrases + guilt vocabulary (lists live in `@aura/shared` so the Phase 5 QA gate reads the same ones), exclamation budget, "the user" ban, error-code ban.
+- ESLint rule: raw hex in feature code is an error; `src/theme/` exempt.
+- Root layout: Fraunces held behind the splash (font failure falls back rather than bricking launch), ThemeProvider → MotionProvider → QueryClient → BottomSheetModalProvider → BootGate; GestureHandlerRootView at top. Tab shell uses the pill TabBar.
+- Gallery at `/gallery` (dev-only route): all components, light and dark stacked, orb state switcher.
+
+**Decisions:**
+
+1. **Chip press scale is an acknowledgment, not a state** — tying 0.97 to `selected` left chosen chips permanently shrunken. Selection's lasting signal is the fill tint.
+2. **Skia pinned to 2.6.2** (Expo SDK 57's expectation, expo-doctor 20/20) — a newer JS lib against the dev client's pinned native module is a runtime mismatch on device.
+3. Jest stack for the animation libs: reanimated's official mock + `react-native-worklets/jest/resolver` + Skia's `jestSetup`; pnpm needs `@scope+pkg` spellings in `transformIgnorePatterns` alongside `@scope/pkg`.
+4. TabBar types a **local structural subset** of `BottomTabBarProps` — the real type isn't importable under pnpm strict node_modules (transitive dep); stays assignable at the `tabBar=` call site.
+
+**Founder device checklist (closes this phase):**
+
+- [ ] `pnpm exec expo run:ios`, open `aura://gallery` (or /gallery from the dev menu)
+- [ ] Orb: all 4 states at 60fps (Perf monitor), iPhone 12-class
+- [ ] Light + dark both read as "calm is the brand"; nothing shouts
+- [ ] Dynamic Type at max accessibility size: serif clamps, chips reflow to lists
+- [ ] Reduce Motion on: everything crossfades, orb stills
+- [ ] Haptics: button press, chip select — punctuation, not decoration
+- [ ] Sheet detents (medium/large), grabber, 40% dim
+- [ ] Boot: fresh install → anonymous session + profile row; kill/relaunch keeps session (Phase 2's carry-over items)
 
 ## Phase 2 — Supabase Auth & User Foundation
 
