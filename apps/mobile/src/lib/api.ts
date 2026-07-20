@@ -4,10 +4,11 @@ import {
   jobAcceptedSchema,
   jobStatusResponseSchema,
   manifestAcceptedSchema,
+  type AffirmationTone,
   type ApiErrorKey,
   type RefineDirection,
 } from '@aura/shared';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { env } from './env';
 import { supabase } from './supabase';
@@ -153,6 +154,41 @@ export const api = {
       method: 'POST',
       body: { desireText },
       schema: manifestAcceptedSchema,
+    }),
+
+  /** Today's affirmation, on-open fallback (07 §1). Free and ungated. */
+  requestDailyAffirmation: () =>
+    request({
+      path: '/v1/generation/affirmation/daily',
+      method: 'POST',
+      body: {},
+      schema: jobAcceptedSchema,
+    }),
+
+  /** The guided studio's one generation per pass (07 §1, product 09 §9.3b). */
+  generateGuidedAffirmation: (input: {
+    goalArea: string;
+    goalText?: string;
+    feeling: string;
+    tone: AffirmationTone;
+  }) =>
+    request({
+      path: '/v1/generation/affirmation/guided',
+      method: 'POST',
+      body: input,
+      schema: jobAcceptedSchema,
+    }),
+
+  /**
+   * Keeps a candidate (07 §2). Server-side rather than a direct Supabase write,
+   * because keeping one candidate must archive its siblings atomically.
+   */
+  keepAffirmation: (affirmationId: string) =>
+    request({
+      path: `/v1/affirmations/${affirmationId}/keep`,
+      method: 'POST',
+      body: {},
+      schema: z.object({}).passthrough(),
     }),
 
   /** Polls a generation job (04 §2 — mobile polls at 1.5s). */

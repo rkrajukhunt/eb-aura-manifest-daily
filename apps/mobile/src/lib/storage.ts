@@ -53,4 +53,8 @@ export const STORAGE_KEYS = {
   gratitudeEntries: 'gratitude.entries',
   /** The memory contract is shown once, not every visit (product 09 §9.4). */
   gratitudeContractSeen: 'gratitude.contractSeen',
+  /** Today's 369 counter. Resets daily; never carries a failure forward. */
+  practice369: 'affirmations.practice369',
+  /** Which of the day's three ritual beats are done (product 09). */
+  ritualProgress: 'ritual.progress',
 } as const;

@@ -153,6 +153,12 @@ jest.mock('expo-apple-authentication', () => ({
   AppleAuthenticationScope: { EMAIL: 0, FULL_NAME: 1 },
 }));
 
+// Native canvas capture; the share renderer's PRIVACY rule is tested against
+// `toShareContent` rather than a real bitmap.
+jest.mock('react-native-view-shot', () => ({
+  captureRef: jest.fn(async () => 'file:///tmp/share.png'),
+}));
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

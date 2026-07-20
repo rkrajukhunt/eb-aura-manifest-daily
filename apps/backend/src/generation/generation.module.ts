@@ -4,6 +4,7 @@ import { MemoryModule } from '../memory/memory.module';
 import { SafetyModule } from '../safety/safety.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { CreditsService } from './credits.service';
+import { AffirmationsController } from './affirmations.controller';
 import { GenerationController } from './generation.controller';
 import { GenerationService } from './generation.service';
 import { JobsService } from './jobs/jobs.service';
@@ -18,7 +19,7 @@ import { StorageService } from './storage.service';
  */
 @Module({
   imports: [MemoryModule, SafetyModule, QaModule, SubscriptionsModule],
-  controllers: [GenerationController],
+  controllers: [GenerationController, AffirmationsController],
   providers: [GenerationService, JobsService, PromptService, StorageService, CreditsService],
   exports: [JobsService, CreditsService],
 })

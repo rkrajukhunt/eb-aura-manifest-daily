@@ -98,6 +98,24 @@ describe('SchedulerService', () => {
     expect(result).toEqual({ processed: 1, failures: 0 });
   });
 
+  it('enqueues her affirmation in the same sweep (Phase 8)', async () => {
+    await service.pregenerateDaily(NOW);
+
+    expect(enqueue).toHaveBeenCalledWith(
+      'user-1',
+      'affirmation_daily',
+      'affirmation:user-1:2026-07-20',
+    );
+  });
+
+  it('keeps the two beats as separate jobs', async () => {
+    // An affirmation failing must not cost her the moment, and vice versa.
+    await service.pregenerateDaily(NOW);
+
+    const artifacts = enqueue.mock.calls.map(([, artifact]) => artifact);
+    expect(artifacts).toEqual(['daily', 'affirmation_daily']);
+  });
+
   it('skips a user whose arrival is not due yet', async () => {
     profiles = [profile({ arrival_time: '19:00' })];
 
@@ -164,7 +182,9 @@ describe('SchedulerService', () => {
 
       const result = await service.pregenerateDaily(NOW);
 
-      expect(enqueue).toHaveBeenCalledTimes(2);
+      // user-a's moment threw, so her affirmation is skipped too; user-b still
+      // gets both beats.
+      expect(enqueue).toHaveBeenCalledTimes(3);
       expect(result).toEqual({ processed: 1, failures: 1 });
     });
 

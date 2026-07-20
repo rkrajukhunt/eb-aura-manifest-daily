@@ -84,6 +84,16 @@ export class SchedulerService {
           'daily',
           `daily:${candidate.user_id}:${scheduledFor}`,
         );
+
+        // Her affirmation is generated in the same sweep (04 §5, Phase 8) so
+        // both beats of the morning are waiting before she opens the app. It is
+        // a separate job: an affirmation failing must not cost her the moment.
+        await this.jobs.enqueue(
+          candidate.user_id,
+          'affirmation_daily',
+          `affirmation:${candidate.user_id}:${scheduledFor}`,
+        );
+
         processed += 1;
       } catch (failure) {
         // One user's failure must not abort the sweep for everyone after her.

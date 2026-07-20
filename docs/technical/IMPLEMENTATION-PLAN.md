@@ -402,9 +402,9 @@ Built in two passes: the backend first, then the mobile half. Backend tests 757 
 - **Edge cases:** Gratitude offline (saves locally, dot fills, silent sync); double entry same day (edit, not duplicate); guided flow abandoned mid-way (draft kept in sheet session); share cancelled; candidate regeneration limit (one set per flow — cost cap); empty collection states in-voice.
 - **Definition of Done:** Full daily ritual (<3 min) works end-to-end with done-state; gratitude entries appear in next-day generation context (verified in staging output); share exports a clean 1080×1920 card; `ritual_completed` fires only when all three beats done same day.
 
-### Phase 8 — as built (2026-07-20) — 🟨 GRATITUDE ONLY; the affirmations half is not started
+### Phase 8 — as built (2026-07-20) — 🟨 code-complete, device pass pending
 
-**Scope warning:** like Phase 7, this phase is two products in one tab bar. Only the gratitude half is built. Backend 830 → 831, mobile 399 → 435, live RLS 81 → 94.
+Built in two passes: gratitude first, then affirmations. Backend 830 → 833, mobile 399 → 466, live RLS 81 → 94.
 
 **Built:**
 
@@ -415,17 +415,20 @@ Built in two passes: the backend first, then the mobile half. Backend tests 757 
 - **Affirmation endpoints** `/daily` (free, ungated — one a day is real free-tier substance) and `/guided` (screens her free-text goal for crisis like any other free text).
 - **Gratitude now feeds generation.** `MemoryContextService.recentGratitude` was hardcoded `[]` since Phase 4; it now reads her last three entries. A line she wrote yesterday reappearing in tomorrow's moment IS the "it remembers me" engine (product 09 §9.4).
 
-**NOT BUILT — the entire affirmations half:**
+**Affirmations (second pass):**
 
-- Affirmations tab: today's card, reveal flip-fade, countdown, collection grid
-- The guided studio sheet (goal chips + free text → feeling → tone → 3 candidates with why-lines → pick/edit/save)
-- Technique chips (identity, present-tense why, the 369 counter, scripting)
-- **Share-card renderer** (1080×1920 via `react-native-view-shot` — another native module, not yet installed)
-- Daily affirmation in the pre-generation cron
-- `POST /v1/affirmations/:id/keep`
-- The post-moment ritual flow (moment → affirmation → gratitude → done-state) and `ritual_completed`
+- **The tab** — today's card with a reveal beat, the "one a day, that's enough" line, the kept-words collection, and the guided studio behind one CTA.
+- **`POST /v1/affirmations/:id/keep` is server-side**, as 07 §2 requires, because keeping one candidate must archive its siblings ATOMICALLY. A client doing that as three writes could be interrupted and leave her with two kept affirmations from one pass, or none. It also writes a memory item: what she CHOSE is a stronger signal about her voice than anything she was merely shown.
+- **The daily affirmation joins the pre-generation sweep** as a SEPARATE job from the moment — an affirmation failing must not cost her the moment.
+- **The 369 counter and the ritual tracker are pure modules with 24 tests.** Both encode the same rule: neither may carry a failure forward. Yesterday's half-finished practice is discarded rather than migrated, because a counter that remembered what she did not finish would be the streak mechanic product 16 bans wearing a different hat. And `ritual_completed` fires only when all three beats happened on the SAME day — tracking them as independent flags would let Monday's moment and Friday's gratitude count as a completed ritual and corrupt the retention number the habit loop is measured on.
+- **Share-card privacy is enforced by a function, not by discipline.** `toShareContent` returns only the affirmation and a template; a name, city, why-line or struggle passed in cannot survive it. A shared card leaves the device and stops being ours to protect, so the rule lives in the type rather than in whoever builds the next template.
 
-The Affirmations tab is still its Phase 1 placeholder, so none of the affirmation work is reachable by a user.
+**Still not built:**
+
+- The share card's three visual TEMPLATES are declared but not designed — `captureShareCard` captures the card view itself, so the export works, but "3 templates" from the plan is really one.
+- The technique chips exist as copy and a counter; only `three_six_nine` has interactive UI. Scripting is a prompt string with no writing surface yet.
+- The post-moment flow records its beats but does not yet AUTO-ADVANCE moment → affirmation → gratitude; each tab records its own beat and the done-state copy is unused.
+- Guided candidates arrive by polling the collection rather than the job, so the sheet shows them a moment later than it could.
 
 ## Phase 9 — Notifications & Daily Habit Loop
 
