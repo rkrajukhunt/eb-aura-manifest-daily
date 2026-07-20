@@ -129,6 +129,7 @@ export type Database = {
           finished_at: string | null;
           id: string;
           idempotency_key: string | null;
+          input: Json | null;
           latency_ms: number | null;
           moment_id: string | null;
           status: Database['public']['Enums']['job_status'];
@@ -142,6 +143,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           idempotency_key?: string | null;
+          input?: Json | null;
           latency_ms?: number | null;
           moment_id?: string | null;
           status?: Database['public']['Enums']['job_status'];
@@ -155,6 +157,7 @@ export type Database = {
           finished_at?: string | null;
           id?: string;
           idempotency_key?: string | null;
+          input?: Json | null;
           latency_ms?: number | null;
           moment_id?: string | null;
           status?: Database['public']['Enums']['job_status'];

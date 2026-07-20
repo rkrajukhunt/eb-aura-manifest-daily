@@ -1,4 +1,12 @@
-import { jobAcceptedSchema, letterRequestSchema, type JobStatusResponse } from '@aura/shared';
+import {
+  jobAcceptedSchema,
+  letterRequestSchema,
+  manifestAcceptedSchema,
+  manifestRequestSchema,
+  momentRequestSchema,
+  refineRequestSchema,
+  type JobStatusResponse,
+} from '@aura/shared';
 import {
   Body,
   Controller,
@@ -10,12 +18,17 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { Inject } from '@nestjs/common';
 
 import { UserId } from '../auth/user-id.decorator';
+import { ApiException } from '../common/api.exception';
+import { CrisisDetectionService } from '../safety/crisis-detection.service';
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
+import { EntitlementGuard, RequiresPremium } from '../subscriptions/entitlement.guard';
+import { CreditsService } from './credits.service';
 import { JobsService } from './jobs/jobs.service';
 
 /**
@@ -31,6 +44,8 @@ import { JobsService } from './jobs/jobs.service';
 export class GenerationController {
   constructor(
     private readonly jobs: JobsService,
+    private readonly credits: CreditsService,
+    private readonly crisis: CrisisDetectionService,
     @Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient,
   ) {}
 
@@ -53,6 +68,110 @@ export class GenerationController {
 
     const { jobId } = await this.jobs.enqueue(userId, 'letter', idempotencyKey);
     return jobAcceptedSchema.parse({ jobId });
+  }
+
+  /**
+   * `POST /v1/generation/moment` (07 §1) — the ON-OPEN FALLBACK.
+   *
+   * The primary path is the `pregenerate-daily` cron (04 §5). This exists so a
+   * cron failure costs her a few seconds of "still forming" rather than a
+   * missing morning — which is why it is free and ungated: the daily moment is
+   * the free tier's whole substance (product 15).
+   */
+  @Post('moment')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async moment(@UserId() userId: string, @Body() body: unknown) {
+    const { scheduledFor } = momentRequestSchema.parse(body ?? {});
+
+    // 409 rather than a second generation: two moments for one morning is both
+    // a cost leak and a confusing Home.
+    if (await this.hasMomentFor(userId, scheduledFor)) {
+      throw new ApiException('already_ready', `A moment already exists for ${scheduledFor}`);
+    }
+
+    const { jobId } = await this.jobs.enqueue(userId, 'daily', `daily:${userId}:${scheduledFor}`);
+    return jobAcceptedSchema.parse({ jobId });
+  }
+
+  /**
+   * `POST /v1/generation/refine` (07 §1). Premium, one per moment.
+   *
+   * Ungated by credits on purpose — refine is capped by LINEAGE, not by the
+   * weekly allowance, so reshaping a moment never competes with asking for a
+   * new one.
+   */
+  @Post('refine')
+  @RequiresPremium()
+  @UseGuards(EntitlementGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
+  async refine(@UserId() userId: string, @Body() body: unknown) {
+    const { momentId, direction, note } = refineRequestSchema.parse(body ?? {});
+
+    const { data: moment } = await this.supabase
+      .from('moments')
+      .select('id, body, user_id')
+      .eq('id', momentId)
+      .maybeSingle();
+
+    // Scoped explicitly: the service-role client bypasses RLS (03 §3).
+    if (!moment || moment.user_id !== userId) throw new NotFoundException();
+
+    if (!(await this.credits.canRefine(momentId))) {
+      throw new ApiException('refine_limit_reached', 'This moment has already been refined');
+    }
+
+    // Her note is free text and reaches the model, so it runs the same crisis
+    // screen the letter path does (14 §5). A refine is not worth a missed
+    // disclosure.
+    if (note && (await this.crisis.screen(note)).isCrisis) {
+      throw new ApiException('crisis_support', 'Crisis content detected in refine note');
+    }
+
+    const { jobId } = await this.jobs.enqueue(userId, 'refine', undefined, {
+      refine: { momentId, previousBody: moment.body ?? '', direction, ...(note ? { note } : {}) },
+    });
+
+    return jobAcceptedSchema.parse({ jobId });
+  }
+
+  /**
+   * `POST /v1/generation/manifest` (07 §1). Premium + credit-gated.
+   *
+   * The credit is reserved BEFORE generation and refunded on every failure
+   * path, because product 09 §9.2 promises "Error: retry, credit not consumed".
+   * The crisis branch below is the sharpest case: she typed something that
+   * needs support, and charging her for it would be indefensible.
+   */
+  @Post('manifest')
+  @RequiresPremium()
+  @UseGuards(EntitlementGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
+  async manifest(@UserId() userId: string, @Body() body: unknown) {
+    const { desireText } = manifestRequestSchema.parse(body ?? {});
+
+    // Screened BEFORE the credit is touched, so the support path costs nothing.
+    if ((await this.crisis.screen(desireText)).isCrisis) {
+      throw new ApiException('crisis_support', 'Crisis content detected in desire text');
+    }
+
+    const spend = await this.credits.spend(userId);
+    if (!spend.allowed) {
+      throw new ApiException('credits_exhausted', 'Weekly manifest limit reached', {
+        remaining: 0,
+        limit: spend.limit,
+      });
+    }
+
+    try {
+      const { jobId } = await this.jobs.enqueue(userId, 'ondemand', undefined, {
+        desire: desireText,
+      });
+      return manifestAcceptedSchema.parse({ jobId, creditsRemaining: spend.remaining });
+    } catch (error) {
+      // Enqueue failed, so nothing will ever generate — give the credit back.
+      await this.credits.refund(userId);
+      throw error;
+    }
   }
 
   /** `GET /v1/generation/jobs/:id` (07). Mobile polls this at 1.5s (04 §2). */
@@ -89,6 +208,20 @@ export class GenerationController {
       momentId: data.moment_id,
       ...(supportive ? { supportive } : {}),
     };
+  }
+
+  /** Does she already have a moment for this local date? */
+  private async hasMomentFor(userId: string, scheduledFor: string): Promise<boolean> {
+    const { data } = await this.supabase
+      .from('moments')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', 'daily')
+      .eq('scheduled_for', scheduledFor)
+      .in('status', ['generating', 'ready'])
+      .limit(1);
+
+    return (data?.length ?? 0) > 0;
   }
 
   private async findExistingLetterJob(userId: string): Promise<string | null> {

@@ -76,9 +76,26 @@ export class GenerationService implements OnModuleInit {
         }
       }
 
-      const artifact = await this.generateWithQa(job.user_id, job.artifact, context);
+      // Refine and Manifest carry input from the request through the job row
+      // (04 §4), so a crash re-queue regenerates the SAME thing rather than a
+      // generic moment she never asked for.
+      const input = parseJobInput(job.input);
+      const artifact = await this.generateWithQa(
+        job.user_id,
+        job.artifact,
+        context,
+        input.refine,
+        input.desire,
+      );
 
-      const momentId = await this.persist(job, context, artifact, supportive);
+      const momentId = await this.persist(job, context, artifact, supportive, input);
+
+      // Refining teaches the memory what she prefers (product 09 §9.1) — the
+      // point of the feature is not this one rewrite, it is that the next moment
+      // already sounds more like her.
+      if (job.artifact === 'refine' && input.refine) {
+        await this.recordRefinePreference(job.user_id, input.refine.direction);
+      }
 
       if (job.artifact === 'letter') {
         this.analytics.capture(job.user_id, 'letter_generation_succeeded', {
@@ -110,8 +127,15 @@ export class GenerationService implements OnModuleInit {
     artifact: JobArtifact,
     context: MemoryContext,
     refineInput?: RefineInput,
+    desire?: string,
   ): Promise<GeneratedArtifact> {
-    const built = this.prompts.build(artifact, context, refineInput);
+    // A Manifest desire is HER request in her own words, so it joins the context
+    // as an exact phrase rather than as an instruction — the prompt already
+    // tells the model to reuse those literally (08 §3).
+    const withDesire = desire
+      ? { ...context, exactPhrases: [desire, ...context.exactPhrases] }
+      : context;
+    const built = this.prompts.build(artifact, withDesire, refineInput);
 
     const response = await this.llm.generate({
       system: built.system,
@@ -124,7 +148,7 @@ export class GenerationService implements OnModuleInit {
 
     const parsed = this.parseArtifact(response.text);
 
-    const result = this.qa.check(artifact, parsed, context);
+    const result = this.qa.check(artifact, parsed, withDesire);
     for (const rule of result.flaggedRules) {
       this.analytics.capture(userId, 'generation_qa_flagged', { rule });
     }
@@ -157,6 +181,7 @@ export class GenerationService implements OnModuleInit {
     context: MemoryContext,
     artifact: GeneratedArtifact,
     supportive: boolean,
+    input: ParsedJobInput = { refine: undefined, desire: undefined },
   ): Promise<string> {
     const spec = ARTIFACT_SPEC[job.artifact];
 
@@ -168,6 +193,10 @@ export class GenerationService implements OnModuleInit {
         status: 'generating',
         title: artifact.title,
         body: artifact.body,
+        // Lineage is what caps refine at one per moment (product 09 §9.1) and
+        // what lets Home show a refined moment in place of its original.
+        ...(input.refine?.momentId ? { refine_of: input.refine.momentId } : {}),
+        ...(input.desire ? { desire_text: input.desire } : {}),
         qa_report: {
           prompt_version: this.prompts.build(job.artifact, context).promptVersion,
           supportive,
@@ -204,6 +233,27 @@ export class GenerationService implements OnModuleInit {
     return moment.id;
   }
 
+  /**
+   * Writes what she asked for as an evolving preference (09 §1, product 09 §9.1).
+   *
+   * Deliberately records the DIRECTION, never the note's free text: "she prefers
+   * gentler" is a durable fact about her voice; the sentence she typed at 7am is
+   * a moment, and the memory tier for that is not permanent.
+   */
+  private async recordRefinePreference(userId: string, direction: string): Promise<void> {
+    const content = REFINE_PREFERENCE_MEMORY[direction];
+    if (!content) return;
+
+    await this.supabase.from('memory_items').insert({
+      user_id: userId,
+      category: 'preference',
+      tier: 'evolving',
+      content,
+      source: 'refine',
+      emotional_weight: 2,
+    });
+  }
+
   private modelFor(tier: ModelTier): string {
     if (tier === 'flagship') return this.config.get('LLM_MODEL_FLAGSHIP', { infer: true });
     if (tier === 'mid') return this.config.get('LLM_MODEL_MID', { infer: true });
@@ -218,12 +268,60 @@ export class GenerationService implements OnModuleInit {
   }
 }
 
+/**
+ * Job input, parsed defensively.
+ *
+ * The row is jsonb written by this service's own controller, but it also
+ * survives a restart and a re-queue — so it is validated rather than trusted.
+ * Anything unrecognisable degrades to "no input", which produces a plain moment
+ * instead of throwing on a row that cannot be fixed by retrying.
+ */
+export interface ParsedJobInput {
+  refine: (RefineInput & { momentId: string }) | undefined;
+  desire: string | undefined;
+}
+
+const REFINE_DIRECTIONS = new Set(['more_realistic', 'softer', 'more_ambitious', 'note']);
+
+function parseJobInput(raw: unknown): ParsedJobInput {
+  if (!raw || typeof raw !== 'object') return { refine: undefined, desire: undefined };
+
+  const value = raw as Record<string, unknown>;
+  const desire =
+    typeof value.desire === 'string' && value.desire.trim() !== '' ? value.desire : undefined;
+
+  const refineRaw = value.refine as Record<string, unknown> | undefined;
+  const refine =
+    refineRaw &&
+    typeof refineRaw.momentId === 'string' &&
+    typeof refineRaw.previousBody === 'string' &&
+    typeof refineRaw.direction === 'string' &&
+    REFINE_DIRECTIONS.has(refineRaw.direction)
+      ? {
+          momentId: refineRaw.momentId,
+          previousBody: refineRaw.previousBody,
+          direction: refineRaw.direction as RefineInput['direction'],
+          ...(typeof refineRaw.note === 'string' ? { note: refineRaw.note } : {}),
+        }
+      : undefined;
+
+  return { refine, desire };
+}
+
 class MalformedOutputError extends Error {
   constructor() {
     super('LLM returned unparseable output');
     this.name = 'MalformedOutputError';
   }
 }
+
+/** Direction → the durable fact it implies about her voice. */
+const REFINE_PREFERENCE_MEMORY: Record<string, string> = {
+  more_realistic: 'She prefers moments that stay close to her real reach',
+  softer: 'She prefers a gentler, more tender tone',
+  more_ambitious: 'She prefers moments that reach further than she would ask for',
+  note: 'She has asked for a moment to be rewritten in her own direction',
+};
 
 function momentType(
   artifact: JobArtifact,

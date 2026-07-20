@@ -1,4 +1,4 @@
-import type { JobArtifact, JobStatus } from '@aura/shared';
+import type { JobArtifact, JobStatus, Json } from '@aura/shared';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../../supabase/supabase.module';
@@ -25,6 +25,12 @@ export interface JobRow {
   status: JobStatus;
   moment_id: string | null;
   attempt: number;
+  /**
+   * Per-artifact input (refine direction/note, manifest desire). Persisted on
+   * the row rather than held in memory so a crash re-queue still knows what the
+   * generation was for (04 §4).
+   */
+  input: unknown;
 }
 
 /**
@@ -84,6 +90,7 @@ export class JobsService implements OnModuleInit {
     userId: string,
     artifact: JobArtifact,
     idempotencyKey?: string,
+    input?: unknown,
   ): Promise<{ jobId: string; existing: boolean }> {
     if (idempotencyKey) {
       const { data: existing } = await this.supabase
@@ -102,6 +109,7 @@ export class JobsService implements OnModuleInit {
         artifact,
         status: 'queued',
         ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+        ...(input === undefined ? {} : { input: input as Json }),
       })
       .select('id')
       .single();
@@ -194,7 +202,7 @@ export class JobsService implements OnModuleInit {
   private async loadJob(jobId: string): Promise<JobRow | null> {
     const { data } = await this.supabase
       .from('generation_jobs')
-      .select('id, user_id, artifact, status, moment_id, attempt')
+      .select('id, user_id, artifact, status, moment_id, attempt, input')
       .eq('id', jobId)
       .single();
     return data;

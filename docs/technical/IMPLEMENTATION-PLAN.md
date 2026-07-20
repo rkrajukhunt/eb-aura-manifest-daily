@@ -13,7 +13,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 4   | Living Memory & Profile                   | 🟨     |
 | 5   | AI Generation Backend                     | 🟨     |
 | 6   | Future-Self Letter — WOW                  | 🟨     |
-| 7   | Daily Moments & Audio Player              | ⬜     |
+| 7   | Daily Moments & Audio Player              | 🟨     |
 | 8   | Affirmations & Gratitude                  | ⬜     |
 | 9   | Notifications & Daily Habit Loop          | ⬜     |
 | 10  | Subscriptions & Paywall                   | 🟨     |
@@ -354,6 +354,34 @@ The whole path is wired: S11 → ritual → Letter → Home, with the boot gate 
 - **Tests:** Cron window math (tz, DST, inactive-skip, no-double-generation); credit spend/refund (error paths don't consume); refine lineage cap; RTL Home states; Maestro daily-ritual flow; prefetch-latency assertion.
 - **Edge cases:** Cron failure by arrival → on-open fallback with "still forming" + yesterday replay; refine on refined moment (blocked); manifest crisis input (422, credit intact); timezone travel; offline Home (cached moment plays); audio scrub past end.
 - **Definition of Done:** Tester wakes to a pre-generated moment (staging cron), plays <300ms; refine regenerates once and teaches memory; Manifest works with credits; forming previews visible; word echo appears in generations (memory context verified in output).
+
+### Phase 7 — as built (2026-07-20) — 🟨 BACKEND ONLY; the mobile half is not started
+
+**Scope warning for whoever picks this up:** this phase is roughly twice the size of any other, and only its backend has been built. The mobile half (Home, player, mini-player, Read mode, Refine/Manifest sheets, prefetch) is untouched. Backend tests 757 → 829.
+
+**Built and verified:**
+
+- **`pregenerate-daily`** (04 §5) — every-15-minute sweep enqueueing daily moments for users whose LOCAL arrival is 15–30 minutes out. The window maths is a pure module with **41 tests**: every timezone shape, the midnight wrap, half-hour offsets, and both DST transitions. Everything compares WALL-CLOCK time in her timezone, so "07:00" stays 07:00 on the mornings the clocks move — reasoning in UTC offsets would deliver an hour early or late twice a year, on exactly the mornings a habit is most fragile.
+- **Credits** — weekly Manifest cap and the refine lineage cap. A credit is reserved BEFORE generation (to close the two-requests-see-the-last-credit race) and explicitly refunded on every failure path, because product 09 §9.2 promises "Error: retry, credit not consumed". Refunds clamp at zero so a double refund cannot mint credits.
+- **`POST /v1/generation/moment` / `/refine` / `/manifest`.** Moment is free and ungated (the daily moment IS the free tier). Refine is premium, capped by lineage, and screens her free-text note for crisis. Manifest is premium + credit-gated, and screens the desire **before** touching a credit — she typed something that needs support, and charging her for it would be indefensible.
+- **`generation_jobs.input` jsonb** so refine/manifest inputs survive the crash re-queue (04 §4). A job that came back after a restart regenerates the thing she asked for, not a generic moment.
+- **Refine writes a preference memory** (09 §1) — the DIRECTION only, never the note's free text. "She prefers gentler" is a durable fact about her voice; the sentence she typed at 7am is not.
+
+**One design note worth keeping:** a Manifest desire enters the prompt as an EXACT PHRASE rather than as an instruction, so the existing "reuse her words literally" rule (08 §3) carries it — and the QA gate then counts it as a verbatim token, which is exactly right since it is literally her words.
+
+**Documented, not fixed:** the pure window function can fire twice inside the repeated DST fall-back hour, because a pure function has no memory. The dedupe is the sweep's own "already has a moment for this local date" check, and both occurrences share a local date. A test documents that layering rather than pretending the maths solves it alone.
+
+**NOT BUILT — the entire mobile half:**
+
+- Home (greeting, Today's Moment card, countdown chip, Coming for you previews, recently played, "+")
+- `/player` cover (amplitude-reactive orb, transport, speed, favourite, Refine entry, pull-down minimize) and the mini-player
+- Read mode (sentence-level synced highlight)
+- Refine and Manifest sheets
+- Audio prefetch and the 200MB LRU cache policy (10 §6) — the `permanent` flag Phase 6 already writes is waiting for the evictor
+- Forming previews (backend title-only generation is also not built)
+- The daily-moment arrival push depends on Phase 9
+
+Nothing in the mobile app calls the three new endpoints yet, so none of this is reachable by a user.
 
 ## Phase 8 — Affirmations & Gratitude
 

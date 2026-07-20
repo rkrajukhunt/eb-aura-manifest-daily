@@ -46,6 +46,7 @@ describe('GenerationService (pipeline)', () => {
     status: 'running',
     moment_id: null,
     attempt: 1,
+    input: null,
     ...overrides,
   });
 

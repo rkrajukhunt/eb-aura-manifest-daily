@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { MemoryModule } from '../memory/memory.module';
 import { SafetyModule } from '../safety/safety.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { CreditsService } from './credits.service';
 import { GenerationController } from './generation.controller';
 import { GenerationService } from './generation.service';
 import { JobsService } from './jobs/jobs.service';
@@ -15,8 +17,9 @@ import { StorageService } from './storage.service';
  * storage. Providers (LLM/TTS) and the service-role client are global.
  */
 @Module({
-  imports: [MemoryModule, SafetyModule, QaModule],
+  imports: [MemoryModule, SafetyModule, QaModule, SubscriptionsModule],
   controllers: [GenerationController],
-  providers: [GenerationService, JobsService, PromptService, StorageService],
+  providers: [GenerationService, JobsService, PromptService, StorageService, CreditsService],
+  exports: [JobsService, CreditsService],
 })
 export class GenerationModule {}
