@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 import type { Env } from '../config/env.schema';
 import { JobsService } from '../generation/jobs/jobs.service';
@@ -34,7 +34,11 @@ export class SchedulerService {
    * date is skipped, which is also what makes the repeated DST fall-back hour
    * safe (see `pregen-window.spec.ts`).
    */
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  // Every 15 minutes, and that MUST match `WINDOW_WIDTH_MINUTES`. The window is
+  // 15 minutes wide, so a 30-minute cron would sample it every other time and
+  // silently skip half of all users — a bug with no error and no log line,
+  // visible only as "some people never get a moment".
+  @Cron('*/15 * * * *')
   async pregenerateDaily(now: Date = new Date()): Promise<{ processed: number; failures: number }> {
     const skipAfterDays = this.config.get('PREGEN_INACTIVE_SKIP_DAYS', { infer: true });
     const leadMinutes = this.config.get('PREGEN_BUFFER_MINUTES', { infer: true });

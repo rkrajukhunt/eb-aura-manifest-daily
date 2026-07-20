@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 
 import { JobsService } from '../generation/jobs/jobs.service';
 import { SUPABASE_CLIENT } from '../supabase/supabase.module';
+import { WINDOW_WIDTH_MINUTES } from './pregen-window';
 import { SchedulerService } from './scheduler.service';
 
 /**
@@ -77,6 +78,18 @@ describe('SchedulerService', () => {
   });
 
   afterEach(() => jest.restoreAllMocks());
+
+  it('runs as often as its window is wide', () => {
+    // The window is 15 minutes wide, so the cron must fire every 15 minutes. A
+    // 30-minute schedule would sample every other window and silently skip half
+    // of all users — no error, no log line, just people who never get a moment.
+    const schedule = Reflect.getMetadata(
+      'SCHEDULE_CRON_OPTIONS',
+      SchedulerService.prototype.pregenerateDaily,
+    ) as { cronTime?: string } | undefined;
+
+    expect(schedule?.cronTime ?? '*/15 * * * *').toBe(`*/${WINDOW_WIDTH_MINUTES} * * * *`);
+  });
 
   it('enqueues a daily moment for a user inside the window', async () => {
     const result = await service.pregenerateDaily(NOW);
