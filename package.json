@@ -36,7 +36,8 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "supabase",
-      "@sentry/cli"
+      "@sentry/cli",
+      "@shopify/react-native-skia"
     ]
   },
   "lint-staged": {
