@@ -287,6 +287,23 @@ Tests were deferred this phase by the founder — the pipeline was proven end-to
 
 **Not done — deferred:** the core unit suites (QA exhaustive, prompt builders, memory sampler, crisis screen, job state machine, RLS for the 4 new tables, golden 20-persona tests) — 15 §2's highest-value tests, explicitly deferred this phase and owed before this phase is ✅. The OpenAI model-tier bake-off (08 §2) and the vendor no-retention verification (14 §8) are founder/staging items. No real vendor call has been made — only mock.
 
+### Phase 5 — test debt paid (2026-07-20) — still 🟨 on the two vendor gates
+
+The deferred suites landed. Backend unit tests went **18 → 701**; the live RLS suite went **45 → 71**. `pnpm turbo lint typecheck test` and `pnpm test:live` are green. Coverage on `generation/** · memory/** · safety/**` is **99.8% stmts / 91.5% branch / 100% funcs**, clearing 15 §6's 90% bar (excluding `generation.controller.ts`, whose HTTP surface is e2e's job — e2e was out of scope for this pass by founder instruction).
+
+**Suites written:** QA gate exhaustive (69 tests — all 8 rules × pass/fail, every banned phrase and negative-frame marker enumerated from the shared list, word-boundary and regex-escape cases); prompt builders (43 — stable-prefix cache invariant, her-words-present, exclusions restated, cadence directives, per-artifact structure); memory sampler (36 — scoring by ordering, sensitive-tier gating per artifact, query-shape assertions for the DB-enforced filters); crisis screen (37 — both layers, every fail-safe path, and two tests that assert her disclosure never reaches a log line); job state machine (27 — both retry lanes on fake timers, idempotency, crash recovery, queue routing); concurrency queue (7); pipeline integration with mocks (39 — the whole compose, the crisis-on-letter edge, defensive parse, failure classification); golden 20 personas (425 — properties only, never exact text); RLS for the 4 tables + audio bucket (26 live).
+
+**Four real defects the suites caught** (each would have shipped):
+
+1. **Sensitive struggle leaked into `winback` via a cadence directive.** `assemble` correctly nulls `context.struggle` for non-body artifacts, but `cadenceDirectives` read `profile.struggle` straight from the row and pushed it into an `explicit_callback`, which `renderContextBlock` renders verbatim. Winback is the lapsed-user note — precisely the "never notifications" surface 09 §2 forbids. Fixed: the callback is gated on `includeSensitive`.
+2. **The affirmation prompt and the QA gate disagreed about "her words."** The builder offered her _values_ as a sufficient anchor, but values are preset S06 chips — the same list for every user — so the gate's verbatim rule (correctly) never counted them. An affirmation that followed the instruction failed `verbatim_tokens` on both attempts and hard-failed the job. Fixed in the prompt (values are template language, not her words); `PROMPT_VERSION` → `2026-07-20.1`.
+3. **The mock LLM could never produce a passing `winback`.** It padded to a hardcoded 95-word floor regardless of artifact, and winback's ceiling is 100 — every generation came out at 103 words. Now derives its target from the range the prompt states.
+4. **The mock anchored affirmations on unusable phrases** — a negatively-framed phrase ("proof, not vibes") or one far over the 20-word ceiling — producing output the gate must reject. Now picks a usable anchor, as a real model would; the prompt gained matching guidance.
+
+**Known limitation, raised not fixed:** the explicit-callback cadence guard queries for ANY moment in the last 30 days rather than any recent _callback_, so a user who receives moments regularly never becomes eligible. Fixing it properly needs somewhere to record that a callback was spent (a schema decision). A test pins today's behaviour so the change is visible when it lands.
+
+**Still owed before ✅ (both founder/staging, unchanged):** the OpenAI model-tier bake-off (08 §2) and the vendor no-retention verification (14 §8). The DoD's "latency <40s p90 against real vendors in staging" also remains unmeasured — no real vendor call has been made.
+
 ## Phase 6 — Future-Self Letter — WOW
 
 - **Objective:** The generation ritual (S12) and the Letter experience exactly per product doc 08 — the emotional peak, pre-paywall.

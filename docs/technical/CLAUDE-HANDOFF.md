@@ -8,15 +8,15 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 
 ## Phase status
 
-| #    | Phase                             | Status             | What "done" means / what's pending                                                                                                                                |
-| ---- | --------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Repository & Dev Foundation       | ✅ done            | monorepo, CI, local Supabase, both apps boot. Only gap: simulator boot unverified.                                                                                |
-| 1    | Design System & Mobile Foundation | 🟨 code-complete   | 16 components + Orb + theme + haptics/motion + copy lint. **Pending: founder device pass** (60fps orb, "calm is the brand"). Gallery at route `/gallery`.         |
-| 2    | Supabase Auth & User Foundation   | ✅ done            | anon-first auth, profiles, RLS, deletion, boot gate — all verified against live DB.                                                                               |
-| 3    | Onboarding "The Conversation"     | 🟨 code-complete   | S1–S11, draft resume, edit-guard, reflections, commit path. **Pending: founder device walkthrough.**                                                              |
-| 4    | Living Memory & Profile           | 🟨 code-complete   | schema + harvester + seed + What Aura Knows + Never-Include + Profile tab. Data layer fully verified (live RLS). **Pending: device walkthrough.**                 |
-| 5    | AI Generation Backend             | 🟨 pipeline proven | full pipeline proven end-to-end on live stack w/ mock providers. **Pending: the deferred unit suites (see below) + OpenAI bake-off + vendor no-retention check.** |
-| 6–12 | —                                 | ⬜ not started     | next up: Phase 6.                                                                                                                                                 |
+| #    | Phase                             | Status           | What "done" means / what's pending                                                                                                                                                |
+| ---- | --------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Repository & Dev Foundation       | ✅ done          | monorepo, CI, local Supabase, both apps boot. Only gap: simulator boot unverified.                                                                                                |
+| 1    | Design System & Mobile Foundation | 🟨 code-complete | 16 components + Orb + theme + haptics/motion + copy lint. **Pending: founder device pass** (60fps orb, "calm is the brand"). Gallery at route `/gallery`.                         |
+| 2    | Supabase Auth & User Foundation   | ✅ done          | anon-first auth, profiles, RLS, deletion, boot gate — all verified against live DB.                                                                                               |
+| 3    | Onboarding "The Conversation"     | 🟨 code-complete | S1–S11, draft resume, edit-guard, reflections, commit path. **Pending: founder device walkthrough.**                                                                              |
+| 4    | Living Memory & Profile           | 🟨 code-complete | schema + harvester + seed + What Aura Knows + Never-Include + Profile tab. Data layer fully verified (live RLS). **Pending: device walkthrough.**                                 |
+| 5    | AI Generation Backend             | 🟨 tests done    | pipeline proven + **all deferred suites written (2026-07-20)**; 701 backend unit tests, 71 live. **Pending: OpenAI bake-off + vendor no-retention check (both founder/staging).** |
+| 6–12 | —                                 | ⬜ not started   | next up: Phase 6.                                                                                                                                                                 |
 
 🟨 = code-complete and machine-verified as far as this Linux box allows; the remaining item needs either a physical iPhone or (Phase 5) the deferred tests.
 
@@ -34,9 +34,10 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 
 ## Test / verification status
 
-- **221 automated tests green** across the monorepo: 51 shared, 147 mobile, 23 backend (18 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
-- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 45 tests (RLS for all tables + account deletion). Phase 5 added NO tests to this (deferred).
-- **Phase 5 was proven by driving the real pipeline**, not by unit tests (founder deferred them). A letter generates end-to-end: name-first, QA passes, mp3 in storage, word timings; crisis-on-letter produces a supportive letter with no struggle leak.
+- **904 automated tests green** across the monorepo: 51 shared, 147 mobile, 706 backend (701 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
+- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 71 tests (RLS for all tables incl. the 4 Phase 5 ones + audio bucket, + account deletion).
+- **Phase 5's test debt is paid** (2026-07-20). Coverage on `generation/** · memory/** · safety/**` is 99.8% stmts / 91.5% branch, clearing 15 §6's 90% bar. Writing the suites caught **four real defects** — a sensitive-struggle leak into `winback` via a cadence directive, a prompt/QA disagreement that made value-anchored affirmations permanently un-passable, and two mock defects. All fixed; see the plan's "Phase 5 — test debt paid" section.
+- **e2e was deliberately out of scope** for that pass (founder instruction), which is why `generation.controller.ts` is the one uncovered file in the generation tree.
 
 ## The hard rule: this project is phase-gated
 
@@ -75,11 +76,12 @@ Founder device checklist for Phases 1/3/4 is in the plan's Phase 1 "as built" se
 
 ## Phase 5 debt (do before calling Phase 5 ✅)
 
-The founder deferred tests for Phase 5. Owed before it's truly done (all listed in the plan's Phase 5 "as built"):
-
-- Core unit suites (15 §2): QA gate exhaustive, prompt builders, memory sampler, crisis screen, job state machine, RLS for the 4 new tables, golden 20-persona tests.
-- OpenAI model-tier bake-off (08 §2) — founder/staging.
+- ~~Core unit suites (15 §2)~~ — **done 2026-07-20.** QA gate, prompt builders, memory sampler, crisis screen, job state machine, concurrency queue, pipeline integration, golden 20 personas, RLS for the 4 new tables.
+- OpenAI model-tier bake-off (08 §2) — founder/staging. Env still holds placeholder ids.
 - Vendor no-retention terms verified (14 §8) — release gate.
+- DoD's "latency <40s p90 against real vendors in staging" — unmeasured; no real vendor call has been made.
+
+Also open (raised, not fixed): the explicit-callback cadence guard checks for any recent _moment_, not any recent _callback_, so active users never become eligible. Needs a place to record a spent callback — a schema decision for the founder.
 
 ## What Phase 6 will need (next up)
 

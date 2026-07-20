@@ -113,7 +113,7 @@ export class MemoryContextService {
       recentTitles: (titlesRes.data ?? [])
         .map((t) => t.title)
         .filter((t): t is string => t !== null),
-      directives: await this.cadenceDirectives(userId, artifact, evolving, now),
+      directives: await this.cadenceDirectives(userId, artifact, evolving, now, includeSensitive),
       startedWeekday: startedAt ? (WEEKDAYS[startedAt.getDay()] ?? null) : null,
       startedMonth: startedAt ? (MONTHS[startedAt.getMonth()] ?? null) : null,
     };
@@ -153,6 +153,7 @@ export class MemoryContextService {
     artifact: JobArtifact,
     evolvingCandidates: { content: string; last_used_at: string | null; category: string }[],
     now: Date,
+    includeSensitive: boolean,
   ): Promise<CadenceDirective[]> {
     if (
       artifact === 'letter' ||
@@ -177,6 +178,16 @@ export class MemoryContextService {
     }
 
     // Explicit callback — user ≥ D21 and none in the last 30 days (09 §5).
+    //
+    // GATED ON `includeSensitive`: the callback item IS her struggle, which is
+    // sensitive-tier memory. `assemble` already nulls `context.struggle` for
+    // non-body artifacts, but this directive reads the profile row directly, so
+    // without this gate it would smuggle the struggle past that filter and into
+    // the prompt (`renderContextBlock` renders directives verbatim). The artifact
+    // that reaches here non-body is `winback` — a lapsed-user note — which is
+    // exactly the "never notifications" surface 09 §2 forbids.
+    if (!includeSensitive) return directives;
+
     const { data: profile } = await this.supabase
       .from('profiles')
       .select('created_at, struggle')

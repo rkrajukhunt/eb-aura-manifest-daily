@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { NEGATIVE_FRAME_MARKERS } from '@aura/shared';
+
 import type {
   LlmGenerateRequest,
   LlmGenerateResponse,
@@ -61,12 +63,14 @@ export class MockLlmProvider implements LlmProvider {
       return JSON.stringify({ answer: 'no' });
     }
 
-    // Guided affirmations expect a candidates array (08 §3).
+    // Guided affirmations expect a candidates array (08 §3). Anchor on one of her
+    // EXACT PHRASES, not a value: values are preset chips, so the QA gate does not
+    // count them as verbatim tokens (see PROMPT_VERSION 2026-07-20.1).
     if (/"candidates"/i.test(prompt)) {
-      const value = firstValue(prompt) ?? 'freedom';
+      const anchor = usableAnchor(prompt) ?? firstValue(prompt) ?? 'freedom';
       return JSON.stringify({
         candidates: [1, 2, 3].map((n) => ({
-          text: `I am someone who chooses ${value} (${n}).`,
+          text: `I am someone who chooses ${anchor} (${n}).`,
           whyLine: 'Identity-form affirmations rehearse who you are becoming.',
           technique: 'identity',
         })),
@@ -76,15 +80,17 @@ export class MockLlmProvider implements LlmProvider {
     const name = extract(prompt, /Her name:\s*(.+)/);
     const city = extract(prompt, /Her dream city:\s*(.+)/);
     const person = extract(prompt, /Her people, by name:\s*([^,(\n]+)/);
-    const phrase = firstQuoted(prompt);
+    // Read the exact-phrases block specifically rather than the first quoted span
+    // anywhere: the context block also quotes her struggle (earlier) and her
+    // never-include terms (later), and echoing either back would be a QA failure.
+    const phrase = firstExactPhrase(prompt) ?? firstQuoted(prompt);
     const isLetter = /letter from her future self/i.test(prompt);
     const isAffirmation = /one affirmation for today/i.test(prompt);
 
     if (isAffirmation) {
-      const value = firstValue(prompt) ?? phrase ?? 'freedom';
       return JSON.stringify({
         title: 'Becoming',
-        body: `I am building ${value}, one quiet morning at a time.`,
+        body: affirmationBody(prompt, name, city),
         whyLine: 'Present-tense identity framing keeps the goal in working memory.',
       });
     }
@@ -106,10 +112,18 @@ export class MockLlmProvider implements LlmProvider {
       'You did this, slowly and on purpose.',
     ];
 
-    // Pad to clear the min-word floor (letters need 140) BEFORE the close, so the
-    // date-close line stays the last sentence — the QA gate reads the tail (08 §5).
+    // Pad to clear the min-word floor BEFORE the close, so the date-close line
+    // stays in the tail the QA gate reads (08 §5).
+    //
+    // The target is derived from the range the PROMPT states, not hardcoded: the
+    // artifacts have very different bounds (letter 140–220, winback 1–100), and a
+    // fixed floor overshoots the tight ones — a 95-word pad made every winback 103
+    // words and thus permanently un-passable against its 100-word ceiling.
+    const { min, max } = statedWordRange(prompt);
+    const target = Math.max(min, Math.min(max - 10, min + 20));
+
     let body = sentences.join(' ');
-    while (countWords(body) < (isLetter ? 130 : 95)) {
+    while (countWords(body) < target) {
       body += ' The days are softer now, and you move through them like someone who belongs.';
     }
 
@@ -128,10 +142,68 @@ function extract(text: string, re: RegExp): string | null {
   return m ? (m[1] ?? m[0]).trim() : null;
 }
 
+/**
+ * Every phrase from the exact-words block, which `renderContextBlock` emits as a
+ * `- "phrase"` list under the LITERALLY instruction. Targeted so the mock can
+ * never mistake her struggle or an excluded term for something to quote back.
+ */
+function exactPhrases(text: string): string[] {
+  const block = text.match(/LITERALLY[^\n]*\n((?:- "[^"]+"\n?)+)/);
+  if (!block?.[1]) return [];
+  return [...block[1].matchAll(/- "([^"]+)"/g)].map((m) => m[1] ?? '').filter(Boolean);
+}
+
+function firstExactPhrase(text: string): string | null {
+  return exactPhrases(text)[0] ?? null;
+}
+
+/**
+ * Not every phrase of hers can carry an affirmation. Her own words may be
+ * negatively framed ("proof, not vibes") or far longer than the 20-word ceiling,
+ * and the QA gate rejects both (08 §5, 14 §35). A real model resolves this by
+ * reaching for a different anchor; the mock does the same rather than emitting
+ * something it knows the gate will refuse.
+ */
+function usableAnchor(text: string): string | null {
+  return (
+    exactPhrases(text).find(
+      (phrase) =>
+        countWords(phrase) <= 8 &&
+        !NEGATIVE_FRAME_MARKERS.some((m) => phrase.toLowerCase().includes(m)),
+    ) ?? null
+  );
+}
+
+/**
+ * A ≤20-word, positively framed affirmation carrying at least one verbatim token
+ * (08 §5 floor of 1). Prefers one of her phrases; falls back to her city or name,
+ * which are equally her words and always short.
+ */
+function affirmationBody(prompt: string, name: string | null, city: string | null): string {
+  const anchor = usableAnchor(prompt);
+  if (anchor) return `I am building ${anchor}, one quiet morning at a time.`;
+  if (city) return `I am already on my way to ${city}.`;
+  if (name) return `${name} is becoming someone she trusts.`;
+  return 'I am steady today.';
+}
+
 /** First double-quoted span in the prompt — the context block lists phrases this way. */
 function firstQuoted(text: string): string | null {
   const m = text.match(/"([^"]{3,})"/);
   return m ? (m[1] ?? null) : null;
+}
+
+/**
+ * The word range the prompt asked for, written by the builders as "140–220 words"
+ * (en dash). Falls back to the daily bounds if a builder ever omits it.
+ */
+function statedWordRange(text: string): { min: number; max: number } {
+  const m = text.match(/(\d+)[–-](\d+) words/);
+  const min = m ? Number(m[1]) : 90;
+  const max = m ? Number(m[2]) : 180;
+  return Number.isFinite(min) && Number.isFinite(max) && min < max
+    ? { min, max }
+    : { min: 90, max: 180 };
 }
 
 /** First item after "What she values:" (comma-separated). */

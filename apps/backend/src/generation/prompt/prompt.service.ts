@@ -155,7 +155,8 @@ Return JSON: { "title": "a short italic-serif title", "body": "the moment" }`,
 
 Requirements:
 - Present tense, positive frame (never "I am not..."), identity form preferred ("I am someone who...").
-- Anchored to one of her stated values or one of her exact phrases.
+- Anchored to one of her exact phrases or a specific detail she gave you, reused literally. Her values may colour the tone, but they come from a fixed list every user sees — echoing one back is not quoting her, and the QA gate will not count it.
+- If the phrase you reach for is negatively framed or too long to fit, reach for a different one of her words rather than bending this into a negative or over-long line.
 - A plausible stretch — a truth she is growing into, not a lie.
 - ${spec.maxWords} words or fewer.
 
@@ -170,7 +171,7 @@ Return JSON: { "title": "a two-or-three word mantra", "body": "the affirmation",
       spec,
       `Write her three affirmation candidates to choose from.
 
-Each: present tense, positive frame, identity form preferred, ≤${spec.maxWords} words, anchored to her values or exact phrases, a plausible stretch.
+Each: present tense, positive frame, identity form preferred, ≤${spec.maxWords} words, a plausible stretch, and anchored to one of her exact phrases or a specific detail she gave you, reused literally — a value word from the fixed list is not quoting her and the QA gate will not count it.
 
 Return JSON: { "candidates": [ { "text": "...", "whyLine": "why it works", "technique": "identity|present_tense|three_six_nine|scripting" }, ... three of them ] }`,
       context,

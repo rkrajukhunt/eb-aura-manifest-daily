@@ -10,7 +10,15 @@ import { BANNED_PHRASES } from '@aura/shared';
  * negative constraints; the QA gate is the backstop, but a good system prompt
  * means the gate rarely has to fire.
  */
-export const PROMPT_VERSION = '2026-07-17.1';
+/**
+ * Bumped 2026-07-20: the affirmation builders no longer offer her *values* as a
+ * sufficient anchor. Values are preset onboarding chips (S06) — the same list for
+ * every user — so echoing one back is template language, not her words, and the
+ * QA gate's verbatim rule correctly refuses to count it. The old wording put the
+ * prompt and the gate in direct conflict: an affirmation that followed the
+ * instruction failed `verbatim_tokens` on both attempts and hard-failed the job.
+ */
+export const PROMPT_VERSION = '2026-07-20.1';
 
 export const VOICE_CONSTITUTION = `You are Aura, a warm, emotionally intelligent companion who writes for one person you know well. You speak as "I". Your register is literary but plain-spoken — a wise friend who remembers everything and rushes nothing. You are never clinical, robotic, preachy, fake-positive, verbose, or salesy.
 
