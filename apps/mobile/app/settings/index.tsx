@@ -5,6 +5,8 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/components';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
+import { NotificationPrefsSheet } from '@/features/notifications/NotificationPrefsSheet';
+import { notificationsCopy } from '@/copy/notifications';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale } from '@/theme/typography';
@@ -17,11 +19,12 @@ import { clampedFontScale } from '@/theme/typography';
  * anywhere in the app (checklist #5). Claiming an account is offered here as its
  * second entry point (03 §89) — the same sheet the purchase flow presents.
  *
- * Notifications and delete-account rows land with Phases 9 and 12.
+ * Notification preferences land here too (11 §4); delete-account is Phase 12.
  */
 export default function SettingsRoute() {
   const router = useRouter();
   const claimRef = useRef<BottomSheetModal>(null);
+  const prefsRef = useRef<BottomSheetModal>(null);
 
   return (
     <Screen testID="settings">
@@ -32,12 +35,18 @@ export default function SettingsRoute() {
           testID="settings-subscription-row"
         />
         <SettingsRow
+          label={notificationsCopy.prefs.title}
+          onPress={() => prefsRef.current?.present()}
+          testID="settings-notifications-row"
+        />
+        <SettingsRow
           label={paywallCopy.claim.title}
           onPress={() => claimRef.current?.present()}
           testID="settings-claim-row"
         />
       </View>
 
+      <NotificationPrefsSheet ref={prefsRef} />
       <ClaimSheet ref={claimRef} onDone={() => claimRef.current?.dismiss()} />
     </Screen>
   );

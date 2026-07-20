@@ -159,6 +159,16 @@ jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(async () => 'file:///tmp/share.png'),
 }));
 
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(async () => ({ status: 'undetermined' })),
+  requestPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getExpoPushTokenAsync: jest.fn(async () => ({ data: 'ExponentPushToken[test]' })),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+}));
+
+jest.mock('expo-device', () => ({ isDevice: true, modelId: 'iPhone14,2' }));
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

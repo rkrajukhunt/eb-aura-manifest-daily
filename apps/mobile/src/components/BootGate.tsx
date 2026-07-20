@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 
 import { bootCopy } from '@/copy/boot';
 import { hasSeenLetter } from '@/features/letter/keepLetter';
+import { useNotificationRouting } from '@/features/notifications/useNotificationRouting';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useBoot } from '@/hooks/useBoot';
@@ -32,6 +33,11 @@ export function BootGate({ children }: { children: ReactNode }) {
   const letterQuery = useLetter(
     profile?.onboarding_completed_at ? (userId ?? undefined) : undefined,
   );
+
+  // A tapped notification routes AFTER the boot gate has decided where she
+  // belongs (06 §5), so a link can never skip the funnel. This also reports the
+  // open, which is the only way auto-soften can ever reset (11 §5).
+  useNotificationRouting(userId ?? undefined, profile, Boolean(letterQuery.data));
 
   useEffect(() => {
     if (status !== 'ready' || !profile) return;

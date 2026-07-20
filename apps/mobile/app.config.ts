@@ -67,6 +67,9 @@ const config: ExpoConfig = {
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
     'expo-dev-client',
     '@sentry/react-native/expo',
+    // Push arrives from the backend only — the app never local-schedules
+    // content (11 §1), so no permission strings beyond the OS default are added.
+    'expo-notifications',
     [
       // The Letter's playback (10 §4). `microphonePermission: false` DELETES
       // NSMicrophoneUsageDescription, which the plugin would otherwise add by

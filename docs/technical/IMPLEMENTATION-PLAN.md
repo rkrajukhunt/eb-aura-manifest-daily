@@ -445,9 +445,9 @@ Built in two passes: gratitude first, then affirmations. Backend 830 → 833, mo
 - **Edge cases:** Permission denied (weekly quiet hint max, feature works without); token rotation/multi-device; notification for failed generation (never sent); tapped stale notification (replay state); softened user opens app (unsoften + reset); D7 with zero gratitude entries (letter adapts, no fake quote).
 - **Definition of Done:** Staging tester receives arrival note at chosen time naming the moment's theme; tap → player in one step; D7 letter arrives full-screen and quotes a real entry; 3 ignored arrivals → softened (verified via time-travel test data); zero guilt vocabulary confirmed by lint + manual read.
 
-### Phase 9 — as built (2026-07-20) — 🟨 BACKEND ONLY; the mobile half is not started
+### Phase 9 — as built (2026-07-20) — 🟨 code-complete, device pass pending
 
-Backend 833 → 891. The mobile half (permission flow, token registration, prefs sheet, deep-link routing, D7 presentation, missed-day return state) is untouched, so **no device can receive any of this yet** — there are no registered tokens.
+Built in two passes: backend first, then mobile. Backend 833 → 891, mobile 466 → 507.
 
 **Built:**
 
@@ -458,17 +458,22 @@ Backend 833 → 891. The mobile half (permission flow, token registration, prefs
 - **Arrival and milestone crons.** The arrival note runs as a SEPARATE sweep after pre-generation, because a notification may only go out once real content exists behind it (11 §7). Milestones match D7 exactly rather than "at least 7": a week-one letter arriving on day 20 would make its own copy a small lie.
 - **Push send with token lifecycle**: multi-device fan-out, `DeviceNotRegistered` deactivates a token (kept, not deleted, so a reinstall is recognised), and the send is CLAIMED in the log before delivery — a crash mid-send then costs one missed note rather than a duplicate, and a duplicate is the worse failure on a surface that arrives uninvited.
 
-**NOT BUILT — the entire mobile half:**
+**Mobile (second pass):**
 
-- Post-paywall permission flow with the banked-context sheet
-- Token registration to `notification_tokens` (so nothing can actually be delivered)
-- The `notification_prefs` sheet
-- Deep-link routing notification → player, including cold start
-- D7 milestone letter presentation and `milestone_letter_played`
-- The missed-day return state ("There you are. Today's moment kept.")
-- Open attribution, which the soften counter needs — `ignored_arrival_count` currently only ever increments
+- **The permission ask lands on the first Home landing AFTER the paywall** (11 §2), and the gate that enforces that is tested. The deferral is sequencing, not politeness: product 08 forbids anything between the letter and the paywall, and product 07 keeps the dialog out of onboarding so S11 can capture her arrival time without a system alert interrupting the conversation. By the time the sheet appears she has already told us when she wants her moments, so it reminds her of her own decision rather than making a case. Declining counts as asked — the dialog never returns uninvited.
+- **Open attribution closes the soften ratchet.** The backend can observe a send but never an open, so before this landed `ignored_arrival_count` could only ever climb: a merely busy week would have quietly dropped someone to three notifications a week with no way back. `reportNotificationOpened` resets the counter and unsoftens.
+- **Deep-link routing handles cold start as well as warm.** A tap that launched the app from killed state has already happened by the time React mounts and must be read from `getLastNotificationResponseAsync` — missing that path would have silently landed every morning tap on Home, which is the common case given the whole point is arriving before she has opened anything. Routing resolves AFTER the boot gate (06 §5), so a link can never skip the funnel; 32 tests cover it.
+- Token registration (upserted on the token, so a reinstall re-activates rather than duplicating), the prefs sheet in Settings, and the missed-day return copy.
 
-Expo push credentials in EAS are also a founder item, alongside the ASC work Phase 10 needs.
+**One real bug the tests caught:** the deep-link parser stripped the query string but not the URL _fragment_ — and Supabase magic links carry their token in the fragment (`aura://auth/callback#access_token=…`). The one link that matters most for account recovery would never have matched.
+
+**Still not built:**
+
+- **D7 milestone PRESENTATION.** The cron enqueues the letter and the push routes to `/letter`, but the full-screen arrival-on-next-open and its medium haptic are not wired, and `milestone_letter_played` never fires.
+- The denied-state weekly hint has its pacing logic and copy but no surface renders it yet.
+- `custom_hours` is selectable in the prefs sheet but has no time-window pickers, and nothing reads the window at send time.
+- The win-back cron is still the Phase 10 scaffold — `isWinbackDue` is tested but no sweep calls it.
+- Expo push credentials in EAS are a founder item, alongside the ASC work Phase 10 needs.
 
 ## Phase 10 — Subscriptions & Paywall
 

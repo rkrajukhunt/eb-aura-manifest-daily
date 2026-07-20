@@ -8,6 +8,7 @@ import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
 import { appleAuthAvailable } from '@/features/paywall/claim';
 import { markPaywallSeen } from '@/features/paywall/paywallSeen';
+import { markPermissionAsked } from '@/features/notifications/permissionGate';
 import {
   loadPlans,
   purchasePlan,
@@ -42,6 +43,10 @@ export default function PaywallRoute() {
 
   const leaveToFreeTier = useCallback(() => {
     markPaywallSeen();
+    // The notification ask is due on the first Home landing AFTER this (11 §2)
+    // — never here. Product 08 forbids anything between the letter and the
+    // paywall, and this is the first moment that rule stops applying.
+    markPermissionAsked(false);
     router.replace('/(tabs)/home');
   }, [router]);
 

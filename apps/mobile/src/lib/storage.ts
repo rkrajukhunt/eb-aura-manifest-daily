@@ -57,4 +57,6 @@ export const STORAGE_KEYS = {
   practice369: 'affirmations.practice369',
   /** Which of the day's three ritual beats are done (product 09). */
   ritualProgress: 'ritual.progress',
+  /** Whether the notification permission has been asked, and hint pacing (11 §2). */
+  notificationGate: 'notifications.gate',
 } as const;

@@ -1,6 +1,6 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Screen } from '@/components';
 import { HomeScreen } from '@/features/moments/HomeScreen';
@@ -12,6 +12,10 @@ import {
   useRecentMoments,
   useTodaysMoment,
 } from '@/features/moments/useMoments';
+import { PermissionSheet } from '@/features/notifications/PermissionSheet';
+import { markPermissionAsked, shouldAskPermission } from '@/features/notifications/permissionGate';
+import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
+import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
@@ -39,8 +43,16 @@ export default function HomeRoute() {
   const open = usePlayerStore((s) => s.open);
   const manifestRef = useRef<BottomSheetModal>(null);
   const lockedRef = useRef<BottomSheetModal>(null);
+  const permissionRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  // The permission ask lands HERE — the first Home landing after the paywall
+  // (11 §2), which is the earliest moment product 08's "nothing between the
+  // letter and the paywall" rule stops applying.
+  useEffect(() => {
+    if (shouldAskPermission(hasSeenPaywall())) permissionRef.current?.present();
+  }, []);
 
   const state = resolveHomeMoment({
     latest: today.data ?? null,
@@ -107,6 +119,22 @@ export default function HomeRoute() {
               manifestRef.current?.dismiss();
             })
             .finally(() => setBusy(false));
+        }}
+      />
+
+      <PermissionSheet
+        ref={permissionRef}
+        arrivalTime={profile?.arrival_time ?? '07:00'}
+        onAllow={() => {
+          markPermissionAsked(true);
+          permissionRef.current?.dismiss();
+          if (userId) void requestPermissionAndRegister(userId);
+        }}
+        onLater={() => {
+          // Asked and declined is still asked: the dialog never returns
+          // uninvited (11 §2). A quiet weekly hint is the only follow-up.
+          markPermissionAsked(true);
+          permissionRef.current?.dismiss();
         }}
       />
 
