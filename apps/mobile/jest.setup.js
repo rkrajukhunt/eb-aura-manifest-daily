@@ -147,6 +147,16 @@ jest.mock('react-native-purchases', () => {
   };
 });
 
+// SF Symbols are a native iOS view, so `SymbolView` cannot render under jest.
+// The stub renders `fallback`, which is exactly what the real component does
+// off-iOS — so these tests exercise the Feather path an Android user sees, and
+// a missing fallback shows up as an empty tab bar in a test rather than on a
+// device.
+jest.mock('expo-symbols', () => ({
+  __esModule: true,
+  SymbolView: ({ fallback }) => fallback ?? null,
+}));
+
 jest.mock('expo-apple-authentication', () => ({
   isAvailableAsync: jest.fn(async () => true),
   signInAsync: jest.fn(async () => ({ identityToken: 'token' })),

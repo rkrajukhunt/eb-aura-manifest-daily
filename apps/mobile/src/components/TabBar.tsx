@@ -1,6 +1,7 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TabIcon } from '@/components/TabIcon';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
@@ -26,11 +27,14 @@ export interface TabBarProps {
  * more — the IA does not grow tabs. It floats clear of the edges rather than
  * docking, so screens keep their full-bleed gradient underneath.
  *
- * Titles only for now — SF Symbols-weight icons (expo-symbols) arrive with the
- * tab screens; Phase 1 ships no icon set.
+ * Icons, no captions. The four destinations are fixed and their glyphs are
+ * conventional, so a caption under each one is a label she reads once and then
+ * never again — and product 12 asks for quiet chrome. The title has NOT been
+ * dropped though: it still rides on `accessibilityLabel`, which is what
+ * VoiceOver announces, so nothing is lost for anyone navigating by voice.
  */
 export function TabBar({ state, descriptors, navigation }: TabBarProps) {
-  const { colors, radii, spacing, typography } = useTheme();
+  const { colors, radii, spacing } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -77,16 +81,14 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
               }
             }}
           >
-            <Text
-              style={[
-                typography.label,
-                // Periwinkle is the single high-contrast colour; the active tab
-                // is one of its few sanctioned uses (product 12 §color).
-                { color: focused ? colors.cta.background : colors.text.secondary },
-              ]}
-            >
-              {title}
-            </Text>
+            <TabIcon
+              name={route.name}
+              // Periwinkle is the single high-contrast colour; the active tab
+              // is one of its few sanctioned uses (product 12 §color). With the
+              // caption gone this tint is now the ONLY thing marking the active
+              // tab, so it carries more weight than it did.
+              color={focused ? colors.cta.background : colors.text.secondary}
+            />
           </Pressable>
         );
       })}

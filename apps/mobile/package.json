@@ -15,6 +15,7 @@
   "dependencies": {
     "@aura/shared": "workspace:*",
     "@expo-google-fonts/fraunces": "^0.4.1",
+    "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@sentry/react-native": "~7.11.0",
     "@shopify/react-native-skia": "2.6.2",
@@ -37,6 +38,7 @@
     "expo-secure-store": "~57.0.1",
     "expo-splash-screen": "~57.0.4",
     "expo-status-bar": "~57.0.1",
+    "expo-symbols": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "posthog-react-native": "^4.57.0",
     "react": "19.2.3",

@@ -44,34 +44,47 @@ function makeProps(overrides: { index?: number; defaultPrevented?: boolean } = {
   };
 }
 
-function titleColor(title: string): unknown {
-  return StyleSheet.flatten(screen.getByText(title).props.style).color;
+function iconColor(tab: string): unknown {
+  return StyleSheet.flatten(screen.getByTestId(`tab-icon-${tab}`).props.style).color;
 }
 
 const light = colorSchemes.light;
 
 describe('TabBar', () => {
-  it('renders one tab per route, falling back to the route name', async () => {
+  it('renders one icon per route, and no captions', async () => {
     await render(<TabBar {...makeProps()} />, { wrapper });
 
     expect(screen.getAllByRole('tab')).toHaveLength(4);
-    expect(screen.getByText('Home')).toBeTruthy();
+    for (const tab of ['home', 'affirmations', 'gratitude', 'profile']) {
+      expect(screen.getByTestId(`tab-icon-${tab}`)).toBeTruthy();
+    }
+    // The bar is glyphs only — a stray caption would break the pill's rhythm.
+    expect(screen.queryByText('Home')).toBeNull();
+    expect(screen.queryByText('Gratitude')).toBeNull();
+  });
+
+  it('keeps the title on the accessibility label once the caption is gone', async () => {
+    // Dropping the visible text must not drop the NAME. Without this, an
+    // icon-only bar is four unlabelled buttons to VoiceOver.
+    await render(<TabBar {...makeProps()} />, { wrapper });
+
+    expect(screen.getByTestId('tab-home').props.accessibilityLabel).toBe('Home');
     // profile has no title option — route name stands in.
-    expect(screen.getByText('profile')).toBeTruthy();
+    expect(screen.getByTestId('tab-profile').props.accessibilityLabel).toBe('profile');
   });
 
   it('tints only the active tab periwinkle (product 12)', async () => {
     await render(<TabBar {...makeProps({ index: 0 })} />, { wrapper });
 
-    expect(titleColor('Home')).toBe(light.cta.background);
-    expect(titleColor('Gratitude')).toBe(light.text.secondary);
+    expect(iconColor('home')).toBe(light.cta.background);
+    expect(iconColor('gratitude')).toBe(light.text.secondary);
   });
 
   it('moves the tint when the active index moves', async () => {
     await render(<TabBar {...makeProps({ index: 2 })} />, { wrapper });
 
-    expect(titleColor('Home')).toBe(light.text.secondary);
-    expect(titleColor('Gratitude')).toBe(light.cta.background);
+    expect(iconColor('home')).toBe(light.text.secondary);
+    expect(iconColor('gratitude')).toBe(light.cta.background);
   });
 
   it('reports selection to assistive tech', async () => {
