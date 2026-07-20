@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
@@ -10,6 +10,8 @@ import { keepLetter, markLetterSeen } from '@/features/letter/keepLetter';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useAppState } from '@/stores/appState';
+import { analytics } from '@/lib/analytics';
+import { haptic } from '@/theme/haptics';
 import { LetterMotionProvider } from '@/theme/motion';
 
 /**
@@ -29,8 +31,19 @@ export default function LetterRoute() {
   const navigation = useNavigation();
   const userId = useAppState((s) => s.userId);
   const { data: letter } = useLetter(userId ?? undefined);
+  // A milestone letter arrives through the same cover (06 §2) but is its own
+  // event: D7 retention is measured on whether the week-one letter is actually
+  // heard, not on whether the first one was.
+  const { momentId } = useLocalSearchParams<{ momentId?: string }>();
   const sheetRef = useRef<BottomSheetModal>(null);
   const leaving = useRef(false);
+
+  useEffect(() => {
+    if (momentId && letter?.id === momentId) {
+      void haptic('milestoneArrival');
+      analytics.capture('milestone_letter_played', { day: 7 });
+    }
+  }, [momentId, letter?.id]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (event) => {

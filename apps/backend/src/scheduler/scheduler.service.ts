@@ -211,6 +211,36 @@ export class SchedulerService {
           `milestone:${profile.user_id}:d${day}`,
         );
         enqueued += 1;
+
+        // A milestone letter that is written and never announced is the whole
+        // point of the feature missed. The push only goes out once the letter
+        // is actually `ready` (11 §7), which is why this is a separate lookup
+        // rather than a send fired alongside the enqueue.
+        const { data: letter } = await this.supabase
+          .from('moments')
+          .select('id, title')
+          .eq('user_id', profile.user_id)
+          .eq('type', 'milestone')
+          .eq('status', 'ready')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (letter) {
+          const { data: named } = await this.supabase
+            .from('profiles')
+            .select('name')
+            .eq('user_id', profile.user_id)
+            .maybeSingle();
+
+          await this.notifications.send({
+            userId: profile.user_id,
+            kind: 'milestone',
+            dedupeKey: `d${day}`,
+            momentId: letter.id,
+            input: { name: named?.name ?? null, momentId: letter.id, milestoneDay: day },
+          });
+        }
       } catch {
         // One user's failure must not abort the sweep.
       }

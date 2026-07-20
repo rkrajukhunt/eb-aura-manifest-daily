@@ -86,6 +86,21 @@ export function usePlayback() {
     setPosition,
   ]);
 
+  // Playback failure (product 09 §9.1 error state). Before this the player had
+  // no error path: a missing file or a decode failure just sat silent forever.
+  useEffect(() => {
+    if (!moment) return;
+
+    if (!moment.audioSource) {
+      analytics.capture('playback_error', { reason: 'missing_audio' });
+      return;
+    }
+
+    if (status.isLoaded === false && !status.playing && status.currentTime === 0) {
+      analytics.capture('playback_error', { reason: 'decode' });
+    }
+  }, [moment, status.isLoaded, status.playing, status.currentTime]);
+
   useEffect(() => {
     if (!moment || !status.didJustFinish || completedRef.current === moment.id) return;
     completedRef.current = moment.id;

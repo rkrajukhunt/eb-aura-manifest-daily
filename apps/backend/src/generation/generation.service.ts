@@ -90,6 +90,13 @@ export class GenerationService implements OnModuleInit {
         input.desire,
       );
 
+      // A cadence directive that actually reached the output is a micro-wow
+      // landing (09 §5). Reported so the "it remembers me" effect is measurable
+      // rather than assumed — the directives were being computed and never counted.
+      for (const directive of context.directives) {
+        this.analytics.capture(job.user_id, 'callback_delivered', { type: directive.kind });
+      }
+
       const momentId = await this.persist(job, context, artifact, supportive, input);
 
       // Refining teaches the memory what she prefers (product 09 §9.1) — the

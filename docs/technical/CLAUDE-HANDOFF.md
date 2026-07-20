@@ -44,6 +44,23 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 - **Phase 5's test debt is paid** (2026-07-20). Coverage on `generation/** · memory/** · safety/**` is 99.8% stmts / 91.5% branch, clearing 15 §6's 90% bar. Writing the suites caught **four real defects** — a sensitive-struggle leak into `winback` via a cadence directive, a prompt/QA disagreement that made value-anchored affirmations permanently un-passable, and two mock defects. All fixed; see the plan's "Phase 5 — test debt paid" section.
 - **e2e was deliberately out of scope** for that pass (founder instruction), which is why `generation.controller.ts` is the one uncovered file in the generation tree.
 
+## Audit of Phases 0–10 (2026-07-20)
+
+A three-agent audit checked every phase against its Definition of Done rather than against the "as built" prose. It found materially more open than the per-phase reports claimed, including things described as done that were not. Everything below was FIXED in `2f34734` and its follow-up:
+
+- `app/auth/callback.tsx` did not exist while the deep-link router and claim sheet both targeted it — the email claim path dead-ended.
+- The two affirmation endpoints had never landed (an edit silently no-matched); the Affirmations tab 404'd end to end.
+- A Manifest credit was consumed on every pipeline failure, contradicting product 09 §9.2.
+- Neither premium mutation had a `.catch()`, so 402/429/422/409 all silently did nothing.
+- `ritual_completed` was unreachable; only 1 of 3 beats was recorded.
+- Auto-soften was dead code — `recordIgnored` had no caller.
+- The audio cache sweep was tested and never invoked.
+- `fetchMemoryItems` did not filter `excluded`, so memories she marked private were still shown back to her.
+- Account deletion never removed the RevenueCat subscriber.
+- 4 of 7 crons from 04 §5 were missing; 5 routes from 06 §1 were missing; 8 declared events had no emitter.
+
+**Lesson worth keeping:** green tests and a clean typecheck did not catch a missing HTTP endpoint, because the mobile client only sends a URL string. Verify route tables directly (`grep '@Post\|@Get'`) after adding endpoints.
+
 ## The hard rule: this project is phase-gated
 
 Per `memory/aura-phase-workflow.md`: **never start a phase without explicit "go" from the founder.** Each phase: read PROJECT-KNOWLEDGE → the plan → the phase's referenced docs → inspect code → build → lint/typecheck/test → update the plan's status column + "as built" section → commit. Mark a phase ✅ only when its Definition of Done is genuinely met — otherwise 🟨 with the gap documented. Do not auto-advance.

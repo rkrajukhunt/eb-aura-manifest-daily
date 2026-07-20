@@ -44,6 +44,12 @@ export default function SettingsRoute() {
           onPress={() => claimRef.current?.present()}
           testID="settings-claim-row"
         />
+
+        <SettingsRow
+          label="Delete my account"
+          onPress={() => router.push('/settings/delete-account')}
+          testID="settings-delete-row"
+        />
       </View>
 
       <NotificationPrefsSheet ref={prefsRef} />

@@ -191,6 +191,15 @@ export const api = {
       schema: z.object({}).passthrough(),
     }),
 
+  /** Account deletion (03 §5). Storage wipe + cascade happen server-side. */
+  deleteAccount: () =>
+    request({
+      path: '/v1/account/delete',
+      method: 'POST',
+      body: {},
+      schema: z.object({}).passthrough(),
+    }),
+
   /** Polls a generation job (04 §2 — mobile polls at 1.5s). */
   jobStatus: (jobId: string) =>
     request({ path: `/v1/generation/jobs/${jobId}`, schema: jobStatusResponseSchema }),

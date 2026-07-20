@@ -12,8 +12,14 @@ import {
   useRecentMoments,
   useTodaysMoment,
 } from '@/features/moments/useMoments';
+import { notificationsCopy } from '@/copy/notifications';
 import { PermissionSheet } from '@/features/notifications/PermissionSheet';
-import { markPermissionAsked, shouldAskPermission } from '@/features/notifications/permissionGate';
+import {
+  markDeniedHintShown,
+  markPermissionAsked,
+  shouldAskPermission,
+  shouldShowDeniedHint,
+} from '@/features/notifications/permissionGate';
 import { requestPermissionAndRegister } from '@/features/notifications/useNotifications';
 import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
@@ -55,12 +61,21 @@ export default function HomeRoute() {
   // makes the server the authority, so a stale local number costs at most one
   // honest 429 that the sheet now renders.
   const [credits, setCredits] = useState<number>(LIMITS.MANIFEST_WEEKLY_LIMIT);
+  const [deniedHint, setDeniedHint] = useState(false);
 
   // The permission ask lands HERE — the first Home landing after the paywall
   // (11 §2), which is the earliest moment product 08's "nothing between the
   // letter and the paywall" rule stops applying.
   useEffect(() => {
-    if (shouldAskPermission(hasSeenPaywall())) permissionRef.current?.present();
+    if (shouldAskPermission(hasSeenPaywall())) {
+      permissionRef.current?.present();
+      return;
+    }
+    // Declined earlier: one quiet line a week, never a re-ask (11 §2).
+    if (shouldShowDeniedHint()) {
+      setDeniedHint(true);
+      markDeniedHintShown();
+    }
   }, []);
 
   const state = resolveHomeMoment({
@@ -111,6 +126,11 @@ export default function HomeRoute() {
         onPlay={play}
         onRetry={() => void retry()}
         onManifest={onManifest}
+        notificationHint={
+          deniedHint
+            ? notificationsCopy.deniedHint.replace('{time}', profile?.arrival_time ?? '07:00')
+            : null
+        }
       />
 
       <ManifestSheet
@@ -157,6 +177,8 @@ export default function HomeRoute() {
           // Asked and declined is still asked: the dialog never returns
           // uninvited (11 §2). A quiet weekly hint is the only follow-up.
           markPermissionAsked(true);
+          setDeniedHint(true);
+          markDeniedHintShown();
           permissionRef.current?.dismiss();
         }}
       />

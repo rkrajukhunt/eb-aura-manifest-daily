@@ -15,6 +15,8 @@ export interface HomeScreenProps {
   onPlay: (momentId: string) => void;
   onRetry: () => void;
   onManifest: () => void;
+  /** One quiet line a week when notifications were declined (11 §2). */
+  notificationHint?: string | null;
   testID?: string;
 }
 
@@ -37,6 +39,7 @@ export function HomeScreen({
   onPlay,
   onRetry,
   onManifest,
+  notificationHint = null,
   testID,
 }: HomeScreenProps) {
   const { colors, spacing, layout } = useTheme();
@@ -102,6 +105,16 @@ export function HomeScreen({
             </Pressable>
           ))}
         </View>
+      )}
+
+      {notificationHint && (
+        <Text
+          testID="home-notification-hint"
+          allowFontScaling={false}
+          style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+        >
+          {notificationHint}
+        </Text>
       )}
 
       <PillButton title={momentsCopy.home.manifest} onPress={onManifest} testID="home-manifest" />
