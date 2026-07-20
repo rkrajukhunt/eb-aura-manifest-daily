@@ -36,8 +36,16 @@ export default function PaywallRoute() {
   const [appleAvailable, setAppleAvailable] = useState(true);
   const claimRef = useRef<BottomSheetModal>(null);
 
+  // Distinct from `plans.length === 0`: before the lookup resolves the list is
+  // empty too, and the two must not be confused — treating "still loading" as
+  // "no offering" would skip the paywall for everyone.
+  const [plansResolved, setPlansResolved] = useState(false);
+
   useEffect(() => {
-    void loadPlans().then(setPlans);
+    void loadPlans().then((offered) => {
+      setPlans(offered);
+      setPlansResolved(true);
+    });
     void appleAuthAvailable().then(setAppleAvailable);
   }, []);
 
@@ -49,6 +57,15 @@ export default function PaywallRoute() {
     markPermissionAsked(false);
     router.replace('/(tabs)/home');
   }, [router]);
+
+  // No offering (offline, or a build with no RevenueCat key): leave for the free
+  // tier. Without this the cover renders empty and nothing ever moves — no
+  // plans, so no CTA, and the dismiss ✕ lives inside `PaywallScreen`, which this
+  // branch does not render. She would be stranded on a blank screen with no way
+  // out, which is the opposite of what the free-tier fallback intends.
+  useEffect(() => {
+    if (plansResolved && plans.length === 0) leaveToFreeTier();
+  }, [plansResolved, plans.length, leaveToFreeTier]);
 
   const onPurchase = useCallback(async (plan: OfferedPlan) => {
     setBusy(true);
@@ -102,9 +119,10 @@ export default function PaywallRoute() {
           />
         </View>
       ) : (
-        // No offering yet (first launch, offline, or a build with no RevenueCat
-        // key). Showing an empty paywall would be worse than not showing one:
-        // she goes to the free tier and can subscribe from Settings later.
+        // Holding view: either the offering lookup is still in flight, or it
+        // came back empty and the effect above is on its way to the free tier.
+        // Showing an empty paywall would be worse than not showing one — she
+        // can subscribe from Settings later.
         <Screen testID="paywall-unavailable" edgeToEdge>
           <View style={{ flex: 1 }} />
         </Screen>

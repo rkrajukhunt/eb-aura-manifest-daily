@@ -64,7 +64,12 @@ const config: ExpoConfig = {
     // Firebase project exists yet, so the var is unset and the build simply
     // has no push transport — the app runs, notifications do not arrive.
     // The file itself is a credential: never commit it.
-    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? undefined,
+    //
+    // Spread rather than `?? undefined`: under `exactOptionalPropertyTypes` an
+    // explicit `undefined` is not assignable to an optional property.
+    ...(process.env.GOOGLE_SERVICES_JSON
+      ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON }
+      : {}),
   },
 
   ios: {
