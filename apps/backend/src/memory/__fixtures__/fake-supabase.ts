@@ -13,6 +13,7 @@ export interface TableFixtures {
   exact_phrases?: Record<string, unknown>[];
   never_include?: Record<string, unknown>[];
   moments?: Record<string, unknown>[];
+  gratitude_entries?: Record<string, unknown>[];
 }
 
 export interface RecordedCall {

@@ -255,7 +255,18 @@ describe('MemoryContextService', () => {
       expect(context.recentTitles).toEqual(['The Balcony', 'The River']);
     });
 
-    it('leaves gratitude empty until Phase 8 wires it', async () => {
+    it('feeds her recent gratitude back into generation (09 §4)', async () => {
+      // The cheapest memory the product has: a line she wrote yesterday
+      // reappearing in tomorrow's moment IS the "it remembers me" engine
+      // (product 09 §9.4).
+      const { context } = await assemble({
+        gratitude_entries: [{ entry: 'the coffee on the balcony' }, { entry: 'Nadia called' }],
+      });
+
+      expect(context.recentGratitude).toEqual(['the coffee on the balcony', 'Nadia called']);
+    });
+
+    it('is empty for a user who has written none', async () => {
       const { context } = await assemble({});
 
       expect(context.recentGratitude).toEqual([]);

@@ -6,6 +6,8 @@ import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.mo
 
 /** Top-N evolving items and phrases per assembly (09 §4). */
 const MAX_EVOLVING_ITEMS = 8;
+/** Last N gratitude entries woven lightly into generation (09 §4). */
+const MAX_GRATITUDE = 3;
 const MAX_PHRASES = 6;
 const MAX_RECENT_TITLES = 5;
 
@@ -44,27 +46,37 @@ export class MemoryContextService {
   ): Promise<MemoryContext> {
     const includeSensitive = BODY_ARTIFACTS.has(artifact);
 
-    const [profileRes, peopleRes, itemsRes, phrasesRes, neverRes, titlesRes] = await Promise.all([
-      this.supabase.from('profiles').select('*').eq('user_id', userId).single(),
-      this.supabase
-        .from('people')
-        .select('name, descriptor')
-        .eq('user_id', userId)
-        .eq('active', true),
-      this.supabase.from('memory_items').select('*').eq('user_id', userId).eq('excluded', false),
-      this.supabase
-        .from('exact_phrases')
-        .select('phrase, use_count, created_at')
-        .eq('user_id', userId),
-      this.supabase.from('never_include').select('term').eq('user_id', userId),
-      this.supabase
-        .from('moments')
-        .select('title')
-        .eq('user_id', userId)
-        .not('title', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(MAX_RECENT_TITLES),
-    ]);
+    const [profileRes, peopleRes, itemsRes, phrasesRes, neverRes, titlesRes, gratitudeRes] =
+      await Promise.all([
+        this.supabase.from('profiles').select('*').eq('user_id', userId).single(),
+        this.supabase
+          .from('people')
+          .select('name, descriptor')
+          .eq('user_id', userId)
+          .eq('active', true),
+        this.supabase.from('memory_items').select('*').eq('user_id', userId).eq('excluded', false),
+        this.supabase
+          .from('exact_phrases')
+          .select('phrase, use_count, created_at')
+          .eq('user_id', userId),
+        this.supabase.from('never_include').select('term').eq('user_id', userId),
+        this.supabase
+          .from('moments')
+          .select('title')
+          .eq('user_id', userId)
+          .not('title', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(MAX_RECENT_TITLES),
+        // Her own recent gratitude, in her words (09 §4). This is the cheapest
+        // memory feed the product has: a line she wrote yesterday reappearing in
+        // tomorrow's moment IS the "it remembers me" engine (product 09 §9.4).
+        this.supabase
+          .from('gratitude_entries')
+          .select('entry')
+          .eq('user_id', userId)
+          .order('entry_date', { ascending: false })
+          .limit(MAX_GRATITUDE),
+      ]);
 
     const profile = profileRes.data;
     const rawItems = itemsRes.data ?? [];
@@ -109,7 +121,7 @@ export class MemoryContextService {
       memoryItems,
       exactPhrases,
       neverInclude: (neverRes.data ?? []).map((n) => n.term),
-      recentGratitude: [], // Phase 8 wires gratitude_entries into context.
+      recentGratitude: (gratitudeRes.data ?? []).map((g) => g.entry),
       recentTitles: (titlesRes.data ?? [])
         .map((t) => t.title)
         .filter((t): t is string => t !== null),

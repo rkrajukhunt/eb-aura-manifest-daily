@@ -14,7 +14,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 5   | AI Generation Backend                     | 🟨     |
 | 6   | Future-Self Letter — WOW                  | 🟨     |
 | 7   | Daily Moments & Audio Player              | 🟨     |
-| 8   | Affirmations & Gratitude                  | ⬜     |
+| 8   | Affirmations & Gratitude                  | 🟨     |
 | 9   | Notifications & Daily Habit Loop          | ⬜     |
 | 10  | Subscriptions & Paywall                   | 🟨     |
 | 11  | Analytics & Experimentation               | ⬜     |
@@ -401,6 +401,31 @@ Built in two passes: the backend first, then the mobile half. Backend tests 757 
 - **Tests:** Affirmation QA rules (≤20 words, present tense, no negative frame) already in Phase 5 suite — extend fixtures; gratitude local-first sync unit tests (offline queue, conflict, date uniqueness); share renderer snapshot (layout only); RTL both tabs; Maestro full 3-beat ritual.
 - **Edge cases:** Gratitude offline (saves locally, dot fills, silent sync); double entry same day (edit, not duplicate); guided flow abandoned mid-way (draft kept in sheet session); share cancelled; candidate regeneration limit (one set per flow — cost cap); empty collection states in-voice.
 - **Definition of Done:** Full daily ritual (<3 min) works end-to-end with done-state; gratitude entries appear in next-day generation context (verified in staging output); share exports a clean 1080×1920 card; `ritual_completed` fires only when all three beats done same day.
+
+### Phase 8 — as built (2026-07-20) — 🟨 GRATITUDE ONLY; the affirmations half is not started
+
+**Scope warning:** like Phase 7, this phase is two products in one tab bar. Only the gratitude half is built. Backend 830 → 831, mobile 399 → 435, live RLS 81 → 94.
+
+**Built:**
+
+- **`gratitude_entries` + `favorites`** with GRANTs, RLS and 13 live tests. Gratitude is the ONE table users write directly and freely — full insert/update/delete for `authenticated`, unlike the service-role-only content tables — which makes the cross-user tests the entire boundary on a personal journal. `UNIQUE(user_id, entry_date)` is load-bearing product behaviour, not hygiene: it is what lets the offline queue upsert blindly without inventing a second row for one day.
+- **Gratitude is local-first** (product 09 §9.4): the write goes to MMKV, the dot fills, the tick fires, and the sync happens behind her. There is deliberately no loading state and no error state anywhere in the tab — a ten-second habit that can fail is not a ten-second habit. A failed sync simply stays queued and she is never told.
+- **Conflict resolution is LOCAL WINS.** This is a personal journal, and silently replacing today's line with an older server copy would be the app overwriting her own words. An entry edited while its previous version was uploading stays queued rather than being marked synced, so the newer text is never stranded.
+- **The dots express nothing but filled-or-not** — no streak, no break state, no "you missed". Product 16 is shame-free by design and 14 bans that vocabulary; a test asserts the dot shape itself cannot carry it.
+- **Affirmation endpoints** `/daily` (free, ungated — one a day is real free-tier substance) and `/guided` (screens her free-text goal for crisis like any other free text).
+- **Gratitude now feeds generation.** `MemoryContextService.recentGratitude` was hardcoded `[]` since Phase 4; it now reads her last three entries. A line she wrote yesterday reappearing in tomorrow's moment IS the "it remembers me" engine (product 09 §9.4).
+
+**NOT BUILT — the entire affirmations half:**
+
+- Affirmations tab: today's card, reveal flip-fade, countdown, collection grid
+- The guided studio sheet (goal chips + free text → feeling → tone → 3 candidates with why-lines → pick/edit/save)
+- Technique chips (identity, present-tense why, the 369 counter, scripting)
+- **Share-card renderer** (1080×1920 via `react-native-view-shot` — another native module, not yet installed)
+- Daily affirmation in the pre-generation cron
+- `POST /v1/affirmations/:id/keep`
+- The post-moment ritual flow (moment → affirmation → gratitude → done-state) and `ritual_completed`
+
+The Affirmations tab is still its Phase 1 placeholder, so none of the affirmation work is reachable by a user.
 
 ## Phase 9 — Notifications & Daily Habit Loop
 

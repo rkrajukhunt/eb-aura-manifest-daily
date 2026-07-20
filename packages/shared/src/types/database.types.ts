@@ -120,6 +120,45 @@ export type Database = {
           },
         ];
       };
+      favorites: {
+        Row: {
+          affirmation_id: string | null;
+          created_at: string;
+          id: string;
+          moment_id: string | null;
+          user_id: string;
+        };
+        Insert: {
+          affirmation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          moment_id?: string | null;
+          user_id: string;
+        };
+        Update: {
+          affirmation_id?: string | null;
+          created_at?: string;
+          id?: string;
+          moment_id?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'favorites_affirmation_id_fkey';
+            columns: ['affirmation_id'];
+            isOneToOne: false;
+            referencedRelation: 'affirmations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'favorites_moment_id_fkey';
+            columns: ['moment_id'];
+            isOneToOne: false;
+            referencedRelation: 'moments';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       generation_jobs: {
         Row: {
           artifact: Database['public']['Enums']['job_artifact'];
@@ -172,6 +211,42 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      gratitude_entries: {
+        Row: {
+          created_at: string;
+          entry: string;
+          entry_date: string;
+          id: string;
+          prompt_shown: string | null;
+          prompt_was_personalized: boolean;
+          synced_from_local: boolean;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          entry: string;
+          entry_date: string;
+          id?: string;
+          prompt_shown?: string | null;
+          prompt_was_personalized?: boolean;
+          synced_from_local?: boolean;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          entry?: string;
+          entry_date?: string;
+          id?: string;
+          prompt_shown?: string | null;
+          prompt_was_personalized?: boolean;
+          synced_from_local?: boolean;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       memory_items: {
         Row: {

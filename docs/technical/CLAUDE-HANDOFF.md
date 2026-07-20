@@ -4,7 +4,7 @@ _Working handoff for Claude. Last updated: 2026-07-18, after Phase 5. Read this 
 
 ## TL;DR — where we are
 
-Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–7 and 10 are all coded and committed**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. **Next phase: 8 (Affirmations & Gratitude).**
+Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–7 and 10 are coded and committed; Phase 8's gratitude half is done and its affirmations half is not started**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. **Next: finish Phase 8's AFFIRMATIONS half (gratitude landed 2026-07-20).**
 
 **The whole session-1 funnel now exists end to end**: onboarding → ritual → Letter → paywall → free tier or premium. It has never run on a phone, and no purchase has ever been made.
 
@@ -39,8 +39,8 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 
 ## Test / verification status
 
-- **1,285 automated tests green** across the monorepo: 51 shared, 399 mobile, 835 backend (830 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
-- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 81 tests (RLS for every table incl. `subscription_state` + audio bucket, + account deletion).
+- **1,322 automated tests green** across the monorepo: 51 shared, 435 mobile, 836 backend (831 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
+- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 94 tests (RLS for every table incl. `subscription_state` + audio bucket, + account deletion).
 - **Phase 5's test debt is paid** (2026-07-20). Coverage on `generation/** · memory/** · safety/**` is 99.8% stmts / 91.5% branch, clearing 15 §6's 90% bar. Writing the suites caught **four real defects** — a sensitive-struggle leak into `winback` via a cadence directive, a prompt/QA disagreement that made value-anchored affirmations permanently un-passable, and two mock defects. All fixed; see the plan's "Phase 5 — test debt paid" section.
 - **e2e was deliberately out of scope** for that pass (founder instruction), which is why `generation.controller.ts` is the one uncovered file in the generation tree.
 

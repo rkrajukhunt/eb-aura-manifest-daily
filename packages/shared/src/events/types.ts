@@ -216,7 +216,33 @@ export interface EventCatalog {
   audio_start_latency_ms: { latency_ms: number };
   /** Mobile. A code, never a vendor message. */
   playback_error: { reason: PlaybackErrorReason };
+
+  // ─── Affirmations & gratitude (Phase 8, mobile) ────────────────────────
+  /** Mobile. */
+  affirmation_revealed: Record<string, never>;
+  /** Mobile. Structural inputs only — her free-text goal never leaves the device. */
+  affirmation_generated_guided: { goal_area: string; tone: AffirmationToneName };
+  /** Mobile. */
+  affirmation_saved: Record<string, never>;
+  /** Mobile. */
+  affirmation_shared: { format: ShareFormat };
+  /** Mobile. Which technique she opened — the education wedge's only signal. */
+  technique_chip_opened: { technique: TechniqueName };
+  /** Mobile. */
+  technique_practice_completed: { technique: TechniqueName };
+  /**
+   * Mobile. The entry itself NEVER appears — only its length bucket and whether
+   * the prompt was personalized, which is enough to answer "does personalizing
+   * produce more entries" without reading a word of it (13 §2).
+   */
+  gratitude_entry_saved: { char_count_bucket: CharCountBucket; prompt_was_personalized: boolean };
+  /** Mobile. Fires only when all three beats happened the same day (product 09). */
+  ritual_completed: Record<string, never>;
 }
+
+export type AffirmationToneName = 'gentle' | 'bold' | 'grounded';
+export type ShareFormat = 'image' | 'text';
+export type TechniqueName = 'identity' | 'present_tense' | 'three_six_nine' | 'scripting';
 
 /** Mirrors RefineDirection in contracts/generation. */
 export type RefineDirectionName = 'more_realistic' | 'softer' | 'more_ambitious' | 'note';

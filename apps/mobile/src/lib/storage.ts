@@ -49,4 +49,8 @@ export const STORAGE_KEYS = {
   letterSeen: 'letter.seen',
   /** Set once the post-Letter paywall has been presented. Shown once (12 §3). */
   paywallSeen: 'paywall.seen',
+  /** Local-first gratitude, keyed by her local date (product 09 §9.4). */
+  gratitudeEntries: 'gratitude.entries',
+  /** The memory contract is shown once, not every visit (product 09 §9.4). */
+  gratitudeContractSeen: 'gratitude.contractSeen',
 } as const;
