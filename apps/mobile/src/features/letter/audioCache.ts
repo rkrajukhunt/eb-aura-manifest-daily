@@ -24,6 +24,10 @@ export interface AudioCacheEntry {
   cachedAt: number;
   /** Never evicted. The Letter and favourites (10 §6). */
   permanent: boolean;
+  /** Bytes on disk, for the LRU budget. Absent on entries written before Phase 7. */
+  size?: number;
+  /** Last played. Drives eviction order; falls back to `cachedAt`. */
+  lastUsedAt?: number;
 }
 
 type AudioCacheIndex = Record<string, AudioCacheEntry>;
@@ -73,7 +77,7 @@ export function getCachedAudioPath(momentId: string): string | null {
 export async function cacheAudio(
   momentId: string,
   remoteUrl: string,
-  options: { permanent?: boolean } = {},
+  options: { permanent?: boolean; size?: number } = {},
 ): Promise<string> {
   const existing = getCachedAudioPath(momentId);
   if (existing) return existing;
@@ -85,11 +89,85 @@ export async function cacheAudio(
   index[momentId] = {
     localPath: downloaded.uri,
     cachedAt: Date.now(),
+    lastUsedAt: Date.now(),
     permanent: options.permanent ?? false,
+    ...(options.size === undefined ? {} : { size: options.size }),
   };
   writeIndex(index);
 
   return downloaded.uri;
+}
+
+/**
+ * Cache limits (10 §6). Today's moment is evicted after a week; everything else
+ * lives under a 200MB ceiling.
+ */
+export const CACHE_MAX_BYTES = 200 * 1024 * 1024;
+export const EVICT_AFTER_DAYS = 7;
+
+/** Records a play, so the LRU sweep evicts what she has actually stopped using. */
+export function touchCachedAudio(momentId: string): void {
+  const index = readIndex();
+  const entry = index[momentId];
+  if (!entry) return;
+
+  index[momentId] = { ...entry, lastUsedAt: Date.now() };
+  writeIndex(index);
+}
+
+/**
+ * Chooses what to evict, given the current index (10 §6).
+ *
+ * Pure and exported so the policy can be tested without touching a disk. Two
+ * rules, in order:
+ *
+ *  1. **`permanent` is never touched.** The Letter is promised forever and
+ *     favourites are cached "while favorited" — an evictor that could take
+ *     either would quietly break a promise the product makes out loud.
+ *  2. Age first, then least-recently-used until the total fits the budget.
+ *     Evicting by age alone would keep a stale favourite she never plays over
+ *     yesterday's moment she replays daily.
+ */
+export function selectEvictions(
+  index: Record<string, AudioCacheEntry>,
+  now: number = Date.now(),
+  maxBytes: number = CACHE_MAX_BYTES,
+): string[] {
+  const entries = Object.entries(index).filter(([, entry]) => !entry.permanent);
+  const evict = new Set<string>();
+
+  const ageLimit = EVICT_AFTER_DAYS * 86_400_000;
+  for (const [id, entry] of entries) {
+    if (now - (entry.lastUsedAt ?? entry.cachedAt) > ageLimit) evict.add(id);
+  }
+
+  // Everything still in play, oldest use first — the order the budget eats.
+  const survivors = entries
+    .filter(([id]) => !evict.has(id))
+    .sort((a, b) => (a[1].lastUsedAt ?? a[1].cachedAt) - (b[1].lastUsedAt ?? b[1].cachedAt));
+
+  // Permanent files still occupy the disk, so they count against the budget even
+  // though they can never be chosen for eviction. Ignoring them would let the
+  // cache grow past its ceiling by exactly the size of everything protected.
+  let total = Object.values(index)
+    .filter((entry) => entry.permanent)
+    .reduce((sum, entry) => sum + (entry.size ?? 0), 0);
+  total += survivors.reduce((sum, [, entry]) => sum + (entry.size ?? 0), 0);
+
+  for (const [id, entry] of survivors) {
+    if (total <= maxBytes) break;
+    evict.add(id);
+    total -= entry.size ?? 0;
+  }
+
+  return [...evict];
+}
+
+/** Applies the policy, deleting what it selects. Safe to run on every app open. */
+export function sweepAudioCache(now: number = Date.now()): string[] {
+  const evicted = selectEvictions(readIndex(), now);
+  for (const momentId of evicted) forgetCachedAudio(momentId);
+  return evicted;
 }
 
 /** Drops an entry from the index and deletes its file if present. */

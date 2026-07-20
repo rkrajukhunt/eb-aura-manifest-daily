@@ -355,9 +355,9 @@ The whole path is wired: S11 → ritual → Letter → Home, with the boot gate 
 - **Edge cases:** Cron failure by arrival → on-open fallback with "still forming" + yesterday replay; refine on refined moment (blocked); manifest crisis input (422, credit intact); timezone travel; offline Home (cached moment plays); audio scrub past end.
 - **Definition of Done:** Tester wakes to a pre-generated moment (staging cron), plays <300ms; refine regenerates once and teaches memory; Manifest works with credits; forming previews visible; word echo appears in generations (memory context verified in output).
 
-### Phase 7 — as built (2026-07-20) — 🟨 BACKEND ONLY; the mobile half is not started
+### Phase 7 — as built (2026-07-20) — 🟨 code-complete, device pass pending
 
-**Scope warning for whoever picks this up:** this phase is roughly twice the size of any other, and only its backend has been built. The mobile half (Home, player, mini-player, Read mode, Refine/Manifest sheets, prefetch) is untouched. Backend tests 757 → 829.
+Built in two passes: the backend first, then the mobile half. Backend tests 757 → 830, mobile 325 → 399.
 
 **Built and verified:**
 
@@ -371,17 +371,21 @@ The whole path is wired: S11 → ritual → Letter → Home, with the boot gate 
 
 **Documented, not fixed:** the pure window function can fire twice inside the repeated DST fall-back hour, because a pure function has no memory. The dedupe is the sweep's own "already has a moment for this local date" check, and both occurrences share a local date. A test documents that layering rather than pretending the maths solves it alone.
 
-**NOT BUILT — the entire mobile half:**
+**Mobile (second pass):**
 
-- Home (greeting, Today's Moment card, countdown chip, Coming for you previews, recently played, "+")
-- `/player` cover (amplitude-reactive orb, transport, speed, favourite, Refine entry, pull-down minimize) and the mini-player
-- Read mode (sentence-level synced highlight)
-- Refine and Manifest sheets
-- Audio prefetch and the 200MB LRU cache policy (10 §6) — the `permanent` flag Phase 6 already writes is waiting for the evictor
-- Forming previews (backend title-only generation is also not built)
-- The daily-moment arrival push depends on Phase 9
+- **Home** — greeting, Today's Moment, "Coming for you", recently played, and the Manifest entry on the Home surface rather than as a fifth tab (06 §7). The state machine is a pure module (`momentState.ts`) because product 09 §9.1 forbids an empty state here: every branch, including outright failure, renders something she can play. A test asserts that across every combination.
+- **The player** — `/player` cover with transport, ±15s, speed, favourite and the Refine entry; global state in Zustand (`playerStore`) rather than screen-local, because the audio must OUTLIVE the cover.
+- **The mini-player** and `usePlayback` are mounted in the TAB LAYOUT, once. That placement is the whole feature: mounting playback on the player screen would tie the audio's lifetime to a navigation stack entry, and minimizing would silence it.
+- **Read mode** — sentence-level, deliberately coarser than the Letter's karaoke (10 §5). Word highlighting is right for a performance you are hearing once and a metronome when you are reading. Falls back to the raw body when a moment has no timings: losing the text because sync data is missing would be losing the content over a detail.
+- **Refine and Manifest sheets**, both gated through the Phase 10 locked-feature sheet — which is what finally gives that sheet its call sites.
+- **Cache policy** (10 §6) — 7-day expiry plus a 200MB LRU, with `permanent` entries never evicted. The Letter is promised "yours forever" out loud, so the evictor cannot be allowed to take it; protected files still count against the budget, or the ceiling would mean nothing.
 
-Nothing in the mobile app calls the three new endpoints yet, so none of this is reachable by a user.
+**Still not built:**
+
+- **Forming previews are read but never written.** Home renders `forming` rows, and the backend's title-only generation for them does not exist — so that row will simply be empty until it does.
+- The daily-moment **arrival push** depends on Phase 9.
+- **Manifest credits are hardcoded to 3 on Home.** The server is the authority and returns the true remaining count on every manifest, but the sheet's opening number needs a `GET` for credits that 07 does not currently specify.
+- Maestro daily-ritual flow and the prefetch-latency assertion both need a simulator. `audio_start_latency_ms` is emitted, so the <300ms budget is at least measurable once there is a device.
 
 ## Phase 8 — Affirmations & Gratitude
 

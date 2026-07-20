@@ -198,7 +198,30 @@ export interface EventCatalog {
   subscription_cancelled: { sku: string };
   /** Mobile. She linked an identity, so a reinstall keeps her letters (03 §2.2). */
   account_claimed: { method: ClaimMethod };
+
+  // ─── Daily moments & player (Phase 7, mobile) ──────────────────────────
+  /** Mobile. `source` says how she got here, not what she heard. */
+  moment_playback_started: { source: PlaybackSource };
+  /** Mobile. Fires on completion OR on leaving early, so drop-off is visible. */
+  moment_playback_completed: { listened_pct: number };
+  /** Mobile. The education signal — who reads rather than listens. */
+  moment_read_mode_toggled: Record<string, never>;
+  /** Mobile. Which direction she asked for — a preference, never her note's text. */
+  moment_refined: { direction: RefineDirectionName };
+  /** Mobile. */
+  moment_favorited: Record<string, never>;
+  /** Mobile. Never the desire text itself (13 §2) — only that one was made. */
+  manifest_anything_created: { credits_remaining: number };
+  /** Mobile. Guards product 13's <300ms start budget, which is only real if measured. */
+  audio_start_latency_ms: { latency_ms: number };
+  /** Mobile. A code, never a vendor message. */
+  playback_error: { reason: PlaybackErrorReason };
 }
+
+/** Mirrors RefineDirection in contracts/generation. */
+export type RefineDirectionName = 'more_realistic' | 'softer' | 'more_ambitious' | 'note';
+
+export type PlaybackErrorReason = 'network' | 'decode' | 'missing_audio' | 'unknown';
 
 /** Where a paywall was shown (12 §3). */
 export type PaywallSurface = 'post_letter' | 'locked_feature' | 'settings';

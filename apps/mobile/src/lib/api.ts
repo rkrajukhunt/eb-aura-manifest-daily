@@ -3,7 +3,9 @@ import {
   healthResponseSchema,
   jobAcceptedSchema,
   jobStatusResponseSchema,
+  manifestAcceptedSchema,
   type ApiErrorKey,
+  type RefineDirection,
 } from '@aura/shared';
 import type { z } from 'zod';
 
@@ -118,6 +120,39 @@ export const api = {
       body: {},
       idempotencyKey,
       schema: jobAcceptedSchema,
+    }),
+
+  /**
+   * On-open fallback for a missing daily moment (07 §1). The primary path is the
+   * `pregenerate-daily` cron; this only runs when Home finds nothing for today,
+   * so a cron miss costs her a short wait rather than a missing morning.
+   */
+  requestMoment: (scheduledFor: string) =>
+    request({
+      path: '/v1/generation/moment',
+      method: 'POST',
+      body: { scheduledFor },
+      // Keyed to the date, so a double-tap on a slow morning cannot spawn two.
+      idempotencyKey: `moment:${scheduledFor}`,
+      schema: jobAcceptedSchema,
+    }),
+
+  /** Refine a moment (07 §1). Premium; one per moment, enforced server-side. */
+  refineMoment: (momentId: string, direction: RefineDirection, note?: string) =>
+    request({
+      path: '/v1/generation/refine',
+      method: 'POST',
+      body: { momentId, direction, ...(note ? { note } : {}) },
+      schema: jobAcceptedSchema,
+    }),
+
+  /** Manifest Anything (07 §1). Premium + credit-gated; answers with credits left. */
+  manifest: (desireText: string) =>
+    request({
+      path: '/v1/generation/manifest',
+      method: 'POST',
+      body: { desireText },
+      schema: manifestAcceptedSchema,
     }),
 
   /** Polls a generation job (04 §2 — mobile polls at 1.5s). */

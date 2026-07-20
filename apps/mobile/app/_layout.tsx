@@ -87,6 +87,13 @@ export default function RootLayout() {
                     name="paywall"
                     options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
                   />
+                  {/* The player is a cover she pulls DOWN to minimize (06 §2),
+                      so the dismiss gesture stays on — the route turns it into
+                      "minimize" rather than "close", and audio continues. */}
+                  <Stack.Screen
+                    name="player"
+                    options={{ presentation: 'fullScreenModal', gestureEnabled: true }}
+                  />
                 </Stack>
               </BootGate>
             </BottomSheetModalProvider>
