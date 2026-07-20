@@ -38,3 +38,10 @@ coverage/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# store credentials — never commit
+# FCM service account for Android push; referenced by GOOGLE_SERVICES_JSON.
+google-services.json
+GoogleService-Info.plist
+# Play signing / service-account JSONs used by EAS submit.
+*-play-service-account.json

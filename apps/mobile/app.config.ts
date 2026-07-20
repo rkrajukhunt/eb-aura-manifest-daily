@@ -40,9 +40,32 @@ const config: ExpoConfig = {
   // Dark mode is a day-one requirement, not a Phase 12 polish item (05 §4, product 12).
   userInterfaceStyle: 'automatic',
 
-  // iOS-only at V1 (05 §1, product 05). No `android` or `web` block on purpose —
-  // Android lands at V3 and there is no web surface.
-  platforms: ['ios'],
+  // iOS + Android. No `web` block on purpose — there is no web surface.
+  //
+  // Android was iOS-only at V1 per 05 §1; that line is now updated. The App
+  // Store remains the V1 *launch* target, but the Android build config is real
+  // rather than a local adb hack, so a dev build stays reproducible. Two things
+  // are still open before Android can actually ship — both founder-blocked and
+  // tracked in 05 §1: FCM credentials for push, and a Play Billing key.
+  platforms: ['ios', 'android'],
+
+  android: {
+    package: `${BRAND.bundleIdentifier}${suffix}`,
+
+    // The Android counterpart to `microphonePermission: false` below. Google
+    // Play prints every manifest permission on the store listing, so a stray
+    // RECORD_AUDIO is the same "data harvest smell" product 02/18 exist to
+    // avoid — worse here, because it is visible before install. The plugin
+    // option removes it at the source; this blocks it if a transitive plugin
+    // adds it back.
+    blockedPermissions: ['android.permission.RECORD_AUDIO'],
+
+    // FCM credentials (11 §2). Android push is inert without this file. No
+    // Firebase project exists yet, so the var is unset and the build simply
+    // has no push transport — the app runs, notifications do not arrive.
+    // The file itself is a credential: never commit it.
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? undefined,
+  },
 
   ios: {
     bundleIdentifier: `${BRAND.bundleIdentifier}${suffix}`,
@@ -77,7 +100,18 @@ const config: ExpoConfig = {
       // capability the product does not have is exactly the "data harvest smell"
       // product 02 and 18 are built to avoid.
       'expo-audio',
-      { microphonePermission: false },
+      {
+        microphonePermission: false,
+        // The Android half of the same decision. This option DEFAULTS TO TRUE:
+        // leaving it off would have put `android.permission.RECORD_AUDIO` in
+        // the manifest of an app that never records.
+        recordAudioAndroid: false,
+        // Left at its default `true`, which is what mirrors iOS's
+        // UIBackgroundModes: ['audio'] — it adds FOREGROUND_SERVICE,
+        // FOREGROUND_SERVICE_MEDIA_PLAYBACK and the media-session service so
+        // the Letter keeps playing with the screen locked (05 §7, 10 §4).
+        enableBackgroundPlayback: true,
+      },
     ],
   ],
 

@@ -9,7 +9,13 @@ _Implements product docs 11 (IA), 12 (design system), 13 (motion & haptics). Nav
 - **Expo SDK** (latest stable at Phase 0), custom dev client (`expo-dev-client`) — required for RevenueCat, Skia, MMKV native modules. EAS Build profiles: `development`, `staging`, `production` (16).
 - **TypeScript strict**; path aliases `@/features/*`, `@/components/*` etc.
 - **New Architecture enabled** (default on current Expo; Reanimated + Skia benefit directly).
-- iOS-only target at V1 (product doc 05); no Android build config until V3.
+- **Build targets: iOS + Android.** Superseded 2026-07-20 — the original line read "iOS-only target at V1 (product doc 05); no Android build config until V3." The App Store is still the V1 **launch** target and the only one with a submission checklist (16); Android now has real build config so a dev build on Android hardware is reproducible rather than an uncommitted local edit.
+  - Android is **not shippable yet**, and both blockers are founder-side, not code:
+    1. **Push is inert.** `expo-notifications` needs FCM credentials (`google-services.json`, wired via `GOOGLE_SERVICES_JSON`). No Firebase project exists. The app runs; notifications do not arrive (11 §2).
+    2. **Billing is inert.** RevenueCat issues a key per store and the iOS key is rejected by the Android SDK. `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` is unset, so Android degrades to free-tier — the documented behaviour for a build with no RC project (12 §2).
+  - Two platform differences are behavioural, not config:
+    - **Sign in with Apple is iOS-only.** `appleAuthAvailable()` returns false on Android, so the claim sheet offers the magic link alone. That path is complete on both platforms, and claiming never gates entitlement (03 §2.2) — so this is a narrower claim UI, not a broken one.
+    - **The microphone permission is actively suppressed.** `expo-audio`'s `recordAudioAndroid` defaults to `true`; left alone it would put `RECORD_AUDIO` in the manifest of an app that never records, and Google Play prints manifest permissions on the store listing _before_ install. Suppressed at the plugin and re-blocked via `android.blockedPermissions` (product 02, 18).
 
 ## 2. State management
 

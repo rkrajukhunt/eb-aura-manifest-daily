@@ -1,4 +1,5 @@
 import { PREMIUM_ENTITLEMENT_ID, PRODUCT_IDS, type PlanId } from '@aura/shared';
+import { Platform } from 'react-native';
 import Purchases, { type CustomerInfo, type PurchasesPackage } from 'react-native-purchases';
 
 import { env } from '@/lib/env';
@@ -26,7 +27,12 @@ let configured = false;
  * degrade to "free tier", never to a broken launch.
  */
 export async function configurePurchases(userId: string): Promise<void> {
-  const apiKey = env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
+  // RevenueCat issues a per-store key; the iOS one is rejected by the Android
+  // SDK, so this must be selected by platform rather than shared.
+  const apiKey = Platform.select({
+    ios: env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+    android: env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
+  });
   if (!apiKey) return;
 
   if (!configured) {

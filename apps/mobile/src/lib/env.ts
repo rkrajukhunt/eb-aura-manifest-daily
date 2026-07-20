@@ -13,6 +13,7 @@ const envSchema = z.object({
   EXPO_PUBLIC_API_URL: z.string().url(),
   EXPO_PUBLIC_POSTHOG_KEY: z.string().optional(),
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: z.string().optional(),
+  EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -21,6 +22,7 @@ const parsed = envSchema.safeParse({
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
   EXPO_PUBLIC_POSTHOG_KEY: process.env.EXPO_PUBLIC_POSTHOG_KEY,
   EXPO_PUBLIC_REVENUECAT_IOS_KEY: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY,
+  EXPO_PUBLIC_REVENUECAT_ANDROID_KEY: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 });
 
 if (!parsed.success) {
