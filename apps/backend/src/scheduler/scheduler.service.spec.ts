@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
 import { JobsService } from '../generation/jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { SUPABASE_CLIENT } from '../supabase/supabase.module';
 import { WINDOW_WIDTH_MINUTES } from './pregen-window';
 import { SchedulerService } from './scheduler.service';
@@ -44,6 +45,17 @@ describe('SchedulerService', () => {
       providers: [
         SchedulerService,
         { provide: JobsService, useValue: { enqueue } },
+        {
+          provide: NotificationsService,
+          useValue: {
+            send: jest.fn(async () => ({ sent: true })),
+            prefsFor: jest.fn(async () => ({
+              arrivalEnabled: true,
+              ignoredArrivalCount: 0,
+              softened: false,
+            })),
+          },
+        },
         {
           provide: SUPABASE_CLIENT,
           useValue: {
@@ -200,6 +212,7 @@ describe('SchedulerService', () => {
           }),
         } as never,
         { enqueue } as never,
+        { send: jest.fn(), prefsFor: jest.fn() } as never,
         { get: () => 7 } as never,
       );
 

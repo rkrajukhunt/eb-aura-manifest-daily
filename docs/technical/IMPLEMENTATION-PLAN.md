@@ -15,7 +15,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 6   | Future-Self Letter — WOW                  | 🟨     |
 | 7   | Daily Moments & Audio Player              | 🟨     |
 | 8   | Affirmations & Gratitude                  | 🟨     |
-| 9   | Notifications & Daily Habit Loop          | ⬜     |
+| 9   | Notifications & Daily Habit Loop          | 🟨     |
 | 10  | Subscriptions & Paywall                   | 🟨     |
 | 11  | Analytics & Experimentation               | ⬜     |
 | 12  | Polish, Performance & App Store Readiness | ⬜     |
@@ -444,6 +444,31 @@ Built in two passes: gratitude first, then affirmations. Backend 830 → 833, mo
 - **Tests:** Copy templates pass banned/guilt lint (zero guilt variants — product 14); soften counter logic; tz/DST send-window tests; deep-link routing unit tests; D7 eligibility math; send-log guard.
 - **Edge cases:** Permission denied (weekly quiet hint max, feature works without); token rotation/multi-device; notification for failed generation (never sent); tapped stale notification (replay state); softened user opens app (unsoften + reset); D7 with zero gratitude entries (letter adapts, no fake quote).
 - **Definition of Done:** Staging tester receives arrival note at chosen time naming the moment's theme; tap → player in one step; D7 letter arrives full-screen and quotes a real entry; 3 ignored arrivals → softened (verified via time-travel test data); zero guilt vocabulary confirmed by lint + manual read.
+
+### Phase 9 — as built (2026-07-20) — 🟨 BACKEND ONLY; the mobile half is not started
+
+Backend 833 → 891. The mobile half (permission flow, token registration, prefs sheet, deep-link routing, D7 presentation, missed-day return state) is untouched, so **no device can receive any of this yet** — there are no registered tokens.
+
+**Built:**
+
+- **`notification_tokens`, `notification_prefs`, `notification_sends`** with GRANTs and RLS. The send log is the double-delivery guard (11 §6): a unique index on `(user_id, kind, dedupe_key)` makes a repeat send impossible rather than unlikely, which matters because travel across timezones can legitimately put a user in two scan windows on the same local day.
+- **The copy catalog as a module that imports NOTHING.** 11 §3 permits notification copy to be assembled only from her name and a QA-guaranteed moment title; a lock screen is readable by anyone holding the phone, making it the least private surface in the product and the only place a leak is unrecoverable. The boundary is structural — `templates.ts` has no path to memory or generation — rather than a rule someone has to remember.
+- **58 policy and copy tests**, including every template checked against the shared guilt/banned lists and asserted never to name her absence. Doc 11 §5 says "absence is never named in any copy", and that line is what separates a companion from a re-engagement machine.
+- **Auto-soften**: three ignored arrivals drop her to a Mon/Wed/Sat cadence, silently. Any open RESETS the counter completely rather than decrementing it — coming back should restore the normal rhythm immediately, not make her earn it back one morning at a time.
+- **Arrival and milestone crons.** The arrival note runs as a SEPARATE sweep after pre-generation, because a notification may only go out once real content exists behind it (11 §7). Milestones match D7 exactly rather than "at least 7": a week-one letter arriving on day 20 would make its own copy a small lie.
+- **Push send with token lifecycle**: multi-device fan-out, `DeviceNotRegistered` deactivates a token (kept, not deleted, so a reinstall is recognised), and the send is CLAIMED in the log before delivery — a crash mid-send then costs one missed note rather than a duplicate, and a duplicate is the worse failure on a surface that arrives uninvited.
+
+**NOT BUILT — the entire mobile half:**
+
+- Post-paywall permission flow with the banked-context sheet
+- Token registration to `notification_tokens` (so nothing can actually be delivered)
+- The `notification_prefs` sheet
+- Deep-link routing notification → player, including cold start
+- D7 milestone letter presentation and `milestone_letter_played`
+- The missed-day return state ("There you are. Today's moment kept.")
+- Open attribution, which the soften counter needs — `ignored_arrival_count` currently only ever increments
+
+Expo push credentials in EAS are also a founder item, alongside the ASC work Phase 10 needs.
 
 ## Phase 10 — Subscriptions & Paywall
 

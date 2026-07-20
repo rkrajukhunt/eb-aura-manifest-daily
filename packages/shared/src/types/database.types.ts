@@ -400,6 +400,107 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_prefs: {
+        Row: {
+          affirmation_nudge: Database['public']['Enums']['affirmation_nudge'];
+          arrival_enabled: boolean;
+          created_at: string;
+          custom_end: string | null;
+          custom_start: string | null;
+          ignored_arrival_count: number;
+          softened: boolean;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          affirmation_nudge?: Database['public']['Enums']['affirmation_nudge'];
+          arrival_enabled?: boolean;
+          created_at?: string;
+          custom_end?: string | null;
+          custom_start?: string | null;
+          ignored_arrival_count?: number;
+          softened?: boolean;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          affirmation_nudge?: Database['public']['Enums']['affirmation_nudge'];
+          arrival_enabled?: boolean;
+          created_at?: string;
+          custom_end?: string | null;
+          custom_start?: string | null;
+          ignored_arrival_count?: number;
+          softened?: boolean;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      notification_sends: {
+        Row: {
+          dedupe_key: string;
+          id: string;
+          kind: string;
+          moment_id: string | null;
+          opened_at: string | null;
+          sent_at: string;
+          user_id: string;
+        };
+        Insert: {
+          dedupe_key: string;
+          id?: string;
+          kind: string;
+          moment_id?: string | null;
+          opened_at?: string | null;
+          sent_at?: string;
+          user_id: string;
+        };
+        Update: {
+          dedupe_key?: string;
+          id?: string;
+          kind?: string;
+          moment_id?: string | null;
+          opened_at?: string | null;
+          sent_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notification_sends_moment_id_fkey';
+            columns: ['moment_id'];
+            isOneToOne: false;
+            referencedRelation: 'moments';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      notification_tokens: {
+        Row: {
+          active: boolean;
+          created_at: string;
+          device_id: string | null;
+          expo_push_token: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          active?: boolean;
+          created_at?: string;
+          device_id?: string | null;
+          expo_push_token: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          active?: boolean;
+          created_at?: string;
+          device_id?: string | null;
+          expo_push_token?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       onboarding_answers: {
         Row: {
           answer: Json | null;
@@ -589,6 +690,7 @@ export type Database = {
     };
     Enums: {
       affirmation_kind: 'daily' | 'guided';
+      affirmation_nudge: 'quiet' | 'once_daily' | 'custom_hours';
       affirmation_status: 'candidate' | 'kept';
       entitlement: 'free' | 'premium';
       job_artifact:
@@ -743,6 +845,7 @@ export const Constants = {
   public: {
     Enums: {
       affirmation_kind: ['daily', 'guided'],
+      affirmation_nudge: ['quiet', 'once_daily', 'custom_hours'],
       affirmation_status: ['candidate', 'kept'],
       entitlement: ['free', 'premium'],
       job_artifact: [

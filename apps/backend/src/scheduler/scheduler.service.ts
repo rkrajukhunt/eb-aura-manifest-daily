@@ -4,6 +4,8 @@ import { Cron } from '@nestjs/schedule';
 
 import type { Env } from '../config/env.schema';
 import { JobsService } from '../generation/jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { arrivalDedupeKey, isMilestoneDue, maySendArrival } from '../notifications/policy';
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
 import { isActiveEnough, isDueForPregeneration, localDateString } from './pregen-window';
 
@@ -23,6 +25,7 @@ export class SchedulerService {
   constructor(
     @Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient,
     private readonly jobs: JobsService,
+    private readonly notifications: NotificationsService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -107,6 +110,106 @@ export class SchedulerService {
     // Logged for the generation-quality dashboard (04 §5, 13 §6).
     this.logger.log(`pregenerate-daily: processed=${processed} failures=${failures}`);
     return { processed, failures };
+  }
+
+  /**
+   * Sends the arrival note for moments that finished generating (11 §3).
+   *
+   * Runs AFTER pre-generation rather than inside it, because a notification may
+   * only go out once there is real content behind it (11 §7) — notifying about
+   * a generation that then failed would be the one unrecoverable version of
+   * this feature getting it wrong.
+   */
+  @Cron('*/15 * * * *')
+  async sendArrivals(now: Date = new Date()): Promise<{ sent: number }> {
+    const { data: profiles } = await this.supabase
+      .from('profiles')
+      .select('user_id, timezone, arrival_time, name')
+      .not('arrival_time', 'is', null);
+
+    let sent = 0;
+
+    for (const profile of profiles ?? []) {
+      const timezone = profile.timezone ?? 'UTC';
+
+      // The note lands AT her arrival time, so the window is the arrival itself
+      // rather than the 30-minute lead the generation used.
+      if (!isDueForPregeneration({ timezone, arrivalTime: profile.arrival_time }, now, 15)) {
+        continue;
+      }
+
+      const scheduledFor = localDateString(timezone, now);
+
+      const { data: moment } = await this.supabase
+        .from('moments')
+        .select('id, title')
+        .eq('user_id', profile.user_id)
+        .eq('type', 'daily')
+        .eq('scheduled_for', scheduledFor)
+        .eq('status', 'ready')
+        .limit(1)
+        .maybeSingle();
+
+      // Nothing ready: stay silent and let the on-open fallback handle it.
+      if (!moment) continue;
+
+      // Prefs are read at SEND time so a preference changed since the cron
+      // queued anything still wins (11 §4).
+      const prefs = await this.notifications.prefsFor(profile.user_id);
+      const localWeekday = new Date(`${scheduledFor}T12:00:00Z`).getUTCDay();
+      if (!maySendArrival(prefs, prefs, localWeekday)) continue;
+
+      const result = await this.notifications.send({
+        userId: profile.user_id,
+        kind: 'moment_arrival',
+        dedupeKey: arrivalDedupeKey(scheduledFor),
+        momentId: moment.id,
+        input: { name: profile.name, momentTitle: moment.title, momentId: moment.id },
+      });
+
+      if (result.sent) sent += 1;
+    }
+
+    this.logger.log(`send-arrivals: sent=${sent}`);
+    return { sent };
+  }
+
+  /**
+   * D7 milestone letters (04 §5, 11 §3).
+   *
+   * Daily rather than every 15 minutes: a milestone is a day-level event, and
+   * the letter arrives full-screen on next open regardless of when the push
+   * lands.
+   */
+  @Cron('0 * * * *')
+  async milestoneLetters(now: Date = new Date()): Promise<{ enqueued: number }> {
+    const { data: profiles } = await this.supabase
+      .from('profiles')
+      .select('user_id, created_at')
+      .not('onboarding_completed_at', 'is', null);
+
+    let enqueued = 0;
+
+    for (const profile of profiles ?? []) {
+      const day = isMilestoneDue(profile.created_at, now);
+      if (day === null) continue;
+
+      try {
+        // The idempotency key carries the day, so the hourly sweep enqueues one
+        // milestone per user per milestone day however often it runs.
+        await this.jobs.enqueue(
+          profile.user_id,
+          'milestone',
+          `milestone:${profile.user_id}:d${day}`,
+        );
+        enqueued += 1;
+      } catch {
+        // One user's failure must not abort the sweep.
+      }
+    }
+
+    if (enqueued > 0) this.logger.log(`milestone-letters: enqueued=${enqueued}`);
+    return { enqueued };
   }
 
   private async hasMomentFor(userId: string, scheduledFor: string): Promise<boolean> {

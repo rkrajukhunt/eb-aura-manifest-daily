@@ -11,6 +11,7 @@ import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { buildLoggerConfig } from './observability/logger.config';
 import { ProvidersModule } from './providers/providers.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SupabaseModule } from './supabase/supabase.module';
@@ -53,6 +54,7 @@ import { SupabaseModule } from './supabase/supabase.module';
     AccountModule,
     GenerationModule,
     SubscriptionsModule,
+    NotificationsModule,
     SchedulerModule,
   ],
 })

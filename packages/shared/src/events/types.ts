@@ -238,7 +238,25 @@ export interface EventCatalog {
   gratitude_entry_saved: { char_count_bucket: CharCountBucket; prompt_was_personalized: boolean };
   /** Mobile. Fires only when all three beats happened the same day (product 09). */
   ritual_completed: Record<string, never>;
+
+  // ─── Notifications (Phase 9, doc 11) ───────────────────────────────────
+  // Note what is absent: the notification's BODY never appears. It is assembled
+  // from her name and a moment title, and neither belongs in analytics (13 §2).
+  /** Backend. */
+  moment_arrival_notification_sent: Record<string, never>;
+  /** Mobile. Attribution for the soften counter (11 §5). */
+  moment_arrival_notification_opened: Record<string, never>;
+  /** Mobile. */
+  notification_permission_result: { granted: boolean };
+  /** Backend. Softening is silent to her; this is how WE know it happened. */
+  notification_softened: Record<string, never>;
+  /** Mobile. */
+  milestone_letter_played: { day: number };
+  /** Backend. A micro-wow landed (09 §5). */
+  callback_delivered: { type: CallbackType };
 }
+
+export type CallbackType = 'remembered_detail' | 'explicit_callback';
 
 export type AffirmationToneName = 'gentle' | 'bold' | 'grounded';
 export type ShareFormat = 'image' | 'text';
