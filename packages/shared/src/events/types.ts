@@ -174,7 +174,40 @@ export interface EventCatalog {
    * a bucket-ish number, never a position trail.
    */
   letter_playback_completed: { listened_pct: number };
+
+  // ─── Monetization (Phase 10, product 15 / 12) ──────────────────────────
+  // The funnel numbers the business is graded on. Note what is absent: nothing
+  // here records what she was looking at when the paywall appeared, and no
+  // event fires from a vulnerable surface (checklist #4 — the paywall is not
+  // permitted next to one in the first place).
+  /** Mobile. `surface` distinguishes the post-Letter cover from a locked sheet. */
+  paywall_viewed: { surface: PaywallSurface };
+  /** Mobile. Which plan card she selected — not a purchase. */
+  paywall_plan_selected: { sku: string };
+  /** Mobile. She chose the free tier. A first-class outcome, not a failure. */
+  paywall_dismissed: Record<string, never>;
+  /** Mobile + backend. Backend fires from the RC webhook (12 §5). */
+  trial_started: { sku: string };
+  /** Mobile + backend. */
+  purchase_completed: { sku: string };
+  /** Mobile. Which gated feature she reached for — tells us what to build next. */
+  locked_feature_touched: { feature: GatedFeature };
+  /** Backend, from the RC webhook. */
+  subscription_renewed: { sku: string };
+  /** Backend, from the RC webhook. Auto-renew off; entitlement runs to period end. */
+  subscription_cancelled: { sku: string };
+  /** Mobile. She linked an identity, so a reinstall keeps her letters (03 §2.2). */
+  account_claimed: { method: ClaimMethod };
 }
+
+/** Where a paywall was shown (12 §3). */
+export type PaywallSurface = 'post_letter' | 'locked_feature' | 'settings';
+
+/** The five features the free tier gates (12 §4). */
+export type GatedFeature =
+  'manifest_anything' | 'refine' | 'favorites' | 'collections' | 'share_export';
+
+export type ClaimMethod = 'apple' | 'email';
 
 export type EventName = keyof EventCatalog;
 export type EventPayload<E extends EventName> = EventCatalog[E];

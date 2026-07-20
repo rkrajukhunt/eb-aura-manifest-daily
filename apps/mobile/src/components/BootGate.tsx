@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 
 import { bootCopy } from '@/copy/boot';
 import { hasSeenLetter } from '@/features/letter/keepLetter';
+import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useBoot } from '@/hooks/useBoot';
 import { useProfile } from '@/hooks/useProfile';
@@ -45,6 +46,7 @@ export function BootGate({ children }: { children: ReactNode }) {
         profile,
         hasLetter: Boolean(letterQuery.data),
         letterSeen: hasSeenLetter(),
+        paywallSeen: hasSeenPaywall(),
       }),
     );
   }, [status, profile, letterQuery.isPending, letterQuery.data, router]);

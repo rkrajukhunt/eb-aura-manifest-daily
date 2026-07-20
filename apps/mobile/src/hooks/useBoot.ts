@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { configurePurchases } from '@/features/paywall/purchases';
 import { analytics, initAnalytics } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { ensureSession, identifyForObservability } from '@/lib/auth';
@@ -10,7 +11,9 @@ import { useAppState } from '@/stores/appState';
  * The boot sequence (05 §9):
  *   load session | signInAnonymously → identify → route gate
  *
- * RevenueCat `logIn` joins here in Phase 10; moment/affirmation prefetch in Phase 7.
+ * RevenueCat is configured here with her Supabase id as the RC `app_user_id`
+ * (03 §4) — the binding that lets an anonymous purchase survive a later claim.
+ * Moment/affirmation prefetch joins in Phase 7.
  */
 export function useBoot(): void {
   const setReady = useAppState((s) => s.setReady);
@@ -32,6 +35,11 @@ export function useBoot(): void {
         // them (13 §2). subscription_state updates when RC lands (Phase 10).
         analytics.register(buildSuperProperties());
         analytics.identify(userId);
+
+        // Bound to her Supabase id, so a purchase made anonymously still belongs
+        // to her after she claims. Never fatal: a build with no RevenueCat key
+        // simply has everyone on the free tier (12 §2).
+        await configurePurchases(userId).catch(() => undefined);
 
         emitAppOpen('cold');
         setReady(userId);

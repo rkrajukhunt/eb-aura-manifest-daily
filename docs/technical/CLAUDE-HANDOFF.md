@@ -4,22 +4,23 @@ _Working handoff for Claude. Last updated: 2026-07-18, after Phase 5. Read this 
 
 ## TL;DR — where we are
 
-Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–6 are all coded and committed**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. **Next phase: 10 (paywall) per the plan's recommended order (`0→…→6→10→7→…`), or 7 if the founder prefers.**
+Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–6 and 10 are all coded and committed**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. **Next phase: 7 (Daily Moments & Audio Player).**
 
-**The whole session-1 funnel now exists end to end**: onboarding → ritual → Letter → Home. It has never run on a phone.
+**The whole session-1 funnel now exists end to end**: onboarding → ritual → Letter → paywall → free tier or premium. It has never run on a phone, and no purchase has ever been made.
 
 ## Phase status
 
-| #    | Phase                             | Status           | What "done" means / what's pending                                                                                                                                                |
-| ---- | --------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Repository & Dev Foundation       | ✅ done          | monorepo, CI, local Supabase, both apps boot. Only gap: simulator boot unverified.                                                                                                |
-| 1    | Design System & Mobile Foundation | 🟨 code-complete | 16 components + Orb + theme + haptics/motion + copy lint. **Pending: founder device pass** (60fps orb, "calm is the brand"). Gallery at route `/gallery`.                         |
-| 2    | Supabase Auth & User Foundation   | ✅ done          | anon-first auth, profiles, RLS, deletion, boot gate — all verified against live DB.                                                                                               |
-| 3    | Onboarding "The Conversation"     | 🟨 code-complete | S1–S11, draft resume, edit-guard, reflections, commit path. **Pending: founder device walkthrough.**                                                                              |
-| 4    | Living Memory & Profile           | 🟨 code-complete | schema + harvester + seed + What Aura Knows + Never-Include + Profile tab. Data layer fully verified (live RLS). **Pending: device walkthrough.**                                 |
-| 5    | AI Generation Backend             | 🟨 tests done    | pipeline proven + **all deferred suites written (2026-07-20)**; 701 backend unit tests, 71 live. **Pending: OpenAI bake-off + vendor no-retention check (both founder/staging).** |
-| 6    | Future-Self Letter — WOW          | 🟨 code-complete | ritual + `/letter` + karaoke + permanent cache + boot gate. **Pending: founder device pass — and it needs a dev-client REBUILD (`expo-audio` is a new native module).**           |
-| 7–12 | —                                 | ⬜ not started   | next up: Phase 10 (paywall) per the plan's recommended order, or Phase 7.                                                                                                         |
+| #          | Phase                             | Status           | What "done" means / what's pending                                                                                                                                                      |
+| ---------- | --------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0          | Repository & Dev Foundation       | ✅ done          | monorepo, CI, local Supabase, both apps boot. Only gap: simulator boot unverified.                                                                                                      |
+| 1          | Design System & Mobile Foundation | 🟨 code-complete | 16 components + Orb + theme + haptics/motion + copy lint. **Pending: founder device pass** (60fps orb, "calm is the brand"). Gallery at route `/gallery`.                               |
+| 2          | Supabase Auth & User Foundation   | ✅ done          | anon-first auth, profiles, RLS, deletion, boot gate — all verified against live DB.                                                                                                     |
+| 3          | Onboarding "The Conversation"     | 🟨 code-complete | S1–S11, draft resume, edit-guard, reflections, commit path. **Pending: founder device walkthrough.**                                                                                    |
+| 4          | Living Memory & Profile           | 🟨 code-complete | schema + harvester + seed + What Aura Knows + Never-Include + Profile tab. Data layer fully verified (live RLS). **Pending: device walkthrough.**                                       |
+| 5          | AI Generation Backend             | 🟨 tests done    | pipeline proven + **all deferred suites written (2026-07-20)**; 701 backend unit tests, 71 live. **Pending: OpenAI bake-off + vendor no-retention check (both founder/staging).**       |
+| 6          | Future-Self Letter — WOW          | 🟨 code-complete | ritual + `/letter` + karaoke + permanent cache + boot gate. **Pending: founder device pass — and it needs a dev-client REBUILD (`expo-audio` is a new native module).**                 |
+| 10         | Subscriptions & Paywall           | 🟨 code-complete | schema + RC webhook + entitlement guard (all verified); paywall, gating, Settings, claim built. **Pending: a sandbox purchase has never run — no ASC products, no RC project, no key.** |
+| 7–9, 11–12 | —                                 | ⬜ not started   | next up: Phase 7 (Daily Moments), which unblocks the five gated features the paywall currently guards in theory.                                                                        |
 
 🟨 = code-complete and machine-verified as far as this Linux box allows; the remaining item needs either a physical iPhone or (Phase 5) the deferred tests.
 
@@ -37,8 +38,8 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 
 ## Test / verification status
 
-- **1,014 automated tests green** across the monorepo: 51 shared, 257 mobile, 706 backend (701 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
-- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 71 tests (RLS for all tables incl. the 4 Phase 5 ones + audio bucket, + account deletion).
+- **1,138 automated tests green** across the monorepo: 51 shared, 325 mobile, 762 backend (757 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
+- **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 81 tests (RLS for every table incl. `subscription_state` + audio bucket, + account deletion).
 - **Phase 5's test debt is paid** (2026-07-20). Coverage on `generation/** · memory/** · safety/**` is 99.8% stmts / 91.5% branch, clearing 15 §6's 90% bar. Writing the suites caught **four real defects** — a sensitive-struggle leak into `winback` via a cadence directive, a prompt/QA disagreement that made value-anchored affirmations permanently un-passable, and two mock defects. All fixed; see the plan's "Phase 5 — test debt paid" section.
 - **e2e was deliberately out of scope** for that pass (founder instruction), which is why `generation.controller.ts` is the one uncovered file in the generation tree.
 
@@ -104,6 +105,18 @@ Also open (raised, not fixed): the explicit-callback cadence guard checks for an
 8. Kill the app mid-letter and relaunch → it reopens into the Letter.
 9. Airplane mode → replay still works (permanent cache).
 10. The judgement the phase is actually graded on: **would this give goosebumps?**
+
+## Phase 10 — what the founder must do before it can be ✅
+
+None of this is code; all of it is account setup only you can do.
+
+1. **App Store Connect**: create `aura_premium_annual` ($39.99/yr, no trial) and `aura_premium_weekly` ($6.99/wk, 7-day trial). Category Health & Fitness.
+2. **RevenueCat**: project + entitlement `premium` + offering `default` with both packages, annual first. Copy the iOS SDK key into `EXPO_PUBLIC_REVENUECAT_IOS_KEY`.
+3. **Webhook**: point RevenueCat at `POST /v1/webhooks/revenuecat` and set the same shared secret in `REVENUECAT_WEBHOOK_AUTH`. The endpoint **fails closed** — an unset secret rejects everything, so this is not optional.
+4. **Sign in with Apple**: enable the capability on the ASC identifier (`usesAppleSignIn` is already set in `app.config.ts`).
+5. **Sandbox**: a sandbox tester account, then run annual and weekly-with-trial purchases end to end, including the claim sheet.
+
+Until step 2 exists, the app runs with everyone on the free tier and the paywall shows nothing — that degradation is deliberate (12 §2), not a bug.
 
 ## Phase 6 open item
 

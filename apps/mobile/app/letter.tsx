@@ -7,6 +7,7 @@ import { Screen } from '@/components';
 import { LetterScreen } from '@/features/letter/LetterScreen';
 import { PauseSheet } from '@/features/letter/PauseSheet';
 import { keepLetter, markLetterSeen } from '@/features/letter/keepLetter';
+import { hasSeenPaywall } from '@/features/paywall/paywallSeen';
 import { useLetter } from '@/features/letter/useLetter';
 import { useAppState } from '@/stores/appState';
 import { LetterMotionProvider } from '@/theme/motion';
@@ -43,10 +44,11 @@ export default function LetterRoute() {
   const leave = useCallback(() => {
     leaving.current = true;
     markLetterSeen();
-    // Phase 10 puts the paywall here — product 08 sends Continue straight to it,
-    // and the paywall inherits this gradient so it reads as the letter's next
-    // page. Until that phase exists, Home is the honest destination.
-    router.replace('/(tabs)/home');
+    // Straight to the paywall (product 08 §when the audio ends): it inherits
+    // this gradient, so it reads as the letter's next page rather than an
+    // interruption. Nothing is allowed in between — no permission dialog, no
+    // rating prompt (product 08's explicit PRODUCT DECISION).
+    router.replace(hasSeenPaywall() ? '/(tabs)/home' : '/paywall');
   }, [router]);
 
   const onContinue = useCallback(() => {

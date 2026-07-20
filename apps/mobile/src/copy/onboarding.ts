@@ -8,10 +8,16 @@
 export const onboardingCopy = {
   s01Welcome: {
     title: 'Create the life you desire.',
-    // Price honesty before effort (product 01 §radical pricing honesty). The
-    // amount itself comes from config at Phase 10 — this line must not hardcode
-    // a number that RevenueCat later contradicts.
-    priceHonesty: 'Free to begin. You’ll see pricing clearly before anything starts.',
+    /**
+     * Anti-resentment checklist #1: the price appears on the FIRST screen, so
+     * effort is never invested blind. `{price}` is filled from the RevenueCat
+     * offering, which is localized — a hardcoded dollar figure would be a lie in
+     * every other currency, and lying about price is the exact failure mode this
+     * line exists to prevent. `priceUnknown` covers the first launch before the
+     * offering has loaded: still honest, just less specific.
+     */
+    priceHonesty: 'Free to begin. Premium from {price} — you’ll see everything before you decide.',
+    priceUnknown: 'Free to begin. You’ll see the price before anything starts.',
     primary: 'Begin',
     secondary: 'Restore purchase',
   },

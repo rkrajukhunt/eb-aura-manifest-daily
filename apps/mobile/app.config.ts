@@ -47,6 +47,11 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: `${BRAND.bundleIdentifier}${suffix}`,
     supportsTablet: false,
+    // Sign in with Apple — the primary claim path (03 §2.2) and required by the
+    // App Store whenever third-party login is offered. This flag adds the
+    // entitlement; the capability must also be enabled on the App Store Connect
+    // identifier before a build will install.
+    usesAppleSignIn: true,
     config: {
       // Product 12: the app never asks for location. Declared so a plugin can't quietly add it.
       usesNonExemptEncryption: false,

@@ -11,6 +11,7 @@ import { validateEnv, type Env } from './config/env.schema';
 import { HealthModule } from './health/health.module';
 import { buildLoggerConfig } from './observability/logger.config';
 import { ProvidersModule } from './providers/providers.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SupabaseModule } from './supabase/supabase.module';
 
 /**
@@ -18,7 +19,8 @@ import { SupabaseModule } from './supabase/supabase.module';
  *
  * Modules arriving in later phases: MemoryModule (4), GenerationModule +
  * SafetyModule (5), SchedulerModule + NotificationsModule (7/9),
- * WebhooksModule (10), AnalyticsModule (11).
+ * AnalyticsModule (11). SubscriptionsModule (10) carries the RevenueCat
+ * webhook and the entitlement guard.
  */
 @Module({
   imports: [
@@ -49,6 +51,7 @@ import { SupabaseModule } from './supabase/supabase.module';
     HealthModule,
     AccountModule,
     GenerationModule,
+    SubscriptionsModule,
   ],
 })
 export class AppModule {}

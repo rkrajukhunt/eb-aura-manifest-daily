@@ -47,4 +47,6 @@ export const STORAGE_KEYS = {
   letterAttempt: 'letter.attempt',
   /** Set once she has actually heard her letter; the boot gate reads it (06 §3). */
   letterSeen: 'letter.seen',
+  /** Set once the post-Letter paywall has been presented. Shown once (12 §3). */
+  paywallSeen: 'paywall.seen',
 } as const;

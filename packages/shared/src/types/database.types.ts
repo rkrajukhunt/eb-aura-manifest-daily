@@ -439,6 +439,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      subscription_state: {
+        Row: {
+          created_at: string;
+          entitlement: Database['public']['Enums']['entitlement'];
+          expires_at: string | null;
+          lapsed_at: string | null;
+          last_event: string | null;
+          last_event_at: string | null;
+          period_type: Database['public']['Enums']['period_type'] | null;
+          product_id: string | null;
+          rc_app_user_id: string | null;
+          updated_at: string;
+          user_id: string;
+          will_renew: boolean;
+        };
+        Insert: {
+          created_at?: string;
+          entitlement?: Database['public']['Enums']['entitlement'];
+          expires_at?: string | null;
+          lapsed_at?: string | null;
+          last_event?: string | null;
+          last_event_at?: string | null;
+          period_type?: Database['public']['Enums']['period_type'] | null;
+          product_id?: string | null;
+          rc_app_user_id?: string | null;
+          updated_at?: string;
+          user_id: string;
+          will_renew?: boolean;
+        };
+        Update: {
+          created_at?: string;
+          entitlement?: Database['public']['Enums']['entitlement'];
+          expires_at?: string | null;
+          lapsed_at?: string | null;
+          last_event?: string | null;
+          last_event_at?: string | null;
+          period_type?: Database['public']['Enums']['period_type'] | null;
+          product_id?: string | null;
+          rc_app_user_id?: string | null;
+          updated_at?: string;
+          user_id?: string;
+          will_renew?: boolean;
+        };
+        Relationships: [];
+      };
       usage_credits: {
         Row: {
           manifest_used: number;
@@ -467,6 +512,7 @@ export type Database = {
     Enums: {
       affirmation_kind: 'daily' | 'guided';
       affirmation_status: 'candidate' | 'kept';
+      entitlement: 'free' | 'premium';
       job_artifact:
         | 'letter'
         | 'daily'
@@ -492,6 +538,7 @@ export type Database = {
       memory_tier: 'permanent' | 'evolving' | 'temporary' | 'sensitive';
       moment_status: 'forming' | 'generating' | 'ready' | 'failed' | 'replaced';
       moment_type: 'letter' | 'daily' | 'ondemand' | 'milestone' | 'winback';
+      period_type: 'trial' | 'normal';
       work_feeling: 'love_it' | 'fine_for_now' | 'ready_for_new' | 'building_side';
     };
     CompositeTypes: {
@@ -619,6 +666,7 @@ export const Constants = {
     Enums: {
       affirmation_kind: ['daily', 'guided'],
       affirmation_status: ['candidate', 'kept'],
+      entitlement: ['free', 'premium'],
       job_artifact: [
         'letter',
         'daily',
@@ -646,6 +694,7 @@ export const Constants = {
       memory_tier: ['permanent', 'evolving', 'temporary', 'sensitive'],
       moment_status: ['forming', 'generating', 'ready', 'failed', 'replaced'],
       moment_type: ['letter', 'daily', 'ondemand', 'milestone', 'winback'],
+      period_type: ['trial', 'normal'],
       work_feeling: ['love_it', 'fine_for_now', 'ready_for_new', 'building_side'],
     },
   },

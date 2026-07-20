@@ -17,6 +17,14 @@ export interface InputProps {
   hint?: string;
   multiline?: boolean;
   autoFocus?: boolean;
+  /**
+   * Passed through for the few fields where the OS keyboard genuinely differs —
+   * an email field with a QWERTY keyboard and autocapitalisation is a small
+   * cruelty. Kept to these two rather than spreading all of TextInput's props,
+   * so the component stays a design-system piece rather than a thin wrapper.
+   */
+  keyboardType?: 'default' | 'email-address';
+  autoCapitalize?: 'none' | 'sentences';
   testID?: string;
 }
 
@@ -32,6 +40,8 @@ export function Input({
   hint,
   multiline = false,
   autoFocus = false,
+  keyboardType = 'default',
+  autoCapitalize = 'sentences',
   testID,
 }: InputProps) {
   const { colors, durations, radii, spacing, typography } = useTheme();
@@ -61,6 +71,8 @@ export function Input({
           onChangeText={onChangeText}
           multiline={multiline}
           autoFocus={autoFocus}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
           onFocus={() => animateGlow(true)}
           onBlur={() => animateGlow(false)}
           placeholderTextColor={colors.text.secondary}

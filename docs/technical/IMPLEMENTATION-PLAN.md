@@ -16,7 +16,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 7   | Daily Moments & Audio Player              | ⬜     |
 | 8   | Affirmations & Gratitude                  | ⬜     |
 | 9   | Notifications & Daily Habit Loop          | ⬜     |
-| 10  | Subscriptions & Paywall                   | ⬜     |
+| 10  | Subscriptions & Paywall                   | 🟨     |
 | 11  | Analytics & Experimentation               | ⬜     |
 | 12  | Polish, Performance & App Store Readiness | ⬜     |
 
@@ -399,6 +399,41 @@ The whole path is wired: S11 → ritual → Letter → Home, with the boot gate 
 - **Tests:** Webhook handler unit tests (every RC event type → expected mirror state); entitlement guard 402s; claim-flow unit tests; sandbox Maestro: purchase → claim → premium unlock; restore-on-new-device manual test script.
 - **Edge cases:** Purchase success + claim abandoned (entitlement works, re-prompt banner); restore unclaimed→new device (entitlement transfers, honest content copy); Apple sheet cancelled; webhook before/after client refresh (mirror lag tolerated); billing grace; lapsed user keeps Letter + data.
 - **Definition of Done:** Sandbox annual + weekly-with-trial purchases complete end-to-end with claim; free tier enforced everywhere per gating map; **all 7 anti-resentment checklist points manually verified**: (1) price on first screen, (2) weekly shows monthly equivalent, (3) trial terms restated + day-5 reminder, (4) no paywall near vulnerable disclosure, (5) cancel in 2 taps, (6) lapsed keep Letter/data, (7) no ads anywhere.
+
+### Phase 10 — as built (2026-07-20) — 🟨 code-complete, sandbox purchase unverified
+
+The funnel is now install → onboarding → ritual → Letter → **paywall** → free tier or premium. Backend tests 701 → 757, mobile 257 → 325, live RLS 71 → 81.
+
+**Backend (fully verified here):** `subscription_state` migration — select-own, **writes service-role only**, the one table in the schema with that asymmetry, since a user who could write it could grant herself premium (10 live RLS tests assert exactly that). `POST /v1/webhooks/revenuecat` (`@Public()`, shared-secret authenticated, **fails closed** when the secret is unconfigured). All 8 RC event types map to the mirror through a pure `deriveSubscriptionUpdate`, with 27 tests over it. `EntitlementGuard` + `@RequiresPremium()` returning `entitlement_required` 402.
+
+**Mobile (code-complete, unverifiable off-device):** RC configured at boot with `app_user_id` ≡ Supabase `user_id` (03 §4, the binding that makes an anonymous purchase survive a later claim) · `useEntitlement` · the post-Letter paywall cover · `LockedFeatureSheet` + the gating map as data · Settings + Settings→Subscription · `ClaimSheet` (Apple + email) · boot gate `letter → paywall → home` · S1 price line.
+
+**Decisions worth recording:**
+
+1. **Prices are never hardcoded.** Every figure comes from the RevenueCat offering, and the monthly equivalent is computed with `Intl` from the product's own currency. Product 15 prints "$39.99/yr", but a hardcoded dollar figure is simply wrong in every other storefront — and being wrong about price on the screen whose entire job is price honesty would be worse than saying nothing. The pure `pricing.ts` module has 14 tests, including that a weekly plan is projected over 52 weeks rather than a flattering 4-week "month".
+2. **The gating map lists what is LOCKED, not what is free**, so a new feature ships unlocked unless someone deliberately gates it. The inverse default would eventually paywall something by omission.
+3. **`canUse` returns true while entitlement is loading.** The server re-checks every premium action, so the cost of being wrong is one 402 the sheet already handles — much better than showing a paying customer a lock on every cold start.
+4. **`CANCELLATION` and `BILLING_ISSUE` do not revoke access.** Cancellation turns off auto-renew and access runs to period end; billing issues ride RevenueCat's grace period. Both are pinned by tests because both are easy to get backwards and each mistake takes premium from someone who paid for it.
+5. **Two native modules added:** `react-native-purchases` and `expo-apple-authentication` (+ `usesAppleSignIn`). Another dev-client rebuild.
+
+**Checklist status — 4 of 7 verifiable here, all 7 need the device pass:**
+
+| #   | Point                                     | Status                                                                            |
+| --- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | Price on the first screen                 | ✅ built (localized, honest fallback) — device pass to confirm it renders         |
+| 2   | Weekly shows monthly equivalent           | ✅ built + 14 tests                                                               |
+| 3   | Trial terms restated + **day-5 reminder** | 🟨 restated on the card and by StoreKit; **the reminder cron needs Phase 9 push** |
+| 4   | No paywall near a vulnerable disclosure   | ✅ enforced by the boot gate's ordering + tests                                   |
+| 5   | Cancel in 2 taps                          | ✅ built + tests assert no confirm, no maze, no counter-offer                     |
+| 6   | Lapsed keep Letter and data               | ✅ nothing in the lapse path deletes anything; asserted                           |
+| 7   | No ads, ever                              | ✅ none exist                                                                     |
+
+**Not done — blocked on the founder, not on code:**
+
+- **No sandbox purchase has ever run.** There are no App Store Connect products, no RC project, no sandbox account, and no `EXPO_PUBLIC_REVENUECAT_IOS_KEY`. Everything above is code + unit tests; the DoD's "sandbox annual + weekly-with-trial purchases complete end-to-end with claim" is entirely pending.
+- **`trial-reminder` and win-back crons are not built** — both deliver by push, which is Phase 9. Checklist #3's day-5 reminder rides on that.
+- **The five gated features do not exist yet** (Manifest Anything, refine, favorites, collections, share — Phases 7/8). The sheet and the map are ready and unwired, so the gating map is currently a specification with no call sites.
+- **Experiment #1 (trial vs no-trial)** needs the PostHog flag → RC offering mapping, which lands with Phase 11.
 
 ## Phase 11 — Analytics & Experimentation
 

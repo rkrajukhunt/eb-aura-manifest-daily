@@ -117,6 +117,42 @@ jest.mock('expo-file-system', () => {
   };
 });
 
+// RevenueCat's SDK is native-only. The stub starts everyone on the FREE tier,
+// which is the right default for tests: a gating bug that leaks premium should
+// fail a test, and a stub that returned premium would hide exactly that.
+jest.mock('react-native-purchases', () => {
+  const listeners = new Set();
+  let customerInfo = { entitlements: { active: {} } };
+
+  return {
+    __esModule: true,
+    __setCustomerInfo: (next) => {
+      customerInfo = next;
+      listeners.forEach((notify) => notify(next));
+    },
+    __resetCustomerInfo: () => {
+      customerInfo = { entitlements: { active: {} } };
+    },
+    default: {
+      configure: jest.fn(),
+      logIn: jest.fn(async () => ({ customerInfo })),
+      getCustomerInfo: jest.fn(async () => customerInfo),
+      getOfferings: jest.fn(async () => ({ current: null })),
+      purchasePackage: jest.fn(async () => ({ customerInfo })),
+      restorePurchases: jest.fn(async () => customerInfo),
+      showManageSubscriptions: jest.fn(async () => undefined),
+      addCustomerInfoUpdateListener: jest.fn((l) => listeners.add(l)),
+      removeCustomerInfoUpdateListener: jest.fn((l) => listeners.delete(l)),
+    },
+  };
+});
+
+jest.mock('expo-apple-authentication', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  signInAsync: jest.fn(async () => ({ identityToken: 'token' })),
+  AppleAuthenticationScope: { EMAIL: 0, FULL_NAME: 1 },
+}));
+
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(async () => null),
   setItemAsync: jest.fn(async () => undefined),

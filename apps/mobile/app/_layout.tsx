@@ -79,6 +79,14 @@ export default function RootLayout() {
                     name="letter"
                     options={{ presentation: 'fullScreenModal', gestureEnabled: true }}
                   />
+                  {/* The first paywall is a cover too (06 §2). Gesture-dismiss
+                      is OFF: the X appears after 2s and is the one way out, so
+                      a swipe cannot skip past it before it is even readable.
+                      She is never trapped — the X always arrives. */}
+                  <Stack.Screen
+                    name="paywall"
+                    options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
+                  />
                 </Stack>
               </BootGate>
             </BottomSheetModalProvider>
