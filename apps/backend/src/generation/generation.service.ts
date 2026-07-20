@@ -16,6 +16,7 @@ import {
   type ModelTier,
 } from './types';
 import { ARTIFACT_SPEC } from './artifact-spec';
+import { CreditsService } from './credits.service';
 import { JobsService, QaFailedError, type JobRow } from './jobs/jobs.service';
 import { PromptService, type RefineInput } from './prompt/prompt.service';
 import { QaService } from './qa/qa.service';
@@ -34,6 +35,7 @@ import { StorageService } from './storage.service';
 export class GenerationService implements OnModuleInit {
   constructor(
     private readonly jobs: JobsService,
+    private readonly credits: CreditsService,
     private readonly memory: MemoryContextService,
     private readonly prompts: PromptService,
     private readonly qa: QaService,
@@ -112,6 +114,17 @@ export class GenerationService implements OnModuleInit {
         surface: job.artifact,
         reason,
       });
+
+      // A Manifest credit is reserved BEFORE generation to close the
+      // two-requests-see-the-last-credit race, which means every failure after
+      // that point owes her the credit back. Product 09 §9.2: "Error: retry,
+      // credit not consumed" — and a provider timeout or a QA double-fail is
+      // exactly the error she did not cause. Refunding only on enqueue failure
+      // (which is where this used to stop) left the common failures charged.
+      if (job.artifact === 'ondemand' && this.isFinalAttempt(error, job)) {
+        await this.credits.refund(job.user_id);
+      }
+
       throw error;
     }
   }
@@ -258,6 +271,17 @@ export class GenerationService implements OnModuleInit {
     if (tier === 'flagship') return this.config.get('LLM_MODEL_FLAGSHIP', { infer: true });
     if (tier === 'mid') return this.config.get('LLM_MODEL_MID', { infer: true });
     return this.config.get('LLM_MODEL_MINI', { infer: true });
+  }
+
+  /**
+   * Is this the attempt after which the job gives up?
+   *
+   * The state machine retries provider errors twice and QA failures once, so a
+   * refund on the first failure would hand back a credit for a job that then
+   * succeeds. Only the terminal attempt owes one.
+   */
+  private isFinalAttempt(error: unknown, job: JobRow): boolean {
+    return error instanceof QaFailedError ? job.attempt >= 2 : job.attempt >= 3;
   }
 
   private classify(error: unknown): GenerationFailureReason {

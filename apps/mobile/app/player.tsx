@@ -11,6 +11,7 @@ import { usePlayerStore } from '@/features/player/playerStore';
 import { usePlayback } from '@/features/player/usePlayback';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -30,6 +31,7 @@ export default function PlayerRoute() {
   const refineRef = useRef<BottomSheetModal>(null);
   const lockedRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
+  const [refineError, setRefineError] = useState<string | null>(null);
 
   const onMinimize = useCallback(() => {
     playback.reportDropOff();
@@ -79,14 +81,24 @@ export default function PlayerRoute() {
       <RefineSheet
         ref={refineRef}
         busy={busy}
+        error={refineError}
         onSubmit={(direction, note) => {
           if (!moment) return;
           setBusy(true);
+          setRefineError(null);
           void api
             .refineMoment(moment.id, direction, note)
             .then(() => {
               analytics.capture('moment_refined', { direction });
               refineRef.current?.dismiss();
+            })
+            .catch((error: unknown) => {
+              if (errorKeyOf(error) === 'entitlement_required') {
+                refineRef.current?.dismiss();
+                lockedRef.current?.present();
+                return;
+              }
+              setRefineError(errorCopyFor(error));
             })
             .finally(() => setBusy(false));
         }}

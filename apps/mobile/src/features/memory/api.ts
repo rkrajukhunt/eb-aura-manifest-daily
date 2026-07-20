@@ -18,6 +18,10 @@ export async function fetchMemoryItems(userId: string): Promise<MemoryItem[]> {
     .from('memory_items')
     .select('*')
     .eq('user_id', userId)
+    // Items she marked done/private are excluded from generation (09 §5) and
+    // must be excluded from "What Aura Knows" too — a memory she asked us to
+    // stop using should not still be listed back to her as something we know.
+    .eq('excluded', false)
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);

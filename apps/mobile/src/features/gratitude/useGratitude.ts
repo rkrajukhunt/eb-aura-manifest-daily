@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { recordBeat } from '@/features/affirmations/practice';
 import { analytics } from '@/lib/analytics';
 import { kv, STORAGE_KEYS } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
@@ -127,6 +128,12 @@ export function useGratitude(userId: string | undefined) {
         char_count_bucket: charCountBucket(entry),
         prompt_was_personalized: personalized,
       });
+
+      // Beat three (product 09). `ritual_completed` fires only when all three
+      // happened the same day, whichever order she did them in.
+      if (recordBeat(today, 'gratitude').justCompleted) {
+        analytics.capture('ritual_completed');
+      }
 
       void drain(next);
     },

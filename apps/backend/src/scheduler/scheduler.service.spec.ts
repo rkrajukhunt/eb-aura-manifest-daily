@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
+import { AnalyticsService } from '../analytics/analytics.service';
 import { JobsService } from '../generation/jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SUPABASE_CLIENT } from '../supabase/supabase.module';
@@ -45,6 +46,7 @@ describe('SchedulerService', () => {
       providers: [
         SchedulerService,
         { provide: JobsService, useValue: { enqueue } },
+        { provide: AnalyticsService, useValue: { capture: jest.fn() } },
         {
           provide: NotificationsService,
           useValue: {
@@ -213,6 +215,7 @@ describe('SchedulerService', () => {
         } as never,
         { enqueue } as never,
         { send: jest.fn(), prefsFor: jest.fn() } as never,
+        { capture: jest.fn() } as never,
         { get: () => 7 } as never,
       );
 

@@ -1,4 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
+import type { Env } from '../config/env.schema';
 
 import { ApiException } from '../common/api.exception';
 import { hashUserId } from '../observability/logger.config';
@@ -23,7 +26,10 @@ const AUDIO_BUCKET = 'audio';
 export class AccountService {
   private readonly logger = new Logger(AccountService.name);
 
-  constructor(@Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient) {}
+  constructor(
+    @Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
 
   async deleteAccount(userId: string): Promise<void> {
     // Logs identify by hash — a raw uuid here joins to someone's whole history (04 §7).
@@ -46,12 +52,49 @@ export class AccountService {
       throw ApiException.internal('Account deletion failed');
     }
 
-    // 3–4. RevenueCat subscriber delete + PostHog person deletion.
-    // Intentionally absent until Phases 10/11 own those integrations. Both are
-    // queued-with-retry by design, so they do not belong in this synchronous path.
-    // Stated window to the user is 30 days (03 §5).
+    // 3. RevenueCat subscriber delete (03 §5 step 3).
+    //
+    // No longer deferrable: RevenueCat went live at Phase 10, so leaving this
+    // out meant a deleted account kept a subscriber record at a third party —
+    // "delete means delete" (product 18) has to include the vendors we handed
+    // her id to. Failure is logged, not thrown: her Supabase data is already
+    // gone, and refusing the request now would be worse than an orphan record
+    // we can sweep.
+    await this.deleteRevenueCatSubscriber(userId, userRef);
+
+    // 4. PostHog person deletion belongs with Phase 11, which owns that
+    // integration. Analytics holds only pseudonymous structural events (13 §2),
+    // so the exposure is materially smaller than RevenueCat's.
 
     this.logger.log(`Account deletion completed for ${userRef}`);
+  }
+
+  /**
+   * Deletes her RevenueCat subscriber (03 §5 step 3).
+   *
+   * RC's `app_user_id` IS her Supabase id (03 §4), so no lookup is needed. An
+   * unset key means RevenueCat was never configured in this environment, which
+   * is the normal local/dev case — not an error.
+   */
+  private async deleteRevenueCatSubscriber(userId: string, userRef: string): Promise<void> {
+    const apiKey = this.config.get('REVENUECAT_SECRET_KEY', { infer: true });
+    if (!apiKey) return;
+
+    try {
+      const response = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${apiKey}` } },
+      );
+
+      // 404 means there was never a subscriber — already the desired state.
+      if (!response.ok && response.status !== 404) {
+        this.logger.error(`RevenueCat delete failed for ${userRef} (${response.status})`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `RevenueCat delete errored for ${userRef} (${error instanceof Error ? error.name : 'unknown'})`,
+      );
+    }
   }
 
   /**

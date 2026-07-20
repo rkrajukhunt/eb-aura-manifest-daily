@@ -21,8 +21,11 @@ import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { usePlayerStore } from '@/features/player/playerStore';
 import { useProfile } from '@/hooks/useProfile';
+import { LIMITS } from '@aura/shared';
+
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
+import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
 import { useAppState } from '@/stores/appState';
 
 /**
@@ -46,6 +49,12 @@ export default function HomeRoute() {
   const permissionRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [manifestError, setManifestError] = useState<string | null>(null);
+  // Seeded from the shared default and corrected by the server's answer on every
+  // manifest (07 §1 returns `creditsRemaining`). Optimistic by design — 12 §4
+  // makes the server the authority, so a stale local number costs at most one
+  // honest 429 that the sheet now renders.
+  const [credits, setCredits] = useState<number>(LIMITS.MANIFEST_WEEKLY_LIMIT);
 
   // The permission ask lands HERE — the first Home landing after the paywall
   // (11 §2), which is the earliest moment product 08's "nothing between the
@@ -106,17 +115,31 @@ export default function HomeRoute() {
 
       <ManifestSheet
         ref={manifestRef}
-        creditsRemaining={3}
+        creditsRemaining={credits}
+        error={manifestError}
         busy={busy}
         onSubmit={(desireText) => {
           setBusy(true);
+          setManifestError(null);
           void api
             .manifest(desireText)
             .then((result) => {
               analytics.capture('manifest_anything_created', {
                 credits_remaining: result.creditsRemaining,
               });
+              setCredits(result.creditsRemaining);
               manifestRef.current?.dismiss();
+            })
+            .catch((error: unknown) => {
+              // Every documented failure lands here now: 402, 429 credits,
+              // 422 crisis. Before this, all three did nothing at all.
+              if (errorKeyOf(error) === 'entitlement_required') {
+                manifestRef.current?.dismiss();
+                lockedRef.current?.present();
+                return;
+              }
+              if (errorKeyOf(error) === 'credits_exhausted') setCredits(0);
+              setManifestError(errorCopyFor(error));
             })
             .finally(() => setBusy(false));
         }}

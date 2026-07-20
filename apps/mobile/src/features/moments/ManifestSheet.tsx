@@ -12,6 +12,8 @@ export interface ManifestSheetProps {
   creditsRemaining: number;
   onSubmit: (desireText: string) => void;
   busy?: boolean;
+  /** In-voice failure line (07 §5). Never a code (05 §8). */
+  error?: string | null;
 }
 
 /**
@@ -24,7 +26,7 @@ export interface ManifestSheetProps {
  * they return Monday.
  */
 export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
-  function ManifestSheet({ creditsRemaining, onSubmit, busy = false }, ref) {
+  function ManifestSheet({ creditsRemaining, onSubmit, busy = false, error = null }, ref) {
     const { colors, spacing } = useTheme();
     const scale = clampedFontScale();
 
@@ -88,6 +90,16 @@ export const ManifestSheet = forwardRef<BottomSheetModal, ManifestSheetProps>(
           >
             {creditLine}
           </Text>
+
+          {error && (
+            <Text
+              testID="manifest-error"
+              allowFontScaling={false}
+              style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+            >
+              {error}
+            </Text>
+          )}
 
           <PillButton
             title={busy ? momentsCopy.manifest.working : momentsCopy.manifest.submit}

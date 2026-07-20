@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { PlaybackSource } from '@aura/shared';
+
 import type { PlayableMoment } from '@/features/moments/useMoments';
 
 /** Transport speeds (10 §4). 1.0 first — the voice is unhurried by design. */
@@ -22,7 +24,9 @@ interface PlayerState {
   speed: Speed;
   mode: PlayerMode;
 
-  open: (moment: PlayableMoment) => void;
+  /** How she reached this moment — drives `moment_playback_started {source}`. */
+  source: PlaybackSource;
+  open: (moment: PlayableMoment, source?: PlaybackSource) => void;
   close: () => void;
   minimize: () => void;
   expand: () => void;
@@ -55,10 +59,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   durationMs: 0,
   speed: 1.0,
   mode: 'listen',
+  source: 'home',
 
-  open: (moment) =>
+  open: (moment, source = 'home') =>
     set({
       moment,
+      source,
       minimized: false,
       // Position resets per moment; carrying it over would start a new moment
       // mid-sentence.
@@ -93,6 +99,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       durationMs: 0,
       speed: 1.0,
       mode: 'listen',
+      source: 'home',
     }),
 }));
 

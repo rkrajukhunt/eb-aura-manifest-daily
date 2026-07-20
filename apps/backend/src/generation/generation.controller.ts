@@ -1,4 +1,6 @@
 import {
+  affirmationDailyRequestSchema,
+  affirmationGuidedRequestSchema,
   jobAcceptedSchema,
   letterRequestSchema,
   manifestAcceptedSchema,
@@ -36,7 +38,7 @@ import { JobsService } from './jobs/jobs.service';
  * the result lands in a `moments` row read via Supabase (04 §2).
  *
  * At Phase 5 only the Letter and job-polling are live — the moment/manifest/
- * refine/affirmation routes belong to Phases 7/8 and are absent (a 404 is
+ * (Phases 7/8 filled in moment/refine/manifest/affirmation; the original note
  * honest; a 501 stub would imply they are coming through this same controller,
  * which is not decided). The Letter is what Phase 6 needs.
  */
@@ -172,6 +174,51 @@ export class GenerationController {
       await this.credits.refund(userId);
       throw error;
     }
+  }
+
+  /**
+   * `POST /v1/generation/affirmation/daily` (07 §1) — on-open fallback.
+   *
+   * Free and ungated, like the daily moment: one affirmation a day is part of
+   * the free tier's actual substance (product 15 §free tier), not a teaser.
+   */
+  @Post('affirmation/daily')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async affirmationDaily(@UserId() userId: string, @Body() body: unknown) {
+    affirmationDailyRequestSchema.parse(body ?? {});
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { jobId } = await this.jobs.enqueue(
+      userId,
+      'affirmation_daily',
+      `affirmation:${userId}:${today}`,
+    );
+
+    return jobAcceptedSchema.parse({ jobId });
+  }
+
+  /**
+   * `POST /v1/generation/affirmation/guided` (07 §1, product 09 §9.3b).
+   *
+   * Yields three candidates for her to choose between, which is why the flow is
+   * capped at one generation per pass: three candidates is three times the cost.
+   */
+  @Post('affirmation/guided')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async affirmationGuided(@UserId() userId: string, @Body() body: unknown) {
+    const input = affirmationGuidedRequestSchema.parse(body ?? {});
+
+    // Her free-text goal reaches the model, so it screens like any other free
+    // text she writes (14 §5).
+    if (input.goalText && (await this.crisis.screen(input.goalText)).isCrisis) {
+      throw new ApiException('crisis_support', 'Crisis content detected in goal text');
+    }
+
+    const { jobId } = await this.jobs.enqueue(userId, 'affirmation_guided', undefined, {
+      guided: input,
+    });
+
+    return jobAcceptedSchema.parse({ jobId });
   }
 
   /** `GET /v1/generation/jobs/:id` (07). Mobile polls this at 1.5s (04 §2). */

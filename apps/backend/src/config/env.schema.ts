@@ -45,6 +45,8 @@ export const envSchema = z
 
     // ─── Third party ────────────────────────────────────────────────────
     REVENUECAT_WEBHOOK_AUTH: z.string().optional(),
+    /** Server key for subscriber deletion on account delete (03 §5 step 3). */
+    REVENUECAT_SECRET_KEY: z.string().optional(),
     POSTHOG_SERVER_KEY: z.string().optional(),
     SENTRY_DSN_BACKEND: z.string().url().optional().or(z.literal('')),
 

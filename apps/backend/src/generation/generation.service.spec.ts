@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 
 import { AnalyticsService } from '../analytics/analytics.service';
 import { MemoryContextService } from '../memory/memory-context.service';
+import { CreditsService } from './credits.service';
 import { MockLlmProvider } from '../providers/llm/mock-llm.provider';
 import { LLM_PROVIDER, type LlmProvider } from '../providers/llm/llm-provider.interface';
 import { MockTtsProvider } from '../providers/tts/mock-tts.provider';
@@ -38,6 +39,7 @@ describe('GenerationService (pipeline)', () => {
   let llm: LlmProvider;
   let tts: TtsProvider;
   let insertError: { message: string } | null;
+  let refund: jest.Mock;
 
   const job = (overrides: Partial<JobRow> = {}): JobRow => ({
     id: 'job-1',
@@ -87,6 +89,7 @@ describe('GenerationService (pipeline)', () => {
         QaService,
         StorageService,
         CrisisDetectionService,
+        { provide: CreditsService, useValue: { refund } },
         { provide: MemoryContextService, useValue: { assemble } },
         { provide: JobsService, useValue: { registerRunner: (r: JobRunner) => (runner = r) } },
         { provide: AnalyticsService, useValue: { capture } },
@@ -118,6 +121,7 @@ describe('GenerationService (pipeline)', () => {
 
   beforeEach(async () => {
     capture = jest.fn();
+    refund = jest.fn().mockResolvedValue(undefined);
     momentRows = [];
     insertError = null;
     upload = jest.fn().mockResolvedValue({ error: null });
@@ -446,6 +450,43 @@ describe('GenerationService (pipeline)', () => {
       const events = capture.mock.calls.map(([, event]) => event);
       expect(events).not.toContain('letter_generation_failed');
       expect(events).toContain('generation_failed');
+    });
+  });
+
+  describe('credits (product 09 §9.2 — an error never consumes one)', () => {
+    it('refunds a Manifest credit when the pipeline gives up', async () => {
+      jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
+
+      await runner(job({ artifact: 'ondemand', attempt: 3 })).catch(() => undefined);
+
+      expect(refund).toHaveBeenCalledWith('user-1');
+    });
+
+    it('does NOT refund on an attempt that will still be retried', async () => {
+      // Refunding early would hand back a credit for a job that then succeeds.
+      jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
+
+      await runner(job({ artifact: 'ondemand', attempt: 1 })).catch(() => undefined);
+
+      expect(refund).not.toHaveBeenCalled();
+    });
+
+    it('refunds after the final QA retry, which is one attempt earlier', async () => {
+      assemble.mockResolvedValue(
+        buildContext({ name: null, dreamCity: null, people: [], exactPhrases: [] }),
+      );
+
+      await runner(job({ artifact: 'ondemand', attempt: 2 })).catch(() => undefined);
+
+      expect(refund).toHaveBeenCalledWith('user-1');
+    });
+
+    it('never refunds for an artifact that costs no credit', async () => {
+      jest.spyOn(llm, 'generate').mockRejectedValue(new Error('502'));
+
+      await runner(job({ artifact: 'daily', attempt: 3 })).catch(() => undefined);
+
+      expect(refund).not.toHaveBeenCalled();
     });
   });
 

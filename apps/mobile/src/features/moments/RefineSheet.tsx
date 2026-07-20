@@ -11,6 +11,8 @@ import { clampedFontScale } from '@/theme/typography';
 export interface RefineSheetProps {
   onSubmit: (direction: RefineDirection, note?: string) => void;
   busy?: boolean;
+  /** In-voice failure line (07 §5). Never a code (05 §8). */
+  error?: string | null;
 }
 
 const DIRECTIONS: RefineDirection[] = ['more_realistic', 'softer', 'more_ambitious', 'note'];
@@ -26,7 +28,7 @@ const DIRECTIONS: RefineDirection[] = ['more_realistic', 'softer', 'more_ambitio
  * has to ignore — three taps for the common case, four for the specific one.
  */
 export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(function RefineSheet(
-  { onSubmit, busy = false },
+  { onSubmit, busy = false, error = null },
   ref,
 ) {
   const { colors, spacing } = useTheme();
@@ -72,6 +74,16 @@ export const RefineSheet = forwardRef<BottomSheetModal, RefineSheetProps>(functi
             placeholder={momentsCopy.refine.notePlaceholder}
             testID="refine-note"
           />
+        )}
+
+        {error && (
+          <Text
+            testID="refine-error"
+            allowFontScaling={false}
+            style={{ fontSize: 14 * scale, color: colors.text.secondary }}
+          >
+            {error}
+          </Text>
         )}
 
         <PillButton

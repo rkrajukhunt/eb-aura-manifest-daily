@@ -3,9 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 
 import type { Env } from '../config/env.schema';
+import { AnalyticsService } from '../analytics/analytics.service';
 import { JobsService } from '../generation/jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { arrivalDedupeKey, isMilestoneDue, maySendArrival } from '../notifications/policy';
+import {
+  arrivalDedupeKey,
+  isMilestoneDue,
+  isWinbackDue,
+  maySendArrival,
+  recordIgnored,
+} from '../notifications/policy';
 import { SUPABASE_CLIENT, type ServiceRoleClient } from '../supabase/supabase.module';
 import { isActiveEnough, isDueForPregeneration, localDateString } from './pregen-window';
 
@@ -26,6 +33,7 @@ export class SchedulerService {
     @Inject(SUPABASE_CLIENT) private readonly supabase: ServiceRoleClient,
     private readonly jobs: JobsService,
     private readonly notifications: NotificationsService,
+    private readonly analytics: AnalyticsService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -210,6 +218,199 @@ export class SchedulerService {
 
     if (enqueued > 0) this.logger.log(`milestone-letters: enqueued=${enqueued}`);
     return { enqueued };
+  }
+
+  /**
+   * `soften-notifications` (04 §5, 11 §5).
+   *
+   * The half of auto-soften the app cannot do. Mobile reports an OPEN and resets
+   * the counter; only the server can see a send that was never opened. Without
+   * this sweep `recordIgnored` had no caller at all, so `softened` could never
+   * become true and the whole respect-over-re-engagement behaviour was inert.
+   *
+   * Softening is silent — nothing here notifies her, and no copy anywhere names
+   * the absence it is reacting to (11 §5).
+   */
+  @Cron('0 4 * * *')
+  async softenNotifications(now: Date = new Date()): Promise<{ softened: number }> {
+    const cutoff = new Date(now.getTime() - 36 * 3_600_000).toISOString();
+
+    // Arrival sends old enough that an open would already have happened.
+    const { data: sends } = await this.supabase
+      .from('notification_sends')
+      .select('user_id, opened_at')
+      .eq('kind', 'moment_arrival')
+      .lt('sent_at', cutoff)
+      .is('opened_at', null);
+
+    const ignoredBy = new Map<string, number>();
+    for (const send of sends ?? []) {
+      ignoredBy.set(send.user_id, (ignoredBy.get(send.user_id) ?? 0) + 1);
+    }
+
+    let softened = 0;
+
+    for (const [userId] of ignoredBy) {
+      const prefs = await this.notifications.prefsFor(userId);
+      // Already softened: nothing further to do. The count stops mattering
+      // once the cadence has dropped, and letting it climb forever would only
+      // make the eventual reset look like a bigger forgiveness than it is.
+      if (prefs.softened) continue;
+
+      const next = recordIgnored(prefs);
+
+      await this.supabase.from('notification_prefs').upsert(
+        {
+          user_id: userId,
+          ignored_arrival_count: next.ignoredArrivalCount,
+          softened: next.softened,
+        },
+        { onConflict: 'user_id' },
+      );
+
+      if (next.softened) {
+        softened += 1;
+        this.analytics.capture(userId, 'notification_softened', {});
+      }
+    }
+
+    if (softened > 0) this.logger.log(`soften-notifications: softened=${softened}`);
+    return { softened };
+  }
+
+  /**
+   * `trial-reminder` (04 §5, 12 §6) — anti-resentment checklist #3.
+   *
+   * "Trial terms restated at the moment of confirmation; reminder notification
+   * day 5 of any trial." This is the half of #3 that is not on the paywall, and
+   * it is the half that decides whether a trial converting feels like a choice
+   * or an ambush. The copy says both keeping and cancelling are fine, because
+   * they are.
+   */
+  @Cron('0 6 * * *')
+  async trialReminders(now: Date = new Date()): Promise<{ sent: number }> {
+    const { data: trials } = await this.supabase
+      .from('subscription_state')
+      .select('user_id, expires_at, period_type')
+      .eq('period_type', 'trial')
+      .eq('entitlement', 'premium');
+
+    let sent = 0;
+
+    for (const trial of trials ?? []) {
+      if (!trial.expires_at) continue;
+
+      const daysLeft = Math.floor(
+        (new Date(trial.expires_at).getTime() - now.getTime()) / 86_400_000,
+      );
+      // Two days out — "converts in 2 days" has to be true when she reads it.
+      if (daysLeft !== 2) continue;
+
+      const { data: profile } = await this.supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', trial.user_id)
+        .maybeSingle();
+
+      const result = await this.notifications.send({
+        userId: trial.user_id,
+        kind: 'trial_reminder',
+        // One per trial, keyed to its end date.
+        dedupeKey: `trial:${trial.expires_at}`,
+        input: { name: profile?.name ?? null },
+      });
+
+      if (result.sent) sent += 1;
+    }
+
+    if (sent > 0) this.logger.log(`trial-reminder: sent=${sent}`);
+    return { sent };
+  }
+
+  /**
+   * `winback-note` (04 §5, 11 §3) — lapse +3 days, once, never repeating.
+   *
+   * References her dream area only; the copy never mentions that she left
+   * (product 16). The send log's unique key is what makes "once" structural
+   * rather than a flag someone has to remember to set.
+   */
+  @Cron('0 5 * * *')
+  async winbackNotes(now: Date = new Date()): Promise<{ sent: number }> {
+    const { data: lapsed } = await this.supabase
+      .from('subscription_state')
+      .select('user_id, lapsed_at')
+      .not('lapsed_at', 'is', null);
+
+    let sent = 0;
+
+    for (const row of lapsed ?? []) {
+      if (!isWinbackDue(row.lapsed_at, now, false)) continue;
+
+      const { data: moment } = await this.supabase
+        .from('moments')
+        .select('id, title')
+        .eq('user_id', row.user_id)
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Never notify about nothing (11 §7).
+      if (!moment) continue;
+
+      const { data: profile } = await this.supabase
+        .from('profiles')
+        .select('name')
+        .eq('user_id', row.user_id)
+        .maybeSingle();
+
+      const result = await this.notifications.send({
+        userId: row.user_id,
+        kind: 'winback',
+        // Keyed to the lapse, so it can only ever fire once for that lapse.
+        dedupeKey: `lapse:${row.lapsed_at}`,
+        momentId: moment.id,
+        input: { name: profile?.name ?? null, momentTitle: moment.title, momentId: moment.id },
+      });
+
+      if (result.sent) sent += 1;
+    }
+
+    if (sent > 0) this.logger.log(`winback-note: sent=${sent}`);
+    return { sent };
+  }
+
+  /**
+   * `anon-sweep` (04 §5, 03 §2.3) — anonymous users inactive >90 days.
+   *
+   * A hard delete, cascading through every table. An anonymous account has no
+   * credential to recover with (03 §2.1), so a dormant one is not a user we can
+   * ever reach again — keeping her data forever would be hoarding, and product
+   * 18's "delete means delete" cuts both ways.
+   */
+  @Cron('0 3 * * 0')
+  async anonSweep(now: Date = new Date()): Promise<{ deleted: number }> {
+    const cutoff = new Date(now.getTime() - 90 * 86_400_000).toISOString();
+
+    const { data: dormant } = await this.supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('is_anonymous', true)
+      .lt('last_active_at', cutoff);
+
+    let deleted = 0;
+
+    for (const profile of dormant ?? []) {
+      try {
+        await this.supabase.auth.admin.deleteUser(profile.user_id);
+        deleted += 1;
+      } catch {
+        // One failure must not abort the sweep.
+      }
+    }
+
+    if (deleted > 0) this.logger.log(`anon-sweep: deleted=${deleted}`);
+    return { deleted };
   }
 
   private async hasMomentFor(userId: string, scheduledFor: string): Promise<boolean> {

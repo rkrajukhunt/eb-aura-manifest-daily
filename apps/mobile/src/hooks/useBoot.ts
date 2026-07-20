@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { sweepAudioCache } from '@/features/letter/audioCache';
 import { configurePurchases } from '@/features/paywall/purchases';
 import { analytics, initAnalytics } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
@@ -40,6 +41,12 @@ export function useBoot(): void {
         // to her after she claims. Never fatal: a build with no RevenueCat key
         // simply has everyone on the free tier (12 §2).
         await configurePurchases(userId).catch(() => undefined);
+
+        // The 7-day expiry and 200MB LRU (10 §6). The policy was written and
+        // tested at Phase 7 but nothing ever called it, so the cache grew
+        // without bound. Boot is the right moment: it is off the critical path
+        // and runs exactly once per launch.
+        sweepAudioCache();
 
         emitAppOpen('cold');
         setReady(userId);
