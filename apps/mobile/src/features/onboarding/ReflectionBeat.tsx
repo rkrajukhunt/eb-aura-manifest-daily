@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -33,6 +33,19 @@ export function ReflectionBeat({
   const { reduceMotion } = useMotion();
   const [landed, setLanded] = useState(false);
 
+  // Every caller passes an inline arrow, so `onDone` is a new function on each
+  // of the parent's renders. Holding it in a ref keeps it out of the effect's
+  // deps: otherwise the effect re-runs on every parent render, restarting the
+  // beat — which re-fires the haptic and calls `onDone` again, and since
+  // `onDone` navigates, that render-loops the screen (it stuck on S4→S5 with
+  // the haptic budget warning climbing forever).
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
+
+  // The beat is one-shot per mount: type, land, hold, done. `line` and `holdMs`
+  // are fixed for a given reflection, so there is nothing here to re-run for.
   useEffect(() => {
     let holdTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -40,7 +53,7 @@ export function ReflectionBeat({
       setLanded(true);
       // Soft tick as the reflection lands (product 13 haptic table).
       void haptic('reflectionLanded');
-      holdTimer = setTimeout(() => onDone?.(), holdMs);
+      holdTimer = setTimeout(() => onDoneRef.current?.(), holdMs);
     }, TYPING_MS);
 
     // Both timers die with the component — a screen-level setTimeout would
@@ -49,7 +62,7 @@ export function ReflectionBeat({
       clearTimeout(typingTimer);
       if (holdTimer) clearTimeout(holdTimer);
     };
-  }, [onDone, holdMs]);
+  }, [holdMs]);
 
   if (!landed) {
     return reduceMotion ? (

@@ -33,9 +33,15 @@ export default function GratitudeRoute() {
 
   // The contract is shown once; acknowledging it on view is what makes "once"
   // true rather than "every time she happens not to scroll past it".
+  //
+  // Depends on the two stable members, NOT on `gratitude` itself: the hook
+  // returns a fresh object literal every render, so keying the effect on it
+  // re-ran the MMKV write on every render of the tab. Same shape as the
+  // ReflectionBeat loop, without the navigation that made that one fatal.
+  const { showContract, acknowledgeContract } = gratitude;
   useEffect(() => {
-    if (gratitude.showContract) gratitude.acknowledgeContract();
-  }, [gratitude]);
+    if (showContract) acknowledgeContract();
+  }, [showContract, acknowledgeContract]);
 
   return (
     <Screen testID="gratitude" edgeToEdge>
