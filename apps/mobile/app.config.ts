@@ -62,6 +62,15 @@ const config: ExpoConfig = {
     // Required for RevenueCat, Skia and MMKV native modules (05 §1).
     'expo-dev-client',
     '@sentry/react-native/expo',
+    [
+      // The Letter's playback (10 §4). `microphonePermission: false` DELETES
+      // NSMicrophoneUsageDescription, which the plugin would otherwise add by
+      // default: Aura never records, and shipping a microphone prompt for a
+      // capability the product does not have is exactly the "data harvest smell"
+      // product 02 and 18 are built to avoid.
+      'expo-audio',
+      { microphonePermission: false },
+    ],
   ],
 
   experiments: {

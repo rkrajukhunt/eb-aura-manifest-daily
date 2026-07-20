@@ -3,6 +3,8 @@ import { useEffect, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { bootCopy } from '@/copy/boot';
+import { hasSeenLetter } from '@/features/letter/keepLetter';
+import { useLetter } from '@/features/letter/useLetter';
 import { useBoot } from '@/hooks/useBoot';
 import { useProfile } from '@/hooks/useProfile';
 import { resolveBootRoute } from '@/lib/routeGate';
@@ -24,10 +26,28 @@ export function BootGate({ children }: { children: ReactNode }) {
 
   const { data: profile } = useProfile(userId ?? undefined);
 
+  // Only asked for once onboarding is done — before that the answer is always
+  // "no letter yet", and querying would spend a round-trip on a certainty.
+  const letterQuery = useLetter(
+    profile?.onboarding_completed_at ? (userId ?? undefined) : undefined,
+  );
+
   useEffect(() => {
     if (status !== 'ready' || !profile) return;
-    router.replace(resolveBootRoute(profile));
-  }, [status, profile, router]);
+
+    // Wait for the letter lookup to settle before routing, or a completed user
+    // would be sent to Home for a frame and then yanked to the Letter — the wow
+    // arriving as a glitch.
+    if (profile.onboarding_completed_at && letterQuery.isPending) return;
+
+    router.replace(
+      resolveBootRoute({
+        profile,
+        hasLetter: Boolean(letterQuery.data),
+        letterSeen: hasSeenLetter(),
+      }),
+    );
+  }, [status, profile, letterQuery.isPending, letterQuery.data, router]);
 
   const holding = (
     <View

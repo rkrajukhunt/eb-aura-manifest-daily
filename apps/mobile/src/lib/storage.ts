@@ -43,4 +43,8 @@ export const STORAGE_KEYS = {
   onboardingDraft: 'onboarding.draft',
   audioCacheIndex: 'audio.cacheIndex',
   queryCache: 'query.cache',
+  /** Which generation attempt the Letter is on — becomes its idempotency key (Phase 6). */
+  letterAttempt: 'letter.attempt',
+  /** Set once she has actually heard her letter; the boot gate reads it (06 §3). */
+  letterSeen: 'letter.seen',
 } as const;

@@ -4,7 +4,9 @@ _Working handoff for Claude. Last updated: 2026-07-18, after Phase 5. Read this 
 
 ## TL;DR — where we are
 
-Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–5 are all coded and committed**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. Execution order being followed: **0 → 1 → 2 → 3 → 4 → 5 → 6 → …**. **Next phase: 6 (Future-Self Letter — the WOW).**
+Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `docs/technical/IMPLEMENTATION-PLAN.md`. Phases **0–6 are all coded and committed**. Nothing has been verified on an iPhone yet (dev machine is Linux, no iOS simulator) — that's the founder's device walkthrough, pending. **Next phase: 10 (paywall) per the plan's recommended order (`0→…→6→10→7→…`), or 7 if the founder prefers.**
+
+**The whole session-1 funnel now exists end to end**: onboarding → ritual → Letter → Home. It has never run on a phone.
 
 ## Phase status
 
@@ -16,7 +18,8 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 | 3    | Onboarding "The Conversation"     | 🟨 code-complete | S1–S11, draft resume, edit-guard, reflections, commit path. **Pending: founder device walkthrough.**                                                                              |
 | 4    | Living Memory & Profile           | 🟨 code-complete | schema + harvester + seed + What Aura Knows + Never-Include + Profile tab. Data layer fully verified (live RLS). **Pending: device walkthrough.**                                 |
 | 5    | AI Generation Backend             | 🟨 tests done    | pipeline proven + **all deferred suites written (2026-07-20)**; 701 backend unit tests, 71 live. **Pending: OpenAI bake-off + vendor no-retention check (both founder/staging).** |
-| 6–12 | —                                 | ⬜ not started   | next up: Phase 6.                                                                                                                                                                 |
+| 6    | Future-Self Letter — WOW          | 🟨 code-complete | ritual + `/letter` + karaoke + permanent cache + boot gate. **Pending: founder device pass — and it needs a dev-client REBUILD (`expo-audio` is a new native module).**           |
+| 7–12 | —                                 | ⬜ not started   | next up: Phase 10 (paywall) per the plan's recommended order, or Phase 7.                                                                                                         |
 
 🟨 = code-complete and machine-verified as far as this Linux box allows; the remaining item needs either a physical iPhone or (Phase 5) the deferred tests.
 
@@ -34,7 +37,7 @@ Building **Aura: Manifest Daily** (iOS manifestation app) phase by phase from `d
 
 ## Test / verification status
 
-- **904 automated tests green** across the monorepo: 51 shared, 147 mobile, 706 backend (701 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
+- **1,014 automated tests green** across the monorepo: 51 shared, 257 mobile, 706 backend (701 unit + 5 e2e). Run: `pnpm turbo lint typecheck test`.
 - **Live-stack backend suites** (need Supabase up): `cd apps/backend && pnpm test:live` — 71 tests (RLS for all tables incl. the 4 Phase 5 ones + audio bucket, + account deletion).
 - **Phase 5's test debt is paid** (2026-07-20). Coverage on `generation/** · memory/** · safety/**` is 99.8% stmts / 91.5% branch, clearing 15 §6's 90% bar. Writing the suites caught **four real defects** — a sensitive-struggle leak into `winback` via a cadence directive, a prompt/QA disagreement that made value-anchored affirmations permanently un-passable, and two mock defects. All fixed; see the plan's "Phase 5 — test debt paid" section.
 - **e2e was deliberately out of scope** for that pass (founder instruction), which is why `generation.controller.ts` is the one uncovered file in the generation tree.
@@ -67,6 +70,10 @@ Founder device checklist for Phases 1/3/4 is in the plan's Phase 1 "as built" se
 - **Timers in components must clean up on unmount** — screen-level `setTimeout` leaked past navigation (caught by jest's force-exited worker). Reflection dwell + sheet-close timers now live inside their components.
 - **The mock LLM must return QA-passing JSON**, or the whole generation pipeline is unrunnable locally. If you touch prompts or QA, keep the mock (`apps/backend/src/providers/llm/mock-llm.provider.ts`) in sync — it harvests tokens from the prompt's context block.
 - **Generated DB types live in `packages/shared/src/types/database.types.ts`** (not `supabase/types/`). Regenerate after every migration: `pnpm db:types`.
+- **RNTL v14: `renderHook` is async too**, not just `render` — and `result.current` is null until it resolves. Await it.
+- **A hook holding an interval will poison the tests after it** if a test leaves it mounted: unmount explicitly, or extract the logic and test it pure (Phase 6 did the latter for `generationState`).
+- **Installing a new native module makes the next jest run look broken** — the cold transform cache alone pushed the mobile suite from 4s to 23s and timed a suite out. Re-run before believing it.
+- **`expo-audio` config plugin adds `NSMicrophoneUsageDescription` by default.** It is passed `microphonePermission: false` in `app.config.ts` to delete it — Aura never records. Do not drop that option.
 
 ## Locked decisions (founder, 2026-07-17)
 
@@ -83,6 +90,32 @@ Founder device checklist for Phases 1/3/4 is in the plan's Phase 1 "as built" se
 
 Also open (raised, not fixed): the explicit-callback cadence guard checks for any recent _moment_, not any recent _callback_, so active users never become eligible. Needs a place to record a spent callback — a schema decision for the founder.
 
-## What Phase 6 will need (next up)
+## Phase 6 device checklist (founder — this is the phase's DoD)
 
-Phase 6 (Letter WOW) is **mobile** work that consumes the Phase 5 backend: the generating ritual screen, the `/letter` full-screen cover, the karaoke renderer synced to `word_timings`, silent-switch pre-check, permanent letter cache. It's device-visual, so expect it to land 🟨 (code-complete, device pass pending) like Phases 1/3. The backend it needs (`POST /v1/generation/letter`, `GET /jobs/:id`, `useGenerationJob` hook) already exists and is proven.
+**Needs a dev-client rebuild, not a reload**: `expo-audio` is a new native module. `pnpm exec expo run:ios`.
+
+1. Finish the conversation → the ritual should start immediately (no Home flash).
+2. Three lines arrive at reading pace; the gradient sinks toward dusk; the orb breathes faster. No spinner anywhere.
+3. The Letter opens, audio starts, ONE light haptic on the first word.
+4. Karaoke stays locked to the voice at 60fps; earlier lines dim, the page scrolls itself, nothing is tappable.
+5. A soft tick on the "…on a Friday in July" line — and nowhere else.
+6. Last line hangs ~2s, then "Your future self has more to tell you." + Continue.
+7. Swipe down mid-letter → the pause sheet, not an exit.
+8. Kill the app mid-letter and relaunch → it reopens into the Letter.
+9. Airplane mode → replay still works (permanent cache).
+10. The judgement the phase is actually graded on: **would this give goosebumps?**
+
+## Phase 6 open item
+
+The **volume pre-check is a deliberate no-op**. Product 08 §4 wants "turn your sound on" when her volume is 0, but `expo-audio` exposes only the player's volume, not the device's. `readSystemVolume()` returns `null` and the prompt never shows, because nagging someone whose sound is already on — at that exact moment — is worse than staying quiet. A real reading needs another native module; founder call, best bundled with the Phase 7 player rebuild.
+
+## What comes next
+
+The plan's recommended order puts **Phase 10 (paywall)** straight after the Letter — the session-1 funnel is the product's north star, and the anonymous-purchase→claim flow is the highest-risk integration. Continue currently lands on Home; Phase 10 slots the paywall in between and inherits the Letter's gradient.
+
+**Phase 7 (Daily Moments & Audio Player)** is the other option, and it inherits real foundations from Phase 6:
+
+- `audioCache` already carries a `permanent` flag, so the 200MB LRU sweep has something to respect from day one — the Letter and favourites are already marked untouchable.
+- The karaoke maths (`karaoke.ts`) is pure and vendor-neutral; Read mode needs sentence-level grouping over the same word timings.
+- Playback is currently a Letter-scoped hook by design. Phase 7 introduces the singleton `PlayerService` + mini-player (10 §4/§8); the extracted pure modules move across unchanged.
+- The backend for daily moments does **not** exist yet — Phase 5 shipped only the Letter endpoint; `daily`/`ondemand`/`refine` are absent by design (a 404 is honest).

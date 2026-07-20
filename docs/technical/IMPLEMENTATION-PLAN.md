@@ -12,7 +12,7 @@ _Phased build plan for Aura V1. Each phase is sized for independent implementati
 | 3   | Onboarding — "The Conversation"           | 🟨     |
 | 4   | Living Memory & Profile                   | 🟨     |
 | 5   | AI Generation Backend                     | 🟨     |
-| 6   | Future-Self Letter — WOW                  | ⬜     |
+| 6   | Future-Self Letter — WOW                  | 🟨     |
 | 7   | Daily Moments & Audio Player              | ⬜     |
 | 8   | Affirmations & Gratitude                  | ⬜     |
 | 9   | Notifications & Daily Habit Loop          | ⬜     |
@@ -318,6 +318,27 @@ The deferred suites landed. Backend unit tests went **18 → 701**; the live RLS
 - **Tests:** Karaoke word-index math unit tests (timings fixtures, drift re-anchor); RTL ritual-screen states; Maestro: onboarding → ritual → letter plays → completion state (mock backend fixture with real timings file).
 - **Edge cases:** Generation exceeds 90s (retry copy, never error codes); app backgrounded mid-letter (audio continues, background mode; return restores sync); interruption (call) → pause/resume; letter replay from Home ("kept" state); zero-volume pre-check; Reduce Motion (crossfade lines, orb still).
 - **Definition of Done:** End-to-end on device: finish onboarding → ritual → letter with synced karaoke at 60fps, haptics per spec, ends to Continue; letter cached and replayable offline; wow verified by founder ("would this give goosebumps?"); events fire with listened_pct.
+
+### Phase 6 — as built (2026-07-20) — 🟨 code-complete, device pass pending
+
+The whole path is wired: S11 → ritual → Letter → Home, with the boot gate reopening into the Letter if she quits mid-way. Mobile tests went **147 → 257**. `pnpm turbo lint typecheck test` green; `pnpm test:live` still 71.
+
+**Built:** `generating.tsx` ritual (orb `generating`, two stacked gradients cross-fading light→dusk on the UI thread, three sequenced lines accumulating at reading pace, the >45s fourth line, no spinner or percentage anywhere, in-voice retry with no code) · `/letter` full-screen cover under `LetterMotionProvider` (everything inside breathes 20% slower, product 13 §4) · the karaoke renderer (fade+rise per line, prior lines dimming to 60%, self-scrolling, zero visible controls) · `PauseSheet` behind an intercepted `beforeRemove` so she is never trapped and never invited out · the 2s hang then "Your future self has more to tell you." · permanent audio cache · auto-favourite on completion · `letter_playback_started/completed {listened_pct}` added to the typed catalog.
+
+**Deliberate scope decisions:**
+
+1. **No singleton `PlayerService` yet.** 10 §8 assigns the full player, mini-player and prefetch to Phase 7; Phase 6 needs one screen playing one file. Playback is therefore an `expo-audio` hooks-based hook scoped to the Letter, with the logic that matters (position maths, cache, attempt state) extracted into pure modules. Phase 7 introduces the singleton without rewriting any of them.
+2. **Continue goes to Home, not the paywall.** Product 08 sends it to the paywall, which is Phase 10. Home is the honest destination until that exists; the gradient is already the shared one so the paywall will read as the letter's next page when it lands.
+3. **`expo-audio` config plugin added with `microphonePermission: false`,** which deletes `NSMicrophoneUsageDescription`. The plugin adds it by default; Aura never records, and a microphone prompt for a capability we do not have is exactly the "data harvest smell" product 02 warns about. `UIBackgroundModes: ['audio']` was already declared at Phase 0.
+
+**Cross-phase fix:** `WEEKDAYS`/`MONTHS` moved into `@aura/shared` (`constants/dates.ts`). The backend QA gate enforces the letter's date-close and the mobile player fires its closing haptic on it — two lists would have let a letter pass the gate whose closing line the player never ticked on. The Phase 5 gate now imports them.
+
+**Not done — device and Phase 7 items:**
+
+- **The founder device pass is the phase's DoD** and cannot happen here (Linux, no simulator): 60fps karaoke, haptics in the hand, the dusk shift, and the "would this give goosebumps?" judgement. `expo-audio` is a NEW NATIVE MODULE, so this needs `pnpm exec expo run:ios` (a dev-client rebuild), not just a reload.
+- **Maestro flow** (onboarding → ritual → letter → completion) needs a simulator — deferred with the rest of the e2e tier.
+- **The volume pre-check is a no-op.** Product 08 §4 wants "turn your sound on" when her volume is 0, but `expo-audio` exposes only the player's volume, never the device's. Rather than nag blindly at the most delicate moment in the product, `readSystemVolume()` returns `null` and `shouldPromptForSound()` stays false. Wiring a real reading needs a volume-reading native module — a founder call, best bundled with the Phase 7 player rebuild.
+- Background-audio behaviour, interruption (call) pause/resume and lock-screen controls are configured but unverifiable off-device.
 
 ## Phase 7 — Daily Moments & Audio Player
 

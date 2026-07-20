@@ -47,11 +47,13 @@ export function useConversation(screenId: OnboardingScreenId) {
       return;
     }
 
-    // S11: the conversation ends. Completion stamps the profile and seeds
-    // memory; the boot gate then routes onward (Phase 6 inserts the Letter).
+    // S11: the conversation ends and the ritual begins (product 07 S12). She
+    // goes straight into generating — the emotional setup from S10 is the whole
+    // reason the Letter lands, so nothing is allowed between them (product 08
+    // §1). `replace`, so a back-swipe cannot return her to the conversation.
     if (userId) {
       await completeOnboarding(userId);
-      router.replace('/(tabs)/home');
+      router.replace('/(onboarding)/generating');
     }
   };
 

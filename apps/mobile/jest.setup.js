@@ -7,7 +7,19 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Reanimated's official jest mock: animations resolve instantly, worklets run
 // on the JS thread. Without it, importing the library throws in a test env.
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+// The official mock predates the frame-callback and scroll APIs the Letter's
+// karaoke renderer uses (10 §5), so those are filled in here. They are no-ops:
+// under jest there are no frames, and position is driven directly by the tests.
+jest.mock('react-native-reanimated', () => {
+  const mock = require('react-native-reanimated/mock');
+  return {
+    ...mock,
+    useFrameCallback: mock.useFrameCallback ?? jest.fn(() => ({ setActive: jest.fn() })),
+    useAnimatedRef: mock.useAnimatedRef ?? jest.fn(() => ({ current: null })),
+    useAnimatedReaction: mock.useAnimatedReaction ?? jest.fn(),
+    scrollTo: mock.scrollTo ?? jest.fn(),
+  };
+});
 
 // Its native view manager doesn't exist under jest; a plain View preserves
 // children and layout, which is all the tests reason about.
@@ -33,6 +45,75 @@ jest.mock('react-native-mmkv', () => {
       remove: (k) => store.delete(k),
       clearAll: () => store.clear(),
     })),
+  };
+});
+
+// expo-audio has no JS implementation under jest. The stub is a controllable
+// player: tests drive playback by mutating the status the hook reads, which is
+// how the Letter's karaoke and haptic beats are exercised without real audio.
+jest.mock('expo-audio', () => {
+  const React = require('react');
+  const player = { play: jest.fn(), pause: jest.fn(), seekTo: jest.fn(async () => undefined) };
+  const IDLE = { playing: false, currentTime: 0, duration: 0, didJustFinish: false };
+
+  let status = { ...IDLE };
+  const listeners = new Set();
+
+  return {
+    __player: player,
+    /** Drives playback from a test: `act(() => __setStatus({ currentTime: 4.4 }))`. */
+    __setStatus: (next) => {
+      status = { ...status, ...next };
+      listeners.forEach((notify) => notify(status));
+    },
+    __resetStatus: () => {
+      status = { ...IDLE };
+      listeners.forEach((notify) => notify(status));
+    },
+    useAudioPlayer: jest.fn(() => player),
+    // Subscribes like the real hook does, so a status change actually re-renders
+    // the component under test. A plain object would leave the Letter frozen at
+    // zero and every timing assertion would pass vacuously.
+    useAudioPlayerStatus: jest.fn(() => {
+      const [current, setCurrent] = React.useState(status);
+      React.useEffect(() => {
+        listeners.add(setCurrent);
+        setCurrent(status);
+        return () => listeners.delete(setCurrent);
+      }, []);
+      return current;
+    }),
+    setAudioModeAsync: jest.fn(async () => undefined),
+  };
+});
+
+// The new File/Directory API is native-backed; these stubs keep the audio cache
+// testable (it is pure index bookkeeping around them).
+jest.mock('expo-file-system', () => {
+  const files = new Set();
+  return {
+    __files: files,
+    Paths: { cache: { uri: 'file:///cache/' } },
+    Directory: jest.fn(function (...parts) {
+      this.uri = `file:///cache/${parts.slice(1).join('/')}`;
+      this.exists = true;
+      this.create = jest.fn();
+      this.delete = jest.fn(() => files.clear());
+    }),
+    File: Object.assign(
+      jest.fn(function (...parts) {
+        const tail = parts.map((p) => (typeof p === 'string' ? p : p.uri)).join('/');
+        this.uri = tail.startsWith('file://') ? tail : `file:///cache/${tail}`;
+        Object.defineProperty(this, 'exists', { get: () => files.has(this.uri) });
+        this.delete = jest.fn(() => files.delete(this.uri));
+      }),
+      {
+        downloadFileAsync: jest.fn(async (_url, destination) => {
+          files.add(destination.uri);
+          return destination;
+        }),
+      },
+    ),
   };
 });
 

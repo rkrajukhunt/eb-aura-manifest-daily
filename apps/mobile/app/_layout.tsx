@@ -71,6 +71,14 @@ export default function RootLayout() {
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="(onboarding)" />
+                  {/* The Letter is a full-screen cover with no chrome (06 §2).
+                      The gesture stays ENABLED so she is never trapped; the
+                      route intercepts it and offers the pause sheet instead
+                      (product 08 §6). */}
+                  <Stack.Screen
+                    name="letter"
+                    options={{ presentation: 'fullScreenModal', gestureEnabled: true }}
+                  />
                 </Stack>
               </BootGate>
             </BottomSheetModalProvider>

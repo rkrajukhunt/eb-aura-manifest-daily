@@ -21,6 +21,10 @@ export * from './constants/limits';
 // backend QA gate alike.
 export * from './constants/voice';
 
+// Weekday/month names — the backend QA gate enforces the letter's date-close,
+// the mobile player ticks on it. One list so they cannot disagree (product 08).
+export * from './constants/dates';
+
 // Living Memory (09) — harvester + seed live here so both apps can run them (09 §1).
 export * from './memory/harvester';
 export * from './memory/seed';

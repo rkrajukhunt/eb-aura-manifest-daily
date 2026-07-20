@@ -11,6 +11,7 @@ export interface TextButtonProps {
    * confirm — red anywhere else is fight-or-flight on a surface built for calm.
    */
   destructive?: boolean;
+  testID?: string;
 }
 
 /**
@@ -23,6 +24,7 @@ export function TextButton({
   onPress,
   disabled = false,
   destructive = false,
+  testID,
 }: TextButtonProps) {
   const { colors, layout, spacing, typography } = useTheme();
 
@@ -36,6 +38,7 @@ export function TextButton({
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled }}

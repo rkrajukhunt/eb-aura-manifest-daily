@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { findBannedLanguage, NEGATIVE_FRAME_MARKERS } from '@aura/shared';
+import { findBannedLanguage, hasMonth, hasWeekday, NEGATIVE_FRAME_MARKERS } from '@aura/shared';
 import type { JobArtifact, QaRule } from '@aura/shared';
 
 import { ARTIFACT_SPEC, countWords } from '../artifact-spec';
@@ -12,31 +12,6 @@ import type { GeneratedArtifact, MemoryContext, QaResult } from '../types';
  * N sentences rather than only the final one.
  */
 const CLOSING_REGION_SENTENCES = 3;
-
-/** Lowercased for case-insensitive presence checks in the date-close line (08 §5). */
-const WEEKDAYS = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
-] as const;
-const MONTHS = [
-  'january',
-  'february',
-  'march',
-  'april',
-  'may',
-  'june',
-  'july',
-  'august',
-  'september',
-  'october',
-  'november',
-  'december',
-] as const;
 
 /** The two artifacts that are spoken as first-person affirmations (08 §3, 14 §35). */
 const AFFIRMATION_ARTIFACTS: ReadonlySet<JobArtifact> = new Set<JobArtifact>([
@@ -170,13 +145,13 @@ export class QaService {
         .map((s) => s.trim())
         .filter((s) => s !== '');
       const closing = sentences.slice(-CLOSING_REGION_SENTENCES).join(' ').toLowerCase();
-      const hasWeekday =
-        WEEKDAYS.some((day) => closing.includes(day)) ||
+      const weekdayPresent =
+        hasWeekday(closing) ||
         (context.startedWeekday !== null && closing.includes(context.startedWeekday.toLowerCase()));
-      const hasMonth =
-        MONTHS.some((month) => closing.includes(month)) ||
+      const monthPresent =
+        hasMonth(closing) ||
         (context.startedMonth !== null && closing.includes(context.startedMonth.toLowerCase()));
-      if (!hasWeekday || !hasMonth) {
+      if (!weekdayPresent || !monthPresent) {
         flagged.push({
           rule: 'date_close',
           note: 'End with the date line naming the weekday and month she started.',

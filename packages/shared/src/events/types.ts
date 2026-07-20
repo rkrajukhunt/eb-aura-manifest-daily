@@ -162,6 +162,18 @@ export interface EventCatalog {
   generation_failed: { surface: JobArtifactName; reason: GenerationFailureReason };
   /** Backend. One per QA rule that tripped (08 §5). */
   generation_qa_flagged: { rule: QaRule };
+
+  // ─── The Letter — playback (Phase 6, mobile-emitted) ───────────────────
+  // The wow's only instrumentation. How far she listened is the signal that
+  // matters (product 08); WHAT she heard never leaves the device (13 §2).
+  /** Mobile. Fires once, as the first word is spoken. */
+  letter_playback_started: Record<string, never>;
+  /**
+   * Mobile. Fires when playback reaches its end OR she leaves mid-letter, so
+   * drop-off is measurable. `listened_pct` is 0–100, rounded to an integer —
+   * a bucket-ish number, never a position trail.
+   */
+  letter_playback_completed: { listened_pct: number };
 }
 
 export type EventName = keyof EventCatalog;
