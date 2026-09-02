@@ -1,20 +1,25 @@
 import { useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { Input } from '@/components';
 import { onboardingCopy } from '@/copy/onboarding';
 import { useGratitude } from '@/features/gratitude/useGratitude';
 import { useAppState } from '@/stores/appState';
+import { haptic } from '@/theme/haptics';
+import { useTheme } from '@/theme/ThemeProvider';
+import { fonts } from '@/theme/typography';
 
 import { ConversationScreen } from '../ConversationScreen';
+import { OptionChip } from '../OptionChip';
 import { useConversation } from '../useConversation';
 
 /**
- * VALUE — the first gratitude entry. Seeds the journal before the money ask
- * (the IKEA effect): the entry is saved through the real, local-first
- * gratitude path AND recorded as an answer, so Day 1 already has "1 of 4"
- * done. Skippable.
+ * VALUE — the first gratitude entry. Seeds the journal before the money ask.
+ * Renders example option chips below the description box. Selecting an option
+ * fills the description box with ONLY that option's text (replacing any existing text).
  */
 export function VGratitude() {
+  const { colors, spacing } = useTheme();
   const userId = useAppState((s) => s.userId);
   const { submit, skip, existingValue } = useConversation('v-gratitude');
   const gratitude = useGratitude(userId ?? undefined);
@@ -26,6 +31,11 @@ export function VGratitude() {
     if (trimmed === '') return;
     gratitude.save(trimmed, c.question, false);
     await submit(trimmed);
+  };
+
+  const handleSelectExample = (example: string) => {
+    setEntry(example);
+    void haptic('onboardingContinue');
   };
 
   return (
@@ -46,7 +56,37 @@ export function VGratitude() {
         placeholder={c.placeholder}
         multiline
         autoFocus
+        testID="v-gratitude-input"
       />
+
+      {/* Example options below the description box */}
+      <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+        <Text
+          style={{
+            fontFamily: fonts.sans,
+            fontSize: 11.5,
+            letterSpacing: 1.3,
+            textTransform: 'uppercase',
+            color: colors.text.label,
+          }}
+        >
+          {c.examplesLabel}
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          {c.examples.map((example) => {
+            const isSelected = entry.trim() === example;
+            return (
+              <OptionChip
+                key={example}
+                label={example}
+                selected={isSelected}
+                onPress={() => handleSelectExample(example)}
+                testID={`v-gratitude-example-${example}`}
+              />
+            );
+          })}
+        </View>
+      </View>
     </ConversationScreen>
   );
 }
