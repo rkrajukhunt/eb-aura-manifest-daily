@@ -308,14 +308,16 @@ export const onboardingCopy = {
 
   // AI consent — explicit, unbundled, before anything is generated.
   vConsent: {
-    question: 'Before I write yours — is this okay?',
+    question: 'How Aura writes your personal practice',
+    helper:
+      'Your data stays private. We craft your weekly affirmations using secure, privacy-focused AI.',
     points: [
-      'Your answers go to our writing model to draft your week.',
-      'Your name and your journal entries are never sent.',
-      'Off in one tap in Settings, forever.',
+      'Your goals and choices guide our model to draft your daily moments.',
+      'Your name, email, and journal entries are never transmitted or shared.',
+      'Toggle AI personalization off anytime in Settings.',
     ] as readonly string[],
-    primary: 'Yes, write mine',
-    secondary: 'No — use the standard library instead',
+    primary: 'Yes, write my custom week',
+    secondary: 'No — use pre-written library',
   },
 
   // Notification pre-prompt — the preview, then the three promises.

@@ -25,6 +25,7 @@ export function VConsent() {
       screenId="v-consent"
       center
       question={c.question}
+      helper={c.helper}
       primaryTitle={c.primary}
       onPrimary={() => void submit('model')}
       secondaryTitle={c.secondary}
