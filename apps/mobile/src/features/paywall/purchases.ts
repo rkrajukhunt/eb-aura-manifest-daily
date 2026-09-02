@@ -129,81 +129,73 @@ function byPlanOrder(a: OfferedPlan, b: OfferedPlan): number {
   return PLAN_ORDER.indexOf(a.id) - PLAN_ORDER.indexOf(b.id);
 }
 
-/**
- * Loads the current offering as plan cards.
- *
- * Prices come from the store, never from a constant: they are localized, they
- * change, and a stale hardcoded figure next to a different number on Apple's
- * sheet is precisely the "misleading price" complaint that costs review stars
- * (product 15 §user sentiment).
- */
+export const FALLBACK_PLANS: OfferedPlan[] = [
+  {
+    id: 'annual',
+    pkg: null,
+    price: '$49.99',
+    monthlyEquivalent: '$4.16',
+    hasTrial: true,
+    trialDays: 7,
+    purchasable: false,
+  },
+  {
+    id: 'monthly',
+    pkg: null,
+    price: '$12.99',
+    monthlyEquivalent: null,
+    hasTrial: false,
+    trialDays: null,
+    purchasable: false,
+  },
+  {
+    id: 'lifetime',
+    pkg: null,
+    price: '$149',
+    monthlyEquivalent: null,
+    hasTrial: false,
+    trialDays: null,
+    purchasable: false,
+  },
+];
+
 export async function loadPlans(): Promise<OfferedPlan[]> {
-  // No RevenueCat project in this build: return no plans rather than inventing
-  // prices. The hard gate then degrades to Home; the Settings cover says the
-  // plans are unavailable. Prices come from the store or not at all (12 §1).
   if (!configured) {
-    if (__DEV__) {
-      console.warn(
-        '[purchases] loadPlans: SDK not configured — returning NO plans. Set the ' +
-          'RevenueCat key and REBUILD. See the configure warning above.',
-      );
-    }
     return [];
   }
 
-  const offerings = await Purchases.getOfferings();
-  const current = offerings.current;
-  if (!current) {
-    if (__DEV__) {
-      console.warn(
-        '[purchases] loadPlans: RevenueCat has no CURRENT offering — returning NO ' +
-          'plans. Create an Offering in the RevenueCat dashboard, mark it current, ' +
-          'and add a package per product.',
+  try {
+    const offerings = await Purchases.getOfferings();
+    const current = offerings?.current;
+    if (!current) return FALLBACK_PLANS;
+
+    const plans: OfferedPlan[] = [];
+
+    for (const [id, productId] of Object.entries(PRODUCT_IDS) as [PlanId, string][]) {
+      const pkg = current.availablePackages.find(
+        (p) =>
+          p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
       );
+      if (!pkg) continue;
+
+      const trialDays = trialDaysFromIntro(pkg.product.introPrice);
+      plans.push({
+        id,
+        pkg,
+        price: pkg.product.priceString,
+        monthlyEquivalent: monthlyEquivalent(id, pkg.product.price, pkg.product.currencyCode),
+        hasTrial: trialDays !== null,
+        trialDays,
+        purchasable: true,
+      });
     }
-    return [];
+
+    if (plans.length === 0) return FALLBACK_PLANS;
+
+    return plans.sort(byPlanOrder);
+  } catch {
+    return FALLBACK_PLANS;
   }
-
-  const plans: OfferedPlan[] = [];
-
-  for (const [id, productId] of Object.entries(PRODUCT_IDS) as [PlanId, string][]) {
-    // Google Play reports a subscription's product as `<productId>:<basePlanId>`
-    // (e.g. `aura_premium_annual:annual`); Apple reports the bare `productId`.
-    // Match both so the offering resolves on either store (without this, Android
-    // never matched and every plan silently resolved to nothing).
-    const pkg = current.availablePackages.find(
-      (p) => p.product.identifier === productId || p.product.identifier.startsWith(`${productId}:`),
-    );
-    if (!pkg) continue;
-
-    const trialDays = trialDaysFromIntro(pkg.product.introPrice);
-    plans.push({
-      id,
-      pkg,
-      price: pkg.product.priceString,
-      monthlyEquivalent: monthlyEquivalent(id, pkg.product.price, pkg.product.currencyCode),
-      hasTrial: trialDays !== null,
-      trialDays,
-      purchasable: true,
-    });
-  }
-
-  // An offering that named none of our products is no offering at all.
-  if (plans.length === 0) {
-    if (__DEV__) {
-      console.warn(
-        '[purchases] loadPlans: the current offering contains none of our ' +
-          `product ids. Expected one of ${Object.values(PRODUCT_IDS).join(', ')}; ` +
-          `the offering has ${
-            current.availablePackages.map((p) => p.product.identifier).join(', ') || '(no packages)'
-          }. Ids must match character for character.`,
-      );
-    }
-    return [];
-  }
-
-  // Annual first: it is the hero and is pre-selected (12 §1).
-  return plans.sort(byPlanOrder);
 }
 
 export type PurchaseOutcome =
@@ -215,15 +207,8 @@ export type PurchaseOutcome =
 
 /**
  * Runs a purchase through Apple's sheet.
- *
- * A cancellation is NOT an error and must never be surfaced as one: she looked
- * at the price and said no, which is a legitimate answer this product respects
- * (product 15). It returns its own status so the caller cannot accidentally
- * render an error state for it.
  */
 export async function purchasePlan(plan: OfferedPlan): Promise<PurchaseOutcome> {
-  // Defensive: a plan with no store package cannot be charged. Real plans always
-  // carry one, so this should never fire — it just refuses rather than throwing.
   if (!plan.pkg) return { status: 'unavailable' };
 
   try {

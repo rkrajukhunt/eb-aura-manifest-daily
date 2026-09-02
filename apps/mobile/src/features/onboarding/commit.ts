@@ -175,6 +175,18 @@ async function syncAnswer(
   }
 }
 
+function formatTimeTo24H(timeStr: string): string {
+  if (ARRIVAL_PRESETS[timeStr]) return ARRIVAL_PRESETS[timeStr];
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+  if (!match) return timeStr;
+  let hours = parseInt(match[1]!, 10);
+  const minutes = match[2]!;
+  const period = match[3]!.toLowerCase();
+  if (period === 'pm' && hours < 12) hours += 12;
+  if (period === 'am' && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
+
 /** Screen → profile column (02 §1). Screens without a column return null. */
 function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'profiles'> | null {
   switch (screen) {
@@ -188,8 +200,10 @@ function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'pr
     case 'a06-obstacle':
       return { struggle: value as string };
     case 'a08-ritual-time': {
-      const raw = String(value);
-      return { arrival_time: ARRIVAL_PRESETS[raw] ?? raw };
+      const rawKey = typeof value === 'string' ? value : ((value as { key?: string })?.key ?? '');
+      const rawTime =
+        typeof value === 'string' ? value : ((value as { time?: string })?.time ?? '');
+      return { arrival_time: ARRIVAL_PRESETS[rawKey] ?? formatTimeTo24H(rawTime) ?? rawTime };
     }
     case 's03-name':
       return { name: value as string };

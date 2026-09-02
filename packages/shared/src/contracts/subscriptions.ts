@@ -68,10 +68,11 @@ export const PRODUCT_IDS = {
   annual: 'aura_premium_annual',
   monthly: 'aura_premium_monthly',
   weekly: 'aura_premium_weekly',
+  lifetime: 'aura_premium_lifetime',
 } as const;
 
-/** Display order on the cover: annual is the hero, then monthly, then weekly. */
-export const PLAN_ORDER = ['annual', 'monthly', 'weekly'] as const;
+/** Display order on the cover: annual is the hero, then monthly, then weekly, then lifetime. */
+export const PLAN_ORDER = ['annual', 'monthly', 'weekly', 'lifetime'] as const;
 
 export type PlanId = keyof typeof PRODUCT_IDS;
 

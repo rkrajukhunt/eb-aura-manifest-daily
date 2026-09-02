@@ -19,13 +19,28 @@ export function nameOf(answers: FlowAnswers): string | null {
 }
 
 export function timeChoiceOf(answers: FlowAnswers) {
-  const key = valueOf(answers, 'a08-ritual-time') as TimeKey | undefined;
+  const raw = valueOf(answers, 'a08-ritual-time');
+  const key = typeof raw === 'string' ? raw : (raw as { key?: TimeKey })?.key;
   const choices = onboardingCopy.a08RitualTime.choices;
   return choices.find((c) => c.key === key) ?? choices[0]!;
 }
 
-/** "8:00am" — the preset the reminder will actually use. */
+/** "8:15am" — the preset/fine-tuned time the reminder will actually use. */
 export function ritualTimeOf(answers: FlowAnswers): string {
+  const raw = valueOf(answers, 'a08-ritual-time');
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'time' in raw &&
+    typeof (raw as { time: string }).time === 'string'
+  ) {
+    return (raw as { time: string }).time;
+  }
+  if (typeof raw === 'string') {
+    const choice = onboardingCopy.a08RitualTime.choices.find((c) => c.key === raw);
+    if (choice) return choice.time;
+    return raw;
+  }
   return timeChoiceOf(answers).time;
 }
 

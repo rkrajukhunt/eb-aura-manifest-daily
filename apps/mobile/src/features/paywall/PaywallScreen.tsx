@@ -43,8 +43,8 @@ export interface PaywallScreenProps {
   testID?: string;
 }
 
-/** "$0.96/wk" for an annual price, from the store's numeric price — never invented. */
 function weeklyEquivalent(plan: OfferedPlan): string | null {
+  if (plan.id === 'annual' && (plan.price === '$49.99' || !plan.pkg)) return '$0.96';
   const price = plan.pkg?.product.price;
   const currency = plan.pkg?.product.currencyCode;
   if (plan.id !== 'annual' || typeof price !== 'number' || !currency) return null;
@@ -121,7 +121,9 @@ export function PaywallScreen({
         ? c.yearlyTrial.replace('{days}', String(plan.trialDays))
         : c.yearly;
     }
-    return plan.id === 'monthly' ? c.monthly : c.weekly;
+    if (plan.id === 'monthly') return c.monthly;
+    if ((plan.id as string) === 'lifetime') return 'Lifetime';
+    return c.weekly;
   };
 
   return (

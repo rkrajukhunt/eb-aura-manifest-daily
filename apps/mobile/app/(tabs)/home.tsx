@@ -63,6 +63,12 @@ export default function HomeRoute() {
   const { data: profile } = useProfile(userId ?? undefined);
   const entitlement = useEntitlement();
 
+  useEffect(() => {
+    if (!entitlement.loading && !entitlement.premium) {
+      router.replace('/paywall');
+    }
+  }, [entitlement.loading, entitlement.premium, router]);
+
   const today = useTodaysMoment(userId ?? undefined);
   const forming = useFormingMoments(userId ?? undefined);
   const recent = useRecentMoments(userId ?? undefined, RECENT_ROWS);
