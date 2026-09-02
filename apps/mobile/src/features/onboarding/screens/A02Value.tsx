@@ -7,8 +7,8 @@ import { fonts } from '@/theme/typography';
 
 import { useConversation } from '../useConversation';
 
-/** A small orb stands in for the design's line-art mark above the contract. */
-const MARK_SIZE = 72;
+/** The orb size — increased to a hero mark for prominent visual elegance. */
+const MARK_SIZE = 130;
 
 /**
  * 02 — what makes this different. The contract, stated before the first ask:
@@ -27,27 +27,31 @@ export function A02Value() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          gap: spacing.lg + 2,
-          paddingHorizontal: spacing.sm,
+          gap: spacing.xl,
+          paddingHorizontal: spacing.lg,
         }}
       >
         <Orb state="idle" size={MARK_SIZE} />
-        <SerifDisplay variant="display" center>
-          {c.title}
-        </SerifDisplay>
-        <Text
-          style={{
-            fontFamily: fonts.serifItalic,
-            fontStyle: 'italic',
-            fontSize: 25,
-            lineHeight: 34,
-            letterSpacing: -0.1,
-            textAlign: 'center',
-            color: colors.text.body,
-          }}
-        >
-          {c.body}
-        </Text>
+
+        <View style={{ gap: spacing.md, alignItems: 'center' }}>
+          <SerifDisplay variant="display" center>
+            {c.title}
+          </SerifDisplay>
+          <Text
+            style={{
+              fontFamily: fonts.serifItalic,
+              fontStyle: 'italic',
+              fontSize: 24,
+              lineHeight: 34,
+              letterSpacing: -0.1,
+              textAlign: 'center',
+              color: colors.text.body,
+              paddingHorizontal: spacing.sm,
+            }}
+          >
+            {c.body}
+          </Text>
+        </View>
       </View>
 
       <View style={{ paddingBottom: spacing.lg }}>
