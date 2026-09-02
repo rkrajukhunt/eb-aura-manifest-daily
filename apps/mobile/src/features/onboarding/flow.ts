@@ -57,7 +57,7 @@ export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
   'a11-affirmation': 'none',
   'a05-feeling': 'choice',
   'v-insight': 'none',
-  'a06-obstacle': 'choice',
+  'a06-obstacle': 'multi_choice',
   'q-lexicon': 'choice',
   'q-offlimits': 'multi_choice',
   'q-belief': 'choice',
@@ -126,7 +126,8 @@ export function primaryGoalOf(answers: FlowAnswers): GoalKey {
 
 export function obstacleKeyOf(answers: FlowAnswers) {
   const value = valueOf(answers, 'a06-obstacle');
-  return onboardingCopy.a06Obstacle.choices.find((c) => c.label === value)?.key ?? null;
+  const first = Array.isArray(value) ? value[0] : value;
+  return onboardingCopy.a06Obstacle.choices.find((c) => c.label === first)?.key ?? null;
 }
 
 export function moodOf(answers: FlowAnswers): MoodKey | null {

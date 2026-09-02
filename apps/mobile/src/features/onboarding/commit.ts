@@ -198,7 +198,9 @@ function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'pr
     case 'a05-feeling':
       return { feeling: value as string };
     case 'a06-obstacle':
-      return { struggle: value as string };
+      return {
+        struggle: Array.isArray(value) ? (value as string[]).join(', ') : (value as string),
+      };
     case 'a08-ritual-time': {
       const rawKey = typeof value === 'string' ? value : ((value as { key?: string })?.key ?? '');
       const rawTime =

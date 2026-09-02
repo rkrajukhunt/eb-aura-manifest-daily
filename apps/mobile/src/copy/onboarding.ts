@@ -188,12 +188,14 @@ export const onboardingCopy = {
   // Q6 · Obstacle — configures mechanics, not content. Stored as the label.
   a06Obstacle: {
     question: 'What usually gets in the way?',
+    helper: 'Select all that apply',
     choices: [
       { key: 'forget', label: 'I forget', phrase: 'forgetting' },
       { key: 'motivation', label: 'I lose motivation', phrase: 'losing motivation' },
       { key: 'selfdoubt', label: 'Self-doubt', phrase: 'self-doubt' },
       { key: 'busy', label: 'I’m too busy', phrase: 'being too busy' },
     ] as ReadonlyArray<{ key: ObstacleKey; label: string; phrase: string }>,
+    primary: 'Continue',
   },
 
   // Q7 · Belief language — the vocabulary fork.
