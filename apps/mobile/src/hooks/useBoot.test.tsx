@@ -34,6 +34,9 @@ jest.mock('@/lib/analytics', () => ({
   analytics: { register: jest.fn(), identify: jest.fn(), capture: jest.fn() },
 }));
 jest.mock('@/lib/superProperties', () => ({ buildSuperProperties: jest.fn(() => ({})) }));
+jest.mock('@/lib/tracking', () => ({
+  requestTrackingPermission: jest.fn(async () => undefined),
+}));
 jest.mock('@/lib/ga4', () => ({
   initGa4: jest.fn(),
   logGa4Event: jest.fn(),
@@ -47,6 +50,9 @@ const { configurePurchases } = jest.requireMock('@/features/paywall/purchases') 
 };
 const { analytics } = jest.requireMock('@/lib/analytics') as {
   analytics: { identify: jest.Mock };
+};
+const { requestTrackingPermission } = jest.requireMock('@/lib/tracking') as {
+  requestTrackingPermission: jest.Mock;
 };
 
 const session = { user: { id: 'user-1' } } as Session;
@@ -66,6 +72,7 @@ describe('useBoot', () => {
     expect(useAppState.getState().userId).toBeNull();
     expect(configurePurchases).not.toHaveBeenCalled();
     expect(analytics.identify).not.toHaveBeenCalled();
+    expect(requestTrackingPermission).toHaveBeenCalled();
   });
 
   it('boots a returning user straight in when a session exists', async () => {
@@ -78,5 +85,8 @@ describe('useBoot', () => {
     expect(configurePurchases).toHaveBeenCalledWith('user-1');
     expect(analytics.identify).toHaveBeenCalledWith('user-1');
     expect(initGa4).toHaveBeenCalled();
+    expect(requestTrackingPermission.mock.invocationCallOrder[0]).toBeLessThan(
+      initGa4.mock.invocationCallOrder[0]!,
+    );
   });
 });

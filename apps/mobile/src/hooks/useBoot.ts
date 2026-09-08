@@ -9,6 +9,7 @@ import { emitAppOpen } from '@/lib/appOpen';
 import { initGa4 } from '@/lib/ga4';
 import { ensureSession } from '@/lib/auth';
 import { buildSuperProperties } from '@/lib/superProperties';
+import { requestTrackingPermission } from '@/lib/tracking';
 import { useAppState } from '@/stores/appState';
 
 /**
@@ -40,6 +41,13 @@ export function useBoot(): void {
 
     async function boot(): Promise<void> {
       try {
+        // ATT must be resolved before any analytics SDK is initialized. Firebase
+        // auto-collection is disabled in the iOS plist and enabled below only
+        // after this request completes; a permission API failure must never
+        // prevent the app from launching.
+        step = 'requestTrackingPermission';
+        await requestTrackingPermission().catch(() => undefined);
+
         const session = await ensureSession();
         if (cancelled) return;
 

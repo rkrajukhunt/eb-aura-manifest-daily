@@ -227,6 +227,9 @@ const config: ExpoConfig = {
       // for ad attribution. A denial is fine — GA4 works without it.
       NSUserTrackingUsageDescription:
         'Aura uses this to measure which ads led people here, so we can reach the right people. It never accesses your personal content.',
+      // Firebase Analytics must wait for the ATT decision. `initGa4` explicitly
+      // enables collection after the request completes in the boot sequence.
+      FIREBASE_ANALYTICS_COLLECTION_ENABLED: false,
       // SKAdNetwork lets iOS attribute installs to ads without the IDFA. Google's
       // network id; add ad partners' ids here as campaigns expand.
       SKAdNetworkItems: [{ SKAdNetworkIdentifier: 'cstr6suwn9.skadnetwork' }],
