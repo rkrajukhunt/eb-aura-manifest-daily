@@ -15,9 +15,10 @@ export interface AnswerRowProps {
   selected: boolean;
   onPress: () => void;
   /**
-   * An icon makes it the design's tile row (goals, obstacles): an ember tile
-   * on the left and a ✓ circle on the right. Without one it is the plain
-   * radio row (priority, context, mood, language, calibration, time).
+  * An icon makes it the design's tile row (goals, obstacles): an ember tile
+  * on the left and a ✓ circle on the right. Without one it is the plain
+    * radio row (priority, context, mood, language, calibration, time), with
+    * the selection indicator still on the right.
    */
   icon?: keyof typeof Ionicons.glyphMap;
   testID?: string;
@@ -81,18 +82,7 @@ export function AnswerRow({ label, selected, onPress, icon, testID }: AnswerRowP
             <Ionicons name={icon} size={20} color={colors.text.label} />
           </View>
         )
-      ) : (
-        <View
-          style={{
-            width: DOT,
-            height: DOT,
-            borderRadius: DOT / 2,
-            borderWidth: 1.5,
-            borderColor: selected ? colors.text.primary : colors.surface.border,
-            backgroundColor: selected ? colors.text.primary : 'transparent',
-          }}
-        />
-      )}
+      ) : null}
 
       <Text
         style={{
@@ -106,22 +96,20 @@ export function AnswerRow({ label, selected, onPress, icon, testID }: AnswerRowP
         {label}
       </Text>
 
-      {tile ? (
-        <View
-          style={{
-            width: CHECK,
-            height: CHECK,
-            borderRadius: CHECK / 2,
-            borderWidth: 1.5,
-            borderColor: selected ? colors.text.primary : colors.surface.border,
-            backgroundColor: selected ? colors.text.primary : 'transparent',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {selected ? <Ionicons name="checkmark" size={12} color={colors.text.onCta} /> : null}
-        </View>
-      ) : null}
+      <View
+        style={{
+          width: tile ? CHECK : DOT,
+          height: tile ? CHECK : DOT,
+          borderRadius: (tile ? CHECK : DOT) / 2,
+          borderWidth: 1.5,
+          borderColor: selected ? colors.text.primary : colors.surface.border,
+          backgroundColor: selected ? colors.text.primary : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {selected && tile ? <Ionicons name="checkmark" size={12} color={colors.text.onCta} /> : null}
+      </View>
     </Pressable>
   );
 }
