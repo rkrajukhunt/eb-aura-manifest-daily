@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 
 import { TabBar } from '@/components/TabBar';
+import { usePlayerStore } from '@/features/player/playerStore';
 import { usePlayback } from '@/features/player/usePlayback';
 
 /**
@@ -13,20 +14,29 @@ import { usePlayback } from '@/features/player/usePlayback';
  * playback pill at `bottom:74` on Home — restoring it means putting that pill
  * back here and giving it an offset clear of the bar and the safe-area inset.
  *
- * `usePlayback` is still mounted HERE, once, rather than inside the player
- * screen — that is what lets audio outlive the cover and keep going while she
- * moves between tabs. Mounting it on the screen would tie the audio's lifetime
- * to a navigation stack entry, and minimizing would silence it.
+ * `PlaybackHost` is mounted HERE, once, only after a moment is opened, rather
+ * than inside the player screen. That lets audio outlive the cover and keep
+ * going while she moves between tabs without creating a native audio player at
+ * app startup. Mounting it on the screen would tie the audio's lifetime to a
+ * navigation stack entry, and minimizing would silence it.
  */
-export default function TabsLayout() {
+function PlaybackHost() {
   usePlayback();
+  return null;
+}
+
+export default function TabsLayout() {
+  const hasOpenMoment = usePlayerStore((s) => s.moment !== null);
 
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
-      <Tabs.Screen name="home" options={{ title: 'Home' }} />
-      <Tabs.Screen name="affirmations" options={{ title: 'Affirmations' }} />
-      <Tabs.Screen name="gratitude" options={{ title: 'Gratitude' }} />
-      <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-    </Tabs>
+    <>
+      {hasOpenMoment ? <PlaybackHost /> : null}
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+        <Tabs.Screen name="home" options={{ title: 'Home' }} />
+        <Tabs.Screen name="affirmations" options={{ title: 'Affirmations' }} />
+        <Tabs.Screen name="gratitude" options={{ title: 'Gratitude' }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
+      </Tabs>
+    </>
   );
 }

@@ -51,14 +51,6 @@ export function usePlayback() {
     void configureLetterAudio();
   }, []);
 
-  // A new moment plays immediately — she tapped it, that IS the intent.
-  useEffect(() => {
-    if (!moment?.audioSource) return;
-    openedAtRef.current = Date.now();
-    player.play();
-    touchCachedAudio(moment.id);
-  }, [moment?.id, moment?.audioSource, player]);
-
   useEffect(() => {
     player.setPlaybackRate?.(speed);
   }, [speed, player]);
@@ -126,7 +118,13 @@ export function usePlayback() {
     else player.play();
   }, [player]);
 
-  const play = useCallback(() => player.play(), [player]);
+  const play = useCallback(() => {
+    if (moment?.audioSource) {
+      openedAtRef.current = Date.now();
+      touchCachedAudio(moment.id);
+    }
+    player.play();
+  }, [moment, player]);
   const pause = useCallback(() => player.pause(), [player]);
 
   // No background playback: when the app leaves the foreground, pause the voice.
