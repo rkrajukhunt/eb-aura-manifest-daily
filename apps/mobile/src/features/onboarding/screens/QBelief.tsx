@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { onboardingCopy, type BeliefKey } from '@/copy/onboarding';
@@ -10,13 +10,9 @@ import { ConversationScreen } from '../ConversationScreen';
 import { isGentle } from '../flow';
 import { useConversation } from '../useConversation';
 
-/** Long enough to read the research line that appears under her pick. */
-const BELIEF_ADVANCE_MS = 1500;
-
 /**
- * Q9 — believability. One tap measures framing and tone. In gentle_mode the
- * bold identity card is not offered at all. After the pick, one line explains
- * why it matters, then the flow moves on by itself.
+ * Q9 — believability. In gentle_mode the bold identity card is not offered at
+ * all. After the pick, one line explains why it matters before Continue.
  */
 export function QBelief() {
   const { colors, spacing, typography } = useTheme();
@@ -27,25 +23,25 @@ export function QBelief() {
   const [picked, setPicked] = useState<BeliefKey | null>(
     typeof existingValue === 'string' ? (existingValue as BeliefKey) : null,
   );
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
   const cards = c.cards.filter((card) => !(gentle && card.key === 'identity'));
 
   const pick = (key: BeliefKey) => {
     setPicked(key);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void submit(key), BELIEF_ADVANCE_MS);
+  };
+
+  const continueWithSelection = () => {
+    if (picked !== null) void submit(picked);
   };
 
   return (
-    <ConversationScreen testID="q-belief" screenId="q-belief" question={c.question}>
+    <ConversationScreen
+      testID="q-belief"
+      screenId="q-belief"
+      question={c.question}
+      primaryTitle="Continue"
+      onPrimary={continueWithSelection}
+      primaryDisabled={picked === null}
+    >
       <View style={{ gap: spacing.md }}>
         {cards.map((card) => (
           <BeliefCard

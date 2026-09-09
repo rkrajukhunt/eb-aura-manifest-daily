@@ -1,6 +1,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { OnboardingScreenId } from '@aura/shared';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
@@ -8,9 +8,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { AnswerRow } from './AnswerRow';
 import { ConversationScreen } from './ConversationScreen';
 import { useConversation } from './useConversation';
-
-/** The design's beat between a tap and the next screen — long enough to see the pick land. */
-export const AUTO_ADVANCE_MS = 260;
 
 export interface ChoiceOption {
   key: string;
@@ -26,12 +23,6 @@ export interface ChoiceScreenProps {
   helper?: string;
   eyebrow?: string;
   options: readonly ChoiceOption[];
-  /**
-   * Single-select questions advance on their own (design v5): the tap IS the
-   * Continue. Milliseconds before moving on; the mood and belief questions
-   * linger longer so the answer registers before the screen changes.
-   */
-  autoAdvanceMs?: number;
   onSkip?: () => void;
   /** Runs after the pick and before the answer is submitted (priority reorders the goals). */
   beforeSubmit?: (value: string) => Promise<void> | void;
@@ -40,9 +31,9 @@ export interface ChoiceScreenProps {
 }
 
 /**
- * A single-select question: rows, one tap, a short pause, then on. Used for
+ * A single-select question: rows plus one explicit Continue action. Used for
  * priority, context, mood, obstacle, language, and calibration — the same
- * screen six times over, so the flow reads as one pattern.
+ * screen pattern throughout the flow.
  */
 export function ChoiceScreen({
   screenId,
@@ -50,7 +41,6 @@ export function ChoiceScreen({
   helper,
   eyebrow,
   options,
-  autoAdvanceMs = AUTO_ADVANCE_MS,
   onSkip,
   beforeSubmit,
   footnote,
@@ -61,26 +51,15 @@ export function ChoiceScreen({
   const [selected, setSelected] = useState<string | null>(
     typeof existingValue === 'string' ? existingValue : null,
   );
-  // The value already recorded is the one that stays lit on re-entry.
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
   const pick = (option: ChoiceOption) => {
     const value = option.value ?? option.key;
     setSelected(value);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void (async () => {
-        await beforeSubmit?.(value);
-        await submit(value);
-      })();
-    }, autoAdvanceMs);
+  };
+
+  const continueWithSelection = async () => {
+    if (!selected) return;
+    await beforeSubmit?.(selected);
+    await submit(selected);
   };
 
   return (
@@ -92,6 +71,9 @@ export function ChoiceScreen({
       {...(eyebrow !== undefined ? { eyebrow } : {})}
       {...(onSkip ? { onSkip } : {})}
       {...(footnote !== undefined ? { footnote } : {})}
+      primaryTitle="Continue"
+      onPrimary={() => void continueWithSelection()}
+      primaryDisabled={selected === null}
     >
       <View style={{ gap: spacing.sm + 2 }}>
         {options.map((option) => (

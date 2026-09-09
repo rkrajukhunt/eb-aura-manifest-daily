@@ -1,4 +1,4 @@
-import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { onboardingCopy } from '@/copy/onboarding';
@@ -92,16 +92,13 @@ describe('onboarding v5 screens', () => {
 
   describe('Q2 priority — piped from Q1, moves her pick to the front', () => {
     it('re-records the goals with the priority first', async () => {
-      jest.useFakeTimers();
       useOnboardingDraft
         .getState()
         .setAnswer('a04-goals', ['Career & purpose', 'Calm & less anxiety']);
       const view = await render(<QPriority />, { wrapper });
 
       await fireEvent.press(view.getByText('Calm & less anxiety'));
-      await act(async () => {
-        jest.advanceTimersByTime(300);
-      });
+      await fireEvent.press(view.getByText('Continue'));
 
       await waitFor(() =>
         expect(submitAnswer).toHaveBeenCalledWith('user-1', 'a04-goals', [
@@ -169,16 +166,14 @@ describe('onboarding v5 screens', () => {
     });
   });
 
-  describe('Q5 mood — auto-advances after a beat', () => {
-    it('records the key and moves on without a Continue', async () => {
-      jest.useFakeTimers();
+  describe('Q5 mood — explicit Continue', () => {
+    it('records the key only after Continue is pressed', async () => {
       const view = await render(<A05Feeling />, { wrapper });
 
-      expect(view.queryByText('Continue')).toBeNull();
+      expect(view.getByText('Continue')).toBeTruthy();
       await fireEvent.press(view.getByText('Low'));
-      await act(async () => {
-        jest.advanceTimersByTime(400);
-      });
+      expect(submitAnswer).not.toHaveBeenCalled();
+      await fireEvent.press(view.getByText('Continue'));
 
       await waitFor(() =>
         expect(submitAnswer).toHaveBeenCalledWith('user-1', 'a05-feeling', 'low', false),
@@ -253,16 +248,14 @@ describe('onboarding v5 screens', () => {
       expect(view.getByText(/learning to trust myself/)).toBeTruthy();
     });
 
-    it('shows the research line after a pick, then moves on', async () => {
-      jest.useFakeTimers();
+    it('shows the research line after a pick and submits on Continue', async () => {
       const view = await render(<QBelief />, { wrapper });
 
       await fireEvent.press(view.getByText(/one clear step/));
       expect(view.getByText(/real research/)).toBeTruthy();
+      expect(submitAnswer).not.toHaveBeenCalled();
 
-      await act(async () => {
-        jest.advanceTimersByTime(1600);
-      });
+      await fireEvent.press(view.getByText('Continue'));
       await waitFor(() =>
         expect(submitAnswer).toHaveBeenCalledWith('user-1', 'q-belief', 'practical', false),
       );
