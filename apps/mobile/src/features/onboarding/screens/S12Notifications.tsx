@@ -15,8 +15,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
 
 import { completeOnboarding } from '../commit';
-import { firstAffirmationOf, ritualTimeOf } from '../derive';
-import { ReminderPreview } from '../ReminderPreview';
+import { ritualTimeOf } from '../derive';
 
 const PROMISE_ICON: readonly (keyof typeof Ionicons.glyphMap)[] = [
   'time-outline',
@@ -25,9 +24,9 @@ const PROMISE_ICON: readonly (keyof typeof Ionicons.glyphMap)[] = [
 ];
 
 /**
- * The notification pre-prompt (design 22): the actual reminder previewed at
- * her time, the question, then the three promises — one screen replacing
- * five. "Yes, remind me" asks the OS; "Not now" offers the second chance.
+ * The notification pre-prompt (design 22): a clear notification illustration,
+ * the question, then three lightweight promises. "Yes, remind me" asks the OS;
+ * "Not now" offers the second chance.
  *
  * This screen finishes onboarding on a yes: it stamps completion and hands
  * off to the generation ritual. It draws no progress header.
@@ -74,11 +73,47 @@ export function S12Notifications() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ flexGrow: 1, paddingTop: spacing.xl, gap: spacing.lg + 4 }}
       >
-        <ReminderPreview app={c.previewApp} when={time} body={firstAffirmationOf(answers)} />
+        <View
+          style={{
+            minHeight: 220,
+            borderRadius: radii.group,
+            backgroundColor: colors.accent.parchment,
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              width: 142,
+              height: 142,
+              borderRadius: 71,
+              backgroundColor: colors.surface.card,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: colors.accent.emberSoft,
+            }}
+          >
+            <Ionicons name="notifications-outline" size={76} color={colors.accent.emberDeep} />
+          </View>
+          <Ionicons
+            name="sparkles-outline"
+            size={24}
+            color={colors.accent.emberDeep}
+            style={{ position: 'absolute', top: 34, right: '24%' }}
+          />
+          <Ionicons
+            name="sparkles-outline"
+            size={18}
+            color={colors.accent.emberDeep}
+            style={{ position: 'absolute', bottom: 30, left: '25%' }}
+          />
+        </View>
 
         <SerifDisplay variant="question">{c.question.replace('{time}', time)}</SerifDisplay>
 
-        <View style={{ gap: spacing.sm + 1 }}>
+        <View style={{ gap: spacing.md }}>
           {c.promises.map((promise, i) => (
             <View
               key={promise.title}
@@ -86,24 +121,19 @@ export function S12Notifications() {
                 flexDirection: 'row',
                 gap: spacing.md + 1,
                 alignItems: 'flex-start',
-                padding: spacing.md + 2,
-                borderRadius: radii.card - 4,
-                backgroundColor: colors.surface.card,
-                borderWidth: 1,
-                borderColor: colors.surface.border,
               }}
             >
               <View
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: colors.accent.parchment,
                 }}
               >
-                <Ionicons name={PROMISE_ICON[i]} size={20} color={colors.accent.emberDeep} />
+                <Ionicons name={PROMISE_ICON[i]} size={17} color={colors.accent.emberDeep} />
               </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text
