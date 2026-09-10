@@ -106,7 +106,6 @@ export const onboardingCopy = {
     placeholder: 'Your name',
     pronounHelper: 'And your pronoun, so the copy fits.',
     pronouns: ['she/her', 'he/him', 'they/them'] as readonly string[],
-    pronounSkip: 'Skip',
     primary: 'Continue',
     // Gentle trim, never harsh validation.
     tooLong: 'That’s a lot of name — what do the people closest to you use?',

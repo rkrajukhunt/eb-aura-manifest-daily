@@ -86,16 +86,10 @@ export function S03Name() {
               key={option}
               label={option}
               selected={pronoun === option}
-              onPress={() => setPronoun(option)}
+              onPress={() => setPronoun((current) => (current === option ? null : option))}
               testID={`q-pronoun-${option}`}
             />
           ))}
-          <OptionChip
-            label={c.pronounSkip}
-            selected={false}
-            onPress={() => setPronoun(null)}
-            testID="q-pronoun-skip"
-          />
         </View>
       </View>
     </ConversationScreen>

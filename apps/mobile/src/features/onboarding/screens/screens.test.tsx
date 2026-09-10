@@ -116,6 +116,16 @@ describe('onboarding v5 screens', () => {
   });
 
   describe('Q4 name and pronoun — both skippable', () => {
+    it('removes the pronoun Skip chip and toggles a selected pronoun off', async () => {
+      const view = await render(<S03Name />, { wrapper });
+
+      expect(view.queryByTestId('q-pronoun-skip')).toBeNull();
+      await fireEvent.press(view.getByText('they/them'));
+      expect(view.getByTestId('q-pronoun-they/them').props.accessibilityState.selected).toBe(true);
+      await fireEvent.press(view.getByText('they/them'));
+      expect(view.getByTestId('q-pronoun-they/them').props.accessibilityState.selected).toBe(false);
+    });
+
     it('records the pronoun beside the name on Continue', async () => {
       const view = await render(<S03Name />, { wrapper });
 
