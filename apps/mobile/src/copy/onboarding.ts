@@ -294,7 +294,7 @@ export const onboardingCopy = {
   vGratitude: {
     question: 'Name one thing you’re grateful for.',
     helper: 'Small counts. Small is usually better.',
-    placeholder: 'Today, I’m grateful for…',
+    placeholder: 'Write a complete sentence about what you’re grateful for…',
     examplesLabel: 'Examples',
     examples: [
       'Morning coffee & quiet time',

@@ -16,7 +16,7 @@ import { useConversation } from '../useConversation';
 /**
  * VALUE — the first gratitude entry. Seeds the journal before the money ask.
  * Renders example option chips below the description box. Selecting an option
- * fills the description box with ONLY that option's text (replacing any existing text).
+ * fills the description box with a complete sentence (replacing any existing text).
  */
 export function VGratitude() {
   const { colors, spacing } = useTheme();
@@ -34,7 +34,8 @@ export function VGratitude() {
   };
 
   const handleSelectExample = (example: string) => {
-    setEntry(example);
+    const sentence = `Today, I’m grateful for ${example.charAt(0).toLowerCase()}${example.slice(1)}.`;
+    setEntry(sentence);
     void haptic('onboardingContinue');
   };
 
@@ -59,7 +60,7 @@ export function VGratitude() {
         testID="v-gratitude-input"
       />
 
-      {/* Example options below the description box */}
+      {/* Example sentences below the description box */}
       <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
         <Text
           style={{
