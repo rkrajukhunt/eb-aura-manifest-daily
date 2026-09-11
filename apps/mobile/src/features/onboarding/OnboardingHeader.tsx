@@ -1,44 +1,51 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { SegmentedProgressBar } from '@/components/SegmentedProgressBar';
 import { onboardingCopy } from '@/copy/onboarding';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
 
-/** Design v5: a 34pt circular back button, a 3pt track, an optional Skip. */
+/** Design v5: a 34pt circular back button, segmented capsule track, an optional Skip. */
 const BACK_SIZE = 34;
-const TRACK_HEIGHT = 3;
+const SEGMENT_HEIGHT = 6;
+const SEGMENT_GAP = 6;
 
 export interface OnboardingHeaderProps {
   /** 0..1 — how far along the conversation she is. */
   progress: number;
   /** The back circle. Omit to reserve its slot without drawing it. */
-  onBack?: () => void;
+  onBack?: (() => void) | undefined;
   /** What the circle does, for screen readers ("Fix an earlier answer"). */
-  backLabel?: string;
+  backLabel?: string | undefined;
   /** Header Skip — only the design's skippable questions pass it. */
-  onSkip?: () => void;
-  testID?: string;
+  onSkip?: (() => void) | undefined;
+  /** Number of pill segments. Defaults to 5. */
+  segments?: number | undefined;
+  /** Fill mode: 'smooth' | 'discrete'. Defaults to 'smooth'. */
+  fillMode?: ('smooth' | 'discrete') | undefined;
+  testID?: string | undefined;
 }
 
 /**
- * The conversation's wayfinding (design v5, steps 4–19): a white back circle
- * on a hairline, a slim track filling with ember as the conversation deepens,
- * and "Skip" where the question allows it. No counter — the track is the
- * only measure, and it only ever moves forward.
+ * The conversation's wayfinding: a white back circle on a hairline,
+ * a 5-segment capsule-pill track filling with ember as the conversation deepens,
+ * and "Skip" where the question allows it.
  */
 export function OnboardingHeader({
   progress,
   onBack,
   backLabel,
   onSkip,
+  segments = 5,
+  fillMode = 'smooth',
   testID,
 }: OnboardingHeaderProps) {
-  const { colors, radii, shadows, spacing } = useTheme();
+  const { colors, shadows, spacing } = useTheme();
   const clamped = Math.min(1, Math.max(0, progress));
 
   return (
     <View
-      testID={testID}
+      {...(testID ? { testID } : {})}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -83,26 +90,17 @@ export function OnboardingHeader({
         <View style={{ width: BACK_SIZE, height: BACK_SIZE }} />
       )}
 
-      <View
-        accessibilityRole="progressbar"
-        accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
-        style={{
-          flex: 1,
-          height: TRACK_HEIGHT,
-          borderRadius: radii.pill,
-          backgroundColor: colors.accent.oliveSoft,
-          overflow: 'hidden',
-        }}
-      >
-        <View
-          style={{
-            flex: 1,
-            width: `${clamped * 100}%`,
-            borderRadius: radii.pill,
-            backgroundColor: colors.accent.emberDeep,
-          }}
-        />
-      </View>
+      <SegmentedProgressBar
+        progress={clamped}
+        segments={segments}
+        fillMode={fillMode}
+        height={SEGMENT_HEIGHT}
+        gap={SEGMENT_GAP}
+        activeColor={colors.accent.emberDeep}
+        inactiveColor={colors.surface.border}
+        {...(testID ? { testID: `${testID}-track` } : {})}
+        style={{ flex: 1 }}
+      />
 
       {onSkip ? (
         <Pressable accessibilityRole="button" hitSlop={spacing.sm} onPress={onSkip}>

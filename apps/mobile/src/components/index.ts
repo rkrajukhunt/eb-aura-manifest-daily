@@ -19,6 +19,7 @@ export * from './Orb';
 export * from './PillButton';
 export * from './Screen';
 export * from './ScreenHeader';
+export * from './SegmentedProgressBar';
 export * from './SelectCard';
 export * from './SerifDisplay';
 export * from './Sheet';
