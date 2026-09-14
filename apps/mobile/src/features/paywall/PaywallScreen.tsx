@@ -11,6 +11,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, fonts, scaledType } from '@/theme/typography';
 
 import type { OfferedPlan } from './purchases';
+import { TrialTimeline } from './TrialTimeline';
 import { TrialTransparency } from './TrialTransparency';
 
 /**
@@ -114,6 +115,15 @@ export function PaywallScreen({
 
   const headline = goal ? c.headlines[goal] : paywallCopy.headline;
   const withTrial = Boolean(selected.hasTrial && selected.trialDays);
+  // The trial story (timeline, banner, renewal line) belongs to the hero offer —
+  // the one plan that actually carries the store intro offer. All day counts and
+  // amounts stay the store's real ones, never fixed numbers.
+  const heroTrialDays = hero.hasTrial && hero.trialDays ? hero.trialDays : null;
+  const t = paywallCopy.trial;
+  const renewal =
+    selected.hasTrial && selected.trialDays
+      ? t.renewal.replace('{days}', String(selected.trialDays)).replace('{price}', selected.price)
+      : null;
 
   const start = () => {
     if (withTrial) setShowTransparency(true);
@@ -154,8 +164,8 @@ export function PaywallScreen({
             contentContainerStyle={{ paddingBottom: spacing.xl, gap: spacing.lg }}
             showsVerticalScrollIndicator={false}
           >
-            {/* The ✕ sits top-right (design 23) once the offer has been readable. */}
-            <View style={{ height: CLOSE_SIZE, alignItems: 'flex-end', marginTop: spacing.sm }}>
+            {/* The ✕ sits top-left once the offer has been readable. */}
+            <View style={{ height: CLOSE_SIZE, alignItems: 'flex-start', marginTop: spacing.sm }}>
               {dismissable && onDismiss && (
                 <Pressable
                   testID="paywall-dismiss"
@@ -180,18 +190,38 @@ export function PaywallScreen({
               )}
             </View>
 
-            <Text
-              allowFontScaling={false}
-              style={[scaledType('display', scale), { color: colors.text.primary }]}
-            >
-              {headline}
-            </Text>
+            {/* Trial promise when the hero carries one, else the goal headline. */}
+            <View style={{ alignItems: 'center', gap: spacing.xs }}>
+              <Text
+                allowFontScaling={false}
+                style={[
+                  scaledType('display', scale),
+                  { color: colors.text.primary, textAlign: 'center' },
+                ]}
+              >
+                {heroTrialDays ? t.headline : headline}
+              </Text>
+              {heroTrialDays && (
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    scaledType('body', scale),
+                    { color: colors.text.secondary, textAlign: 'center' },
+                  ]}
+                >
+                  {t.subhead}
+                </Text>
+              )}
+            </View>
+
+            {heroTrialDays && <TrialTimeline trialDays={heroTrialDays} testID="paywall-timeline" />}
 
             <View style={{ gap: spacing.sm + 1 }}>
               {plans.map((plan) => {
                 const isHero = plan.id === hero.id;
                 const isSelected = plan.id === selected.id;
                 const weekly = weeklyEquivalent(plan);
+                const showTrialBanner = isHero && heroTrialDays !== null;
                 return (
                   <Pressable
                     key={plan.id}
@@ -204,13 +234,42 @@ export function PaywallScreen({
                       borderRadius: radii.card - 4,
                       paddingVertical: spacing.md + 4,
                       paddingHorizontal: spacing.md + 6,
+                      ...(showTrialBanner ? { paddingTop: spacing.md + 16 } : {}),
                       borderWidth: isSelected ? 1.5 : 1,
-                      borderColor: isSelected ? colors.text.primary : colors.surface.border,
+                      borderColor: isSelected ? colors.accent.emberDeep : colors.surface.border,
                       backgroundColor: isSelected ? colors.surface.card : colors.surface.cardGlassy,
-                      ...(isHero ? { marginTop: spacing.sm } : {}),
                     }}
                   >
-                    {isHero && plan.hasTrial && (
+                    {showTrialBanner && (
+                      <View
+                        pointerEvents="none"
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          backgroundColor: colors.accent.emberDeep,
+                          borderTopLeftRadius: radii.card - 5,
+                          borderTopRightRadius: radii.card - 5,
+                          paddingVertical: 5,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Text
+                          allowFontScaling={false}
+                          style={{
+                            fontFamily: fonts.sansSemiBold,
+                            fontSize: 10,
+                            letterSpacing: 0.8,
+                            textTransform: 'uppercase',
+                            color: colors.text.onCta,
+                          }}
+                        >
+                          {t.badge}
+                        </Text>
+                      </View>
+                    )}
+                    {isHero && !showTrialBanner && (
                       <View
                         pointerEvents="none"
                         style={{
@@ -241,10 +300,30 @@ export function PaywallScreen({
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
                         gap: spacing.md,
                       }}
                     >
+                      <View
+                        style={{
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? colors.accent.emberDeep : colors.surface.border,
+                          backgroundColor: isSelected ? colors.accent.emberDeep : 'transparent',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {isSelected && (
+                          <Text
+                            allowFontScaling={false}
+                            style={{ fontSize: 12, color: colors.text.onCta }}
+                          >
+                            ✓
+                          </Text>
+                        )}
+                      </View>
                       <View style={{ flex: 1, gap: 3 }}>
                         <Text
                           allowFontScaling={false}
@@ -256,7 +335,19 @@ export function PaywallScreen({
                         >
                           {planName(plan)}
                         </Text>
-                        {plan.id === 'annual' && (
+                        {plan.id === 'annual' && weekly && (
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: fonts.sans,
+                              fontSize: 12.5,
+                              color: colors.text.secondary,
+                            }}
+                          >
+                            {`Only ${weekly} per week`}
+                          </Text>
+                        )}
+                        {plan.id === 'annual' && !weekly && (
                           <Text
                             allowFontScaling={false}
                             style={{
@@ -277,9 +368,11 @@ export function PaywallScreen({
                           color: colors.text.primary,
                         }}
                       >
-                        {plan.id === 'annual' && weekly ? (
+                        {plan.id === 'annual' && !weekly ? (
+                          plan.price
+                        ) : plan.id === 'annual' ? (
                           <>
-                            {weekly}
+                            {plan.price}
                             <Text
                               style={{
                                 fontFamily: fonts.sans,
@@ -287,7 +380,7 @@ export function PaywallScreen({
                                 color: colors.text.secondary,
                               }}
                             >
-                              {c.perWeek}
+                              {c.perYear}
                             </Text>
                           </>
                         ) : (
@@ -300,9 +393,35 @@ export function PaywallScreen({
               })}
             </View>
 
+            {heroTrialDays && (
+              <View style={{ alignItems: 'center', gap: 2 }}>
+                <Text
+                  allowFontScaling={false}
+                  style={[
+                    scaledType('bodySmall', scale),
+                    { color: colors.text.secondary, textAlign: 'center' },
+                  ]}
+                >
+                  {t.noCommitment}
+                </Text>
+                {renewal && (
+                  <Text
+                    allowFontScaling={false}
+                    style={[
+                      scaledType('bodySmall', scale),
+                      { color: colors.text.secondary, textAlign: 'center' },
+                    ]}
+                  >
+                    {renewal}
+                  </Text>
+                )}
+              </View>
+            )}
+
             <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
               <PillButton
                 title={withTrial ? c.ctaTrial : c.cta}
+                tint={withTrial ? 'ember' : 'ink'}
                 loading={busy}
                 onPress={start}
                 testID="paywall-continue"

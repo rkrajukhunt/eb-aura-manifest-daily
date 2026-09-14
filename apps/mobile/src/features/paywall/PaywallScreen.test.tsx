@@ -75,13 +75,20 @@ describe('PaywallScreen', () => {
   });
 
   describe('the headline', () => {
-    it('is keyed to her primary goal', async () => {
+    it('leads with the trial promise when the hero carries a trial', async () => {
       await renderPaywall({ goal: 'calm' });
+      expect(screen.getByText(paywallCopy.trial.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.subhead)).toBeTruthy();
+      expect(screen.getByTestId('paywall-timeline')).toBeTruthy();
+    });
+
+    it('is keyed to her primary goal when the store has no trial', async () => {
+      await renderPaywall({ plans: noTrialPlans, goal: 'calm' });
       expect(screen.getByText(paywallCopy.v5.headlines.calm)).toBeTruthy();
     });
 
-    it('falls back to the generic line without a goal', async () => {
-      await renderPaywall();
+    it('falls back to the generic line without a goal or trial', async () => {
+      await renderPaywall({ plans: noTrialPlans });
       expect(screen.getByText(paywallCopy.headline)).toBeTruthy();
     });
   });
@@ -91,7 +98,7 @@ describe('PaywallScreen', () => {
       await renderPaywall();
 
       expect(screen.getByText('Yearly · 7-day trial')).toBeTruthy();
-      expect(screen.getByText(paywallCopy.v5.mostPopular)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.badge)).toBeTruthy();
       expect(screen.getByText('$49.99/yr')).toBeTruthy();
       // 49.99 / 52 weeks.
       expect(screen.getByText(/\$0\.96/)).toBeTruthy();
