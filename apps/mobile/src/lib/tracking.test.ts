@@ -9,23 +9,38 @@ const requestPerms = ATT.requestTrackingPermissionsAsync as jest.Mock;
 describe('requestTrackingPermission', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('requests only when status is undetermined', async () => {
+  it('requests only when status is undetermined and reports the outcome', async () => {
     Platform.OS = 'ios';
     getPerms.mockResolvedValueOnce({ status: 'undetermined' });
-    await requestTrackingPermission();
+    requestPerms.mockResolvedValueOnce({ status: 'granted' });
+    await expect(requestTrackingPermission()).resolves.toBe(true);
     expect(requestPerms).toHaveBeenCalledTimes(1);
   });
 
-  it('does not re-ask once already decided', async () => {
+  it('reports a prior grant without re-asking', async () => {
     Platform.OS = 'ios';
-    getPerms.mockResolvedValueOnce({ status: 'denied' });
-    await requestTrackingPermission();
+    getPerms.mockResolvedValueOnce({ status: 'granted' });
+    await expect(requestTrackingPermission()).resolves.toBe(true);
     expect(requestPerms).not.toHaveBeenCalled();
   });
 
-  it('is a no-op on Android', async () => {
+  it('reports a denial as tracking-off', async () => {
+    Platform.OS = 'ios';
+    getPerms.mockResolvedValueOnce({ status: 'denied' });
+    await expect(requestTrackingPermission()).resolves.toBe(false);
+    expect(requestPerms).not.toHaveBeenCalled();
+  });
+
+  it('reports a restricted prompt as tracking-off', async () => {
+    Platform.OS = 'ios';
+    getPerms.mockResolvedValueOnce({ status: 'restricted' });
+    await expect(requestTrackingPermission()).resolves.toBe(false);
+    expect(requestPerms).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op on Android and reports tracking-as-allowed', async () => {
     Platform.OS = 'android';
-    await requestTrackingPermission();
+    await expect(requestTrackingPermission()).resolves.toBe(true);
     expect(getPerms).not.toHaveBeenCalled();
     expect(requestPerms).not.toHaveBeenCalled();
   });

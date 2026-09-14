@@ -68,7 +68,7 @@ export function ListRow({
           <Text
             allowFontScaling={false}
             numberOfLines={1}
-            style={[scaledType('listSubtitle', scale), { color: colors.text.disabled }]}
+            style={[scaledType('listSubtitle', scale), { color: colors.text.secondary }]}
           >
             {subtitle}
           </Text>

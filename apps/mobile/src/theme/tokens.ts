@@ -40,6 +40,8 @@ export interface ColorTokens {
     emberDeep: string;
     /** Inactive waveform bars. */
     emberFaint: string;
+    /** Active-tab capsule fill in the bottom bar. */
+    tabCapsule: string;
     /** Selected chips, "today" marks. */
     olive: string;
     /** Hairline borders, resting chips. */
@@ -111,6 +113,7 @@ const light: ColorTokens = {
     emberSoft: palette.emberSoft,
     emberDeep: palette.emberDeep,
     emberFaint: palette.emberFaint,
+    tabCapsule: palette.emberFaint,
     olive: palette.olive,
     oliveSoft: palette.oliveSoft,
     oliveFaint: palette.oliveFaint,
@@ -171,6 +174,7 @@ const dark: ColorTokens = {
     emberSoft: palette.emberSoft,
     emberDeep: palette.emberDeep,
     emberFaint: '#4E3A2C',
+    tabCapsule: '#4E3A2C',
     olive: palette.olive,
     oliveSoft: '#3A362B',
     oliveFaint: '#57523F',
@@ -259,6 +263,10 @@ export const layout = {
   /** Grouped list rows (v4 §profile/settings): 14 vertical, 16 horizontal. */
   listRowPaddingV: 14,
   listRowPaddingH: 16,
+  /** The leading tile of a v4 list row (IconTile): 32pt square. Lives here so
+   *  ListRow's hairline inset and TrialTimeline's column are measured from the
+   *  same token instead of a constant exported by a sibling component. */
+  iconTileSize: 32,
   /** Full-screen covers breathe wider than a tab screen (v4 §player). */
   coverMargin: 24,
   /** Collection tiles sit a hair taller than a list row (v4 §home grid). */

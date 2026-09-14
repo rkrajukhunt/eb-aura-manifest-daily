@@ -1,11 +1,14 @@
 /**
  * Signing in and signing out (03 §2.3, §5).
  *
- * The load-bearing honesty here is `signOut.unclaimedBody`. This product boots
- * every user into an anonymous account, so for most people "sign out" is not
- * the reversible housekeeping it is in other apps — it is the end of their
- * letters, with no way back. Saying that plainly, at the moment she taps, is
- * the only defensible version of the button.
+ * Sign-in precedes the product (03 §2.1 reversal, 2026-07-24): the gate blocks
+ * every route until an identity is attached, so "boots every user into an
+ * anonymous account" no longer describes the primary path. The unclaimed edge
+ * still exists — a phone that reaches the product without an identity — and
+ * there `signOut.unclaimedBody` is the load-bearing honesty: signing out is
+ * not the reversible housekeeping it is in other apps but the end of the
+ * letters on that device, with no way back. Saying that plainly, at the moment
+ * she taps, is the only defensible version of the button.
  *
  * `signIn.body` is the matching truth on the other side: signing in on a phone
  * that already has words on it replaces them, and she should know before, not

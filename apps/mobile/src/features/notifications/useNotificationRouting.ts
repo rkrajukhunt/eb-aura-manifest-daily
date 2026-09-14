@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { hasSeenLetter } from '@/features/letter/keepLetter';
 import type { Profile } from '@/hooks/useProfile';
+import { analytics } from '@/lib/analytics';
 
 import { isNotificationLaunch, parseDeepLink, resolveDeepLink } from './deepLink';
 import { reportNotificationOpened } from './useNotifications';
@@ -53,7 +54,15 @@ export function useNotificationRouting(
       const data = response.notification.request.content.data as Record<string, unknown>;
       if (!isNotificationLaunch(data)) return;
 
-      void reportNotificationOpened(userId);
+      const kind = typeof data.kind === 'string' ? data.kind : null;
+
+      // Only an arrival open resets the auto-soften counter (11 §5) — an
+      // affirmation nudge open must not count as a "heard" moment.
+      if (kind === 'moment_arrival') {
+        void reportNotificationOpened(userId);
+      } else if (kind === 'affirmation_nudge') {
+        analytics.capture('affirmation_nudge_opened');
+      }
 
       const url = typeof data.url === 'string' ? data.url : null;
       router.push(resolveDeepLink(parseDeepLink(url), gate) as never);

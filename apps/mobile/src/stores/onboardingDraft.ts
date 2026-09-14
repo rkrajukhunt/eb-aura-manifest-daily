@@ -63,6 +63,40 @@ const initialState = {
   editReturnScreen: null,
 };
 
+/**
+ * Answer keys a draft may legitimately hold — live screens plus `q-pronoun`
+ * (answered from the name screen, no route of its own, still has to sync).
+ */
+const LIVE_ANSWER_KEYS: ReadonlySet<string> = new Set<string>([...SCREEN_ORDER, 'q-pronoun']);
+
+/**
+ * Draft v1 (M16): a pre-v5 draft could hold retired screens (`s04-self-description`,
+ * `s07-dream-home`) and a retired `currentScreen`. Left in place, `pendingCommits`
+ * re-INSERTs those retired screens' answers on the next completion and rewrites
+ * their profile columns — silent bleed-in of state the live flow can no longer
+ * see. Drop non-live answer keys and park any out-of-flow `currentScreen`.
+ */
+export function migrateDraft(persisted: unknown): OnboardingDraftState {
+  const wrapped = persisted as { state?: Partial<OnboardingDraftState> };
+  const state = wrapped.state ?? (persisted as Partial<OnboardingDraftState>);
+
+  const answers: Partial<Record<OnboardingScreenId, DraftAnswer>> = {};
+  for (const [id, answer] of Object.entries(state.answers ?? {})) {
+    if (LIVE_ANSWER_KEYS.has(id)) answers[id as OnboardingScreenId] = answer as DraftAnswer;
+  }
+
+  const currentScreen = SCREEN_ORDER.includes(state.currentScreen as OnboardingScreenId)
+    ? (state.currentScreen as OnboardingScreenId)
+    : (SCREEN_ORDER[0] as OnboardingScreenId);
+
+  return {
+    ...initialState,
+    ...state,
+    answers,
+    currentScreen,
+  } as OnboardingDraftState;
+}
+
 export const useOnboardingDraft = create<OnboardingDraftState>()(
   persist(
     (set, get) => ({
@@ -111,6 +145,8 @@ export const useOnboardingDraft = create<OnboardingDraftState>()(
     {
       name: 'onboarding.draft',
       storage: createJSONStorage(() => mmkvStorage),
+      version: 1,
+      migrate: migrateDraft,
     },
   ),
 );

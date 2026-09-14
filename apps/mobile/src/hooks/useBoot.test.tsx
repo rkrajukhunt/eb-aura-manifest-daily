@@ -35,7 +35,7 @@ jest.mock('@/lib/analytics', () => ({
 }));
 jest.mock('@/lib/superProperties', () => ({ buildSuperProperties: jest.fn(() => ({})) }));
 jest.mock('@/lib/tracking', () => ({
-  requestTrackingPermission: jest.fn(async () => undefined),
+  requestTrackingPermission: jest.fn(async () => true),
 }));
 jest.mock('@/lib/ga4', () => ({
   initGa4: jest.fn(),
@@ -84,7 +84,7 @@ describe('useBoot', () => {
     expect(useAppState.getState().userId).toBe('user-1');
     expect(configurePurchases).toHaveBeenCalledWith('user-1');
     expect(analytics.identify).toHaveBeenCalledWith('user-1');
-    expect(initGa4).toHaveBeenCalled();
+    expect(initGa4).toHaveBeenCalledWith(true);
     expect(requestTrackingPermission.mock.invocationCallOrder[0]).toBeLessThan(
       initGa4.mock.invocationCallOrder[0]!,
     );

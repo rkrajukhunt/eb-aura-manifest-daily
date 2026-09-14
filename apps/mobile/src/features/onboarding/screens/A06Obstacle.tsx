@@ -57,6 +57,7 @@ export function A06Obstacle() {
             icon={OBSTACLE_ICON[choice.key]}
             selected={selected.includes(choice.label)}
             onPress={() => toggle(choice.label)}
+            multi
             testID={`a06-obstacle-${choice.key}`}
           />
         ))}

@@ -13,9 +13,11 @@ import Constants from 'expo-constants';
  * `analytics.ts`, next to the one emitter, so "what Google receives" is one
  * readable, auditable decision separate from "how GA4 works".
  *
- * Collection is gated on the build environment: enabled only for the
- * store-bound builds, a complete no-op in local development and under jest —
- * the same "no key = no-op" posture PostHog has (spec §8).
+ * Collection is gated on two things: the build environment (store-bound builds
+ * only — a complete no-op in local development and under jest, the same
+ * "no key = no-op" posture PostHog has, spec §8) AND the ATT result on iOS
+ * (M11). A denied/restricted prompt must not report to the ad-conversion sink;
+ * a granted one (or Android, which has no ATT) may.
  *
  * Uses the modular Firebase Analytics API (v26+): named functions taking the
  * Analytics instance, not the old `analytics().logEvent(...)` namespaced form.
@@ -43,8 +45,13 @@ function shouldEnable(): boolean {
   return env === 'production';
 }
 
-export function initGa4(): void {
-  enabled = shouldEnable();
+/**
+ * @param trackingAllowed The ATT decision from `requestTrackingPermission()`
+ * (true on Android/granted, false on denied/restricted). The default of `true`
+ * only stands in for callers that never hold an ATT signal (tests).
+ */
+export function initGa4(trackingAllowed: boolean = true): void {
+  enabled = shouldEnable() && trackingAllowed;
   try {
     // `getAnalytics()` throws SYNCHRONOUSLY when the native Firebase app was
     // never configured ("No Firebase App '[DEFAULT]' has been created") — a

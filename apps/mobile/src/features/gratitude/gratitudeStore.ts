@@ -88,7 +88,12 @@ export function markSynced(
  */
 export function mergeRemote(
   index: GratitudeIndex,
-  remote: { entryDate: string; entry: string; promptShown: string | null }[],
+  remote: {
+    entryDate: string;
+    entry: string;
+    promptShown: string | null;
+    promptWasPersonalized: boolean;
+  }[],
 ): GratitudeIndex {
   const merged: GratitudeIndex = { ...index };
 
@@ -101,7 +106,7 @@ export function mergeRemote(
       entryDate: row.entryDate,
       entry: row.entry,
       promptShown: row.promptShown,
-      promptWasPersonalized: local?.promptWasPersonalized ?? false,
+      promptWasPersonalized: local?.promptWasPersonalized ?? row.promptWasPersonalized,
       updatedAt: local?.updatedAt ?? 0,
       synced: true,
     };

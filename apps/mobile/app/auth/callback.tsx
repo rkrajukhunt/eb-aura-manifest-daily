@@ -8,10 +8,11 @@ import { consumePendingSignIn, recordEmailSignIn } from '@/features/auth/session
 import { recordEmailClaim } from '@/features/paywall/claim';
 import { wipeDeviceState } from '@/lib/accountReset';
 import { supabase } from '@/lib/supabase';
+import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
- * `aura://auth/callback` — the magic-link landing (03 §82, 06 §5).
+ * `aura://auth/callback` — the magic-link landing (03 §8.2, 06 §5).
  *
  * This route existing is what makes the email claim path work at all: the sheet
  * sends the link, and without a handler here the tap resolved to nothing and the
@@ -77,6 +78,11 @@ export default function AuthCallbackRoute() {
       // just-confirmed new user still has to onboard, and `resolveBootRoute` is
       // the one place that decides that. A finished user still lands on Home.
       recordEmailClaim();
+      // Unlike the sign-in branch, the claim keeps every local byte (03 §2.2 —
+      // the user id does not change), so there is nothing to wipe. But the boot
+      // snapshot must refresh anyway: without a nonce bump the boot gate re-runs
+      // on nothing and the new identity isn't picked up until a cold start.
+      useAppState.getState().reset();
       router.replace('/');
     })();
 

@@ -1,8 +1,50 @@
-import { pendingCommits, resumeScreen, useOnboardingDraft } from './onboardingDraft';
+import { migrateDraft, pendingCommits, resumeScreen, useOnboardingDraft } from './onboardingDraft';
 
 describe('onboarding draft', () => {
   beforeEach(() => {
     useOnboardingDraft.getState().reset();
+  });
+
+  describe('persisted-draft migration (M16)', () => {
+    it('drops retired screens so they never re-commit (s04/s07 bleed-in)', () => {
+      const migrated = migrateDraft({
+        startedAt: 1000,
+        currentScreen: 's07-dream-home',
+        answers: {
+          's04-self-description': { value: 'Quiet', skipped: false, committedAt: null },
+          'a05-feeling': { value: 'okay', skipped: false, committedAt: null },
+          'q-pronoun': { value: 'they/them', skipped: false, committedAt: null },
+        },
+        editReturnScreen: null,
+      });
+
+      expect(migrated.answers['s04-self-description']).toBeUndefined();
+      expect(migrated.answers['a05-feeling']).toBeDefined();
+      expect(migrated.answers['q-pronoun']).toBeDefined();
+    });
+
+    it('parks a retired currentScreen at the flow start', () => {
+      const migrated = migrateDraft({
+        startedAt: null,
+        currentScreen: 's13-commit',
+        answers: {},
+        editReturnScreen: null,
+      });
+
+      expect(migrated.currentScreen).toBe('a01-splash');
+    });
+
+    it('keeps a live currentScreen untouched', () => {
+      const migrated = migrateDraft({
+        startedAt: null,
+        currentScreen: 'q-belief',
+        answers: {},
+        editReturnScreen: 'a04-goals',
+      });
+
+      expect(migrated.currentScreen).toBe('q-belief');
+      expect(migrated.editReturnScreen).toBe('a04-goals');
+    });
   });
 
   describe('funnel clock', () => {

@@ -75,20 +75,6 @@ export const momentsCopy = {
     formingPreview: 'Being written',
   },
 
-  player: {
-    play: 'Play',
-    pause: 'Pause',
-    back15: 'Back 15 seconds',
-    forward15: 'Forward 15 seconds',
-    speed: 'Speed',
-    favorite: 'Keep this',
-    unfavorite: 'Kept',
-    readMode: 'Read',
-    listenMode: 'Listen',
-    refine: 'Not quite right?',
-    minimize: 'Minimize',
-  },
-
   refine: {
     title: 'How should it change?',
     more_realistic: 'More realistic',

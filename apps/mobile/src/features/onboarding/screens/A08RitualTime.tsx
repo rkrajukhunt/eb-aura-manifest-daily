@@ -178,6 +178,10 @@ export function A08RitualTime() {
                 key={slot}
                 activeOpacity={0.7}
                 onPress={() => handleSelectSlot(slot)}
+                accessible
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={`${c.fineTune}: ${slot}`}
                 testID={`a08-ritual-time-slot-${slot}`}
                 style={{
                   paddingHorizontal: spacing.md,

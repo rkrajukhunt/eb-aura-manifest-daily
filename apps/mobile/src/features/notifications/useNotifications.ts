@@ -188,10 +188,15 @@ export function useNotificationPrefs(userId: string | undefined) {
     arrivalEnabled: true,
     affirmationNudge: 'quiet',
   });
+  // The prefs above are HARD DEFAULTS, not her stored state. Until the initial
+  // read resolves, a toggle must not be written: upserting the defaults over
+  // stored rows is how a pre-load tap silently overwrote her real choices (M20).
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
+    setLoaded(false);
 
     void supabase
       .from('notification_prefs')
@@ -199,11 +204,14 @@ export function useNotificationPrefs(userId: string | undefined) {
       .eq('user_id', userId)
       .maybeSingle()
       .then(({ data }) => {
-        if (!active || !data) return;
-        setPrefs({
-          arrivalEnabled: data.arrival_enabled,
-          affirmationNudge: data.affirmation_nudge,
-        });
+        if (!active) return;
+        if (data) {
+          setPrefs({
+            arrivalEnabled: data.arrival_enabled,
+            affirmationNudge: data.affirmation_nudge,
+          });
+        }
+        setLoaded(true);
       });
 
     return () => {
@@ -213,11 +221,12 @@ export function useNotificationPrefs(userId: string | undefined) {
 
   const update = useCallback(
     async (next: Partial<NotificationPrefs>) => {
+      if (!loaded) return; // Stored state unknown yet — nothing to merge against.
       const merged = { ...prefs, ...next };
       setPrefs(merged);
 
       if (!userId) return;
-      await supabase.from('notification_prefs').upsert(
+      const { error } = await supabase.from('notification_prefs').upsert(
         {
           user_id: userId,
           arrival_enabled: merged.arrivalEnabled,
@@ -225,9 +234,12 @@ export function useNotificationPrefs(userId: string | undefined) {
         },
         { onConflict: 'user_id' },
       );
+      if (error && __DEV__) {
+        console.warn(`[notifications] prefs upsert failed: ${error.message}`);
+      }
     },
-    [prefs, userId],
+    [loaded, prefs, userId],
   );
 
-  return { prefs, update };
+  return { prefs, update, loaded };
 }

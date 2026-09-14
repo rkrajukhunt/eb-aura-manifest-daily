@@ -22,6 +22,8 @@ export interface SegmentedProgressBarProps {
   activeColor?: string | undefined;
   /** Inactive pill track color. Defaults to colors.surface.border. */
   inactiveColor?: string | undefined;
+  /** Accessible name for screen readers, e.g. "Progress". */
+  label?: string | undefined;
   style?: StyleProp<ViewStyle> | undefined;
   testID?: string | undefined;
 }
@@ -46,21 +48,30 @@ export function SegmentedProgressBar({
   fillMode = 'smooth',
   activeColor,
   inactiveColor,
+  label,
   style,
   testID,
 }: SegmentedProgressBarProps) {
   const { colors, radii } = useTheme();
   const clamped = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
   const count = Math.max(1, Math.floor(segments));
+  const filledCount = Math.round(clamped * count);
+
+  // Announce exactly what is drawn. Smooth mode fills proportionally, so it
+  // announces the true ratio; discrete mode only ever shows whole segments, so
+  // its percentage derives from lit segments — a reader never hears a number
+  // the bar does not show.
+  const announced =
+    fillMode === 'discrete' ? Math.round((filledCount / count) * 100) : Math.round(clamped * 100);
 
   const resolvedActive = activeColor ?? colors.accent.emberDeep;
   const resolvedInactive = inactiveColor ?? colors.surface.border;
 
   return (
     <View
-      role="progressbar"
       accessibilityRole="progressbar"
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
+      accessibilityLabel={label}
+      accessibilityValue={{ min: 0, max: 100, now: announced }}
       testID={testID}
       style={[
         {
@@ -72,15 +83,15 @@ export function SegmentedProgressBar({
       ]}
     >
       {Array.from({ length: count }, (_, i) => {
-        const segStart = i / count;
-        const segEnd = (i + 1) / count;
-
         let fillFraction = 0;
         if (fillMode === 'discrete') {
-          // Discrete mode: a segment is fully filled if progress has reached or passed it
-          fillFraction = clamped >= segEnd || i < Math.round(clamped * count) ? 1 : 0;
+          // Discrete: a segment is full once its milestone is reached. Exactly
+          // `filledCount` are lit — the same figure the value now announces.
+          fillFraction = i < filledCount ? 1 : 0;
         } else {
-          // Smooth mode: proportional fill within the active segment
+          // Smooth mode: proportional fill within the active segment.
+          const segStart = i / count;
+          const segEnd = (i + 1) / count;
           if (clamped >= segEnd) {
             fillFraction = 1;
           } else if (clamped <= segStart) {

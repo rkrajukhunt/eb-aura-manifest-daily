@@ -26,7 +26,6 @@ export function BootGate({ children }: { children: ReactNode }) {
   // The hard-gate inputs, captured at boot (see useBoot) so routing never races
   // the RevenueCat SDK's configuration.
   const premium = useAppState((s) => s.premium);
-  const purchasesConfigured = useAppState((s) => s.purchasesConfigured);
   const bootError = useAppState((s) => s.bootError);
   const { colors, spacing, typography } = useTheme();
 
@@ -85,16 +84,7 @@ export function BootGate({ children }: { children: ReactNode }) {
         premium,
       }),
     );
-  }, [
-    status,
-    claimed,
-    profile,
-    letterQuery.isPending,
-    letterQuery.data,
-    premium,
-    purchasesConfigured,
-    router,
-  ]);
+  }, [status, claimed, profile, letterQuery.isPending, letterQuery.data, premium, router]);
 
   const holding = (
     <View

@@ -82,6 +82,8 @@ export const ANSWER_TYPE: Record<OnboardingScreenId, OnboardingAnswerType> = {
   's11-arrival-time': 'time',
   's13-commit': 'none',
   's12-why-notifications': 'none',
+  // Second-chance ask — not in SCREEN_ORDER, but it is a funnel screen.
+  's12b-notifications': 'none',
 };
 
 /** Screens that carry an answer — the denominator for `questions_answered`. */
@@ -230,8 +232,13 @@ export function visibleQuestionScreens(
 /**
  * Where the header's track sits for `id`: 0..1 across the screens from the
  * first question to the consent, or null when the screen draws no header
- * (splash, contract, notifications). Value beats count as steps too — the
- * track only ever moves forward.
+ * (splash, contract, notifications).
+ *
+ * Only answer-carrying screens count (onboarding-flow.md: "Only
+ * answer-carrying screens count toward the progress header") — a value beat
+ * adds no step, because its bar would otherwise look frozen across the
+ * question gaps. A beat inherits the progress of the last question before it,
+ * so the header stays present but never moves on it.
  */
 export function progressOf(
   id: OnboardingScreenId,
@@ -243,10 +250,24 @@ export function progressOf(
   const at = SCREEN_ORDER.indexOf(id);
   if (at < first || at > last) return null;
 
-  const track = SCREEN_ORDER.slice(first, last + 1).filter((s) => isVisible(s, hidden, answers));
+  const inRange = SCREEN_ORDER.slice(first, last + 1);
+  const track = inRange.filter((s) => isVisible(s, hidden, answers) && ANSWER_TYPE[s] !== 'none');
+  if (track.length === 0) return null;
+
   const position = track.indexOf(id);
-  if (position < 0) return null;
-  return (position + 1) / track.length;
+  if (position >= 0) return (position + 1) / track.length;
+
+  if (ANSWER_TYPE[id] === 'none') {
+    // Value beat: hold the last question's progress rather than adding a step.
+    let reached = 0;
+    for (const s of inRange) {
+      if (s === id) break;
+      if (isVisible(s, hidden, answers) && ANSWER_TYPE[s] !== 'none') reached += 1;
+    }
+    return reached / track.length;
+  }
+
+  return null;
 }
 
 /** Expo Router path for a screen id — route files are named by id (06 §1). */

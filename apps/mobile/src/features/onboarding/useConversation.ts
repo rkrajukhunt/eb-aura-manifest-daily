@@ -1,6 +1,6 @@
 import type { OnboardingScreenId } from '@aura/shared';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { analytics } from '@/lib/analytics';
 import { useAppState } from '@/stores/appState';
@@ -29,7 +29,17 @@ export function useConversation(screenId: OnboardingScreenId) {
     analytics.capture('onboarding_screen_viewed', { screen_id: screenId });
   }, [screenId]);
 
+  // In-flight guard (M12): the tap IS the advance, so two rapid taps must not
+  // insert two `onboarding_answers` rows, emit two analytics events, or push
+  // two screens. The current screen unmounts as we leave it, so the ref is
+  // per-screen and needs no reset on success; a failed completion resets it so
+  // she can retry.
+  const busyRef = useRef(false);
+
   const goNext = async (): Promise<void> => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+
     if (isEditing) {
       const returnTo = useOnboardingDraft.getState().endEdit();
       if (returnTo) router.replace(screenRoute(returnTo) as never);
@@ -46,7 +56,12 @@ export function useConversation(screenId: OnboardingScreenId) {
     // Past the last screen the conversation ends and the ritual begins.
     // `replace`, so a back-swipe cannot return her to the conversation.
     if (userId) {
-      await completeOnboarding(userId);
+      try {
+        await completeOnboarding(userId);
+      } catch (error) {
+        busyRef.current = false;
+        throw error;
+      }
       router.replace('/(onboarding)/generating');
     }
   };
@@ -56,6 +71,7 @@ export function useConversation(screenId: OnboardingScreenId) {
    * conversation was (revise, never restart); otherwise it advances.
    */
   const submit = async (value: unknown, skipped = false): Promise<void> => {
+    if (busyRef.current) return;
     void haptic('onboardingContinue');
     // The draft is written synchronously inside submitAnswer; only the network
     // sync is async. Don't hold the screen on it — the tap IS the advance

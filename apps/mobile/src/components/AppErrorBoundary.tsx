@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 
 import { captureException } from '@/lib/analytics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { scaledType } from '@/theme/typography';
+import { clampedFontScale, scaledType } from '@/theme/typography';
 
 import { TextButton } from './TextButton';
 
@@ -13,6 +13,7 @@ import { TextButton } from './TextButton';
  */
 function ErrorFallback({ onRetry }: { onRetry: () => void }): ReactNode {
   const { colors, spacing } = useTheme();
+  const scale = clampedFontScale();
   return (
     <View
       testID="app-error-fallback"
@@ -26,14 +27,12 @@ function ErrorFallback({ onRetry }: { onRetry: () => void }): ReactNode {
       }}
     >
       <Text
-        allowFontScaling={false}
-        style={[scaledType('title', 1), { color: colors.text.primary, textAlign: 'center' }]}
+        style={[scaledType('title', scale), { color: colors.text.primary, textAlign: 'center' }]}
       >
         Something slipped for a moment.
       </Text>
       <Text
-        allowFontScaling={false}
-        style={[scaledType('body', 1), { color: colors.text.secondary, textAlign: 'center' }]}
+        style={[scaledType('body', scale), { color: colors.text.secondary, textAlign: 'center' }]}
       >
         Let’s try that again.
       </Text>

@@ -28,7 +28,7 @@ export function RowGroup({ children, separatorInset = 'edge', style, testID }: R
   // Text in a tiled row starts after: row padding + 32pt tile + the row gap.
   const inset =
     separatorInset === 'leading'
-      ? layout.listRowPaddingH + ICON_TILE_SIZE + spacing.md
+      ? layout.listRowPaddingH + layout.iconTileSize + spacing.md
       : layout.listRowPaddingH;
 
   return (
@@ -64,6 +64,3 @@ export function RowGroup({ children, separatorInset = 'edge', style, testID }: R
     </View>
   );
 }
-
-/** Shared with IconTile so the separator inset stays aligned with tiled rows. */
-export const ICON_TILE_SIZE = 32;

@@ -64,7 +64,11 @@ export default function HomeRoute() {
   const entitlement = useEntitlement();
 
   useEffect(() => {
-    if (!entitlement.loading && !entitlement.premium) {
+    // A pocket without premium is pushed to the wall — unless she has already
+    // chosen the free tier by dismissing it this install. Boot's hard gate
+    // (routeGate) re-runs on every cold start, so the dismissed flag cannot
+    // skip the wall entirely; it only stops the wall bouncing her straight back.
+    if (!entitlement.loading && !entitlement.premium && !hasSeenPaywall()) {
       router.replace('/paywall');
     }
   }, [entitlement.loading, entitlement.premium, router]);

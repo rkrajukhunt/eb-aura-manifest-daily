@@ -25,6 +25,9 @@ import { TechniqueSheet } from '@/features/affirmations/TechniqueSheet';
 import { captureShareCard, toShareContent } from '@/features/affirmations/shareCard';
 import { recordBeat, TECHNIQUES } from '@/features/affirmations/practice';
 import { useSpeech } from '@/features/affirmations/useSpeech';
+import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
+import { canUse } from '@/features/paywall/gating';
+import { useEntitlement } from '@/features/paywall/useEntitlement';
 import {
   useAffirmationCandidates,
   useKeptAffirmations,
@@ -33,7 +36,7 @@ import {
 import { localDate } from '@/features/gratitude/useGratitude';
 import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
-import { errorCopyFor, errorCopyForKey } from '@/lib/errorCopy';
+import { errorCopyFor, errorCopyForKey, errorKeyOf } from '@/lib/errorCopy';
 import { supabase } from '@/lib/supabase';
 import { useAppState } from '@/stores/appState';
 import { haptic } from '@/theme/haptics';
@@ -59,6 +62,7 @@ export default function AffirmationsRoute() {
   const scale = clampedFontScale();
   const tabBarClearance = useTabBarClearance();
   const userId = useAppState((s) => s.userId);
+  const entitlement = useEntitlement();
 
   const today = useTodaysAffirmation(userId ?? undefined);
   const kept = useKeptAffirmations(userId ?? undefined);
@@ -66,7 +70,11 @@ export default function AffirmationsRoute() {
 
   const guidedRef = useRef<BottomSheetModal>(null);
   const techniqueRef = useRef<BottomSheetModal>(null);
+  const lockedRef = useRef<BottomSheetModal>(null);
   const shareRef = useRef<React.ComponentRef<typeof ViewShot>>(null);
+  // One generation per pass (09 §9.3b): a fresh key when the studio opens, so a
+  // double-submit of the same pass is one job, never two.
+  const guidedPassKey = useRef<string>(`guided:${Date.now()}:${Math.random()}`);
   const [step, setStep] = useState<GuidedStep>('goal');
   const [busy, setBusy] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -144,7 +152,7 @@ export default function AffirmationsRoute() {
       setGuidedError(null);
       setStep('candidates');
       void api
-        .generateGuidedAffirmation(input)
+        .generateGuidedAffirmation(input, guidedPassKey.current)
         .then((res) => {
           analytics.capture('affirmation_generated_guided', {
             goal_area: input.goalArea,
@@ -154,6 +162,12 @@ export default function AffirmationsRoute() {
         })
         .catch((error: unknown) => {
           setBusy(false);
+          // A lapsed entitlement mid-session: the calm locked sheet, exactly
+          // like Home's Manifest row, rather than a red server message.
+          if (errorKeyOf(error) === 'entitlement_required') {
+            lockedRef.current?.present();
+            return;
+          }
           setGuidedError(errorCopyFor(error));
         });
     },
@@ -326,7 +340,21 @@ export default function AffirmationsRoute() {
               </Text>
             }
             onPress={() => {
+              // The guided studio is the premium creation surface (each pass is
+              // three flagship candidates). Free tier keeps today's one daily
+              // affirmation — the calm locked sheet explains that, never a dead tap.
+              if (!canUse('guided_affirmation', entitlement)) {
+                analytics.capture('locked_feature_touched', {
+                  feature: 'guided_affirmation',
+                });
+                lockedRef.current?.present();
+                return;
+              }
               setStep('goal');
+              setGuidedError(null);
+              // Fresh pass key: a double-submit of THIS pass is one job. Next
+              // open is a new pass and may legitimately generate again.
+              guidedPassKey.current = `guided:${Date.now()}:${Math.random()}`;
               guidedRef.current?.present();
             }}
             testID="affirmations-create"
@@ -378,6 +406,16 @@ export default function AffirmationsRoute() {
         error={guidedError}
         onGenerate={generate}
         onKeep={keep}
+      />
+
+      <LockedFeatureSheet
+        ref={lockedRef}
+        feature="guided_affirmation"
+        onSeePlans={() => {
+          lockedRef.current?.dismiss();
+          router.push('/paywall?from=settings');
+        }}
+        onDismiss={() => lockedRef.current?.dismiss()}
       />
     </Screen>
   );

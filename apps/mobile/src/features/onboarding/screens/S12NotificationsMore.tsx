@@ -44,6 +44,7 @@ export function S12NotificationsMore() {
   const time = ritualTimeOf(answers);
 
   useEffect(() => {
+    analytics.capture('onboarding_screen_viewed', { screen_id: 's12b-notifications' });
     analytics.capture('notification_second_chance_viewed', {});
     void Notifications.getPermissionsAsync().then((p) => setCanAskAgain(p.canAskAgain));
   }, []);

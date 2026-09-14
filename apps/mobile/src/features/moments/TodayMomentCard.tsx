@@ -2,6 +2,7 @@ import { Image, Pressable, Text, View } from 'react-native';
 
 import { Card, PlayCircle, SerifDisplay, TextButton } from '@/components';
 import { momentsCopy } from '@/copy/moments';
+import { playerCopy } from '@/copy/player';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
@@ -174,7 +175,7 @@ function ReadyCard({
           size={PLAY_DISC_SIZE}
           playing={false}
           onPress={() => onPlay(moment.id)}
-          accessibilityLabel={momentsCopy.player.play}
+          accessibilityLabel={playerCopy.play}
           testID="home-today-play"
         />
         <Text
@@ -190,9 +191,7 @@ function ReadyCard({
             one read as broken because it looked identical and did nothing. */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={
-            favorited ? momentsCopy.player.unfavorite : momentsCopy.player.favorite
-          }
+          accessibilityLabel={favorited ? playerCopy.unfavorite : playerCopy.favorite}
           accessibilityState={{ selected: favorited }}
           hitSlop={12}
           onPress={() => onFavorite(moment.id)}

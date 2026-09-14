@@ -151,7 +151,7 @@ export function TabBar({ state, descriptors, navigation }: TabBarProps) {
                 gap: 2,
                 paddingVertical: 6,
                 borderRadius: radii.pill,
-                backgroundColor: focused ? colors.accent.emberFaint : 'transparent',
+                backgroundColor: focused ? colors.accent.tabCapsule : 'transparent',
               }}
             >
               <TabIcon name={route.name} size={iconSizes.lg} color={iconColor} focused={focused} />

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
@@ -55,15 +55,20 @@ jest.mock('@/lib/analytics', () => ({
   analytics: { capture: jest.fn(), register: jest.fn() },
 }));
 
-// The cover and the claim sheet are exercised by their own suites; here they are
-// stubbed so the test observes only the route's gating decision (show cover vs.
-// escape to Home). A visible cover is `paywall-cover`; the holding view keeps its
-// real `paywall-unavailable` testID.
+// The cover and the claim sheet are exercised by their own suites; here the
+// cover is stubbed so the test observes only the route's gating decision (show
+// cover vs. escape to Home) and the dismissal wiring. `onDismiss` is forwarded
+// to a real button so the route's dismiss→free-tier path can be invoked.
 jest.mock('@/features/paywall/PaywallScreen', () => {
   const React = require('react');
-  const { Text } = require('react-native');
+  const { Pressable, Text } = require('react-native');
   return {
-    PaywallScreen: () => React.createElement(Text, { testID: 'paywall-cover' }, 'cover'),
+    PaywallScreen: (props: { onDismiss?: () => void }) =>
+      React.createElement(
+        Pressable,
+        { testID: 'paywall-cover', onPress: () => props.onDismiss?.() },
+        [React.createElement(Text, { key: 't' }, 'cover')],
+      ),
     DISMISS_DELAY_MS: 2000,
   };
 });
@@ -126,6 +131,21 @@ describe('PaywallRoute — no purchasable offering (the $39.99 fallback)', () =>
 
     await waitFor(() => expect(screen.getByTestId('paywall-cover')).toBeTruthy());
     expect(mockReplace).not.toHaveBeenCalledWith('/(tabs)/home');
+  });
+
+  it('HARD mode: dismissing the cover leaves to the free tier, marking it seen — no discount chase', async () => {
+    mockParams = {};
+    mockLoadPlans.mockResolvedValue(real);
+
+    renderRoute();
+
+    await waitFor(() => expect(screen.getByTestId('paywall-cover')).toBeTruthy());
+    // The ✕ on the real cover calls the route's onDismiss; that must send her
+    // to Home with the flag set, never to a second, quieter offer.
+    fireEvent.press(screen.getByTestId('paywall-cover'));
+
+    expect(mockMarkPaywallSeen).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/home');
   });
 
   it('SOFT mode (from=settings): shows "plans unavailable", never a fake-priced cover', async () => {

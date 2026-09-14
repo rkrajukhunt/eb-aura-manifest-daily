@@ -18,6 +18,11 @@ const MAX_QA_RETRIES = 1;
 /** On boot, `running` jobs older than this are re-queued — the worker died mid-flight (04 §4). */
 const STALE_RUNNING_MS = 5 * 60 * 1000;
 
+/** Postgres unique-violation — a racing request inserted the same idempotency key first. */
+function isUniqueViolation(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || /duplicate key|already exists/i.test(error.message ?? '');
+}
+
 export interface JobRow {
   id: string;
   user_id: string;
@@ -131,6 +136,20 @@ export class JobsService implements OnModuleInit {
       })
       .select('id')
       .single();
+
+    // Two requests with the same key can both miss the read above and reach the
+    // insert; the unique index turns the loser's insert into a `23505`. That is
+    // not an error — it is the duplicate we are here to prevent — so re-read and
+    // return the winner's job instead of a 500.
+    if (error && idempotencyKey && isUniqueViolation(error)) {
+      const { data: raced } = await this.supabase
+        .from('generation_jobs')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (raced) return { jobId: raced.id, existing: true };
+    }
 
     if (error || !data) throw new Error(`Failed to create job: ${error?.message}`);
 

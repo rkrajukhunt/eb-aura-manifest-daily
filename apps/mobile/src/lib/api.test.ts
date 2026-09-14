@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { api, ApiRequestError, request } from './api';
+import { supabase } from './supabase';
 
 jest.mock('./supabase', () => ({
   supabase: {
@@ -9,7 +10,15 @@ jest.mock('./supabase', () => ({
       refreshSession: jest.fn(async () => ({ data: { session: null }, error: new Error('no') })),
     },
   },
+  // Identity passthrough — the suite stubs `global.fetch` itself and asserts on
+  // the call (and the timeout wrapper's practical effect is a bounded fetch,
+  // which the fake Response cannot exercise anyway).
+  timeoutFetch: (input: unknown, init?: unknown) =>
+    (globalThis.fetch as typeof fetch)(input as RequestInfo, init as RequestInit),
 }));
+
+const refreshMock = supabase.auth.refreshSession as jest.Mock;
+const getMock = supabase.auth.getSession as jest.Mock;
 
 function reply(status: number, body?: unknown): Response {
   return {
@@ -78,5 +87,70 @@ describe('api request parsing', () => {
     await expect(
       request({ path: '/v1/generation/moment', method: 'POST', body: {}, schema: z.object({}) }),
     ).rejects.toBeInstanceOf(ApiRequestError);
+  });
+});
+
+describe('401-refresh-retry', () => {
+  const fetchMock = jest.fn();
+  const server401 = reply(401, { error: { key: 'unauthorized', message: 'expired' } });
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    refreshMock.mockReset();
+    refreshMock.mockResolvedValue({ data: { session: null }, error: new Error('no') });
+  });
+
+  it('refreshes once and retries after a 401', async () => {
+    fetchMock.mockResolvedValueOnce(server401).mockResolvedValueOnce(reply(200, { ok: true }));
+    refreshMock.mockResolvedValue({ data: { session: { access_token: 'fresh' } }, error: null });
+    // The refresh swapped the session on the client, so the retry's getSession
+    // sees the new token (send() reads the current session on every call).
+    getMock.mockResolvedValue({ data: { session: { access_token: 'fresh' } } });
+
+    await expect(
+      request({ path: '/v1/x', schema: z.object({ ok: z.boolean() }) }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    const retryInit = fetchMock.mock.calls[1][1] as RequestInit;
+    expect(retryInit.headers).toMatchObject({ Authorization: 'Bearer fresh' });
+  });
+
+  it('does not loop on a second 401', async () => {
+    fetchMock.mockResolvedValue(server401);
+    refreshMock.mockResolvedValue({
+      data: { session: { access_token: 'still-expired' } },
+      error: null,
+    });
+
+    await expect(request({ path: '/v1/x', schema: z.object({}) })).rejects.toBeInstanceOf(
+      ApiRequestError,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws unauthorized when the refresh itself fails', async () => {
+    fetchMock.mockResolvedValue(server401);
+
+    await expect(request({ path: '/v1/x', schema: z.object({}) })).rejects.toMatchObject({
+      key: 'unauthorized',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('never refreshes an unauthenticated call', async () => {
+    fetchMock.mockResolvedValue(server401);
+
+    await expect(
+      request({ path: '/v1/x', schema: z.object({}), authenticated: false }),
+    ).rejects.toBeInstanceOf(ApiRequestError);
+
+    expect(refreshMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

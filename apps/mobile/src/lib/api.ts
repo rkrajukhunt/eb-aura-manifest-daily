@@ -10,7 +10,7 @@ import {
 import { z } from 'zod';
 
 import { env } from './env';
-import { supabase } from './supabase';
+import { supabase, timeoutFetch } from './supabase';
 
 /**
  * Backend client (01 §2). Every request/response shape comes from `@aura/shared`
@@ -72,7 +72,7 @@ async function send<TSchema extends z.ZodTypeAny>({
   idempotencyKey,
   authenticated = true,
 }: RequestOptions<TSchema>): Promise<Response> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
 
   if (authenticated) {
     const { data } = await supabase.auth.getSession();
@@ -83,7 +83,16 @@ async function send<TSchema extends z.ZodTypeAny>({
 
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
-  return fetch(new URL(path, env.EXPO_PUBLIC_API_URL), {
+  // A GET sends no body, so it must not claim one — `Content-Type:
+  // application/json` on a body-less request is meaningless and trips content
+  // sniffers/proxies. Mistakes, not cleverness.
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+
+  // Same bounded-fetch rule as the Supabase client (supabase.ts): a stalled
+  // socket is a failure she is told about, not a hang. The job-status poll runs
+  // every 1.5s — without this, one hung connection leaves letter/manifest
+  // generation spinning with no error surface.
+  return timeoutFetch(new URL(path, env.EXPO_PUBLIC_API_URL), {
     method,
     headers,
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -186,12 +195,20 @@ export const api = {
       schema: jobAcceptedSchema,
     }),
 
-  /** The guided studio's one generation per pass (07 §1, product 09 §9.3b). */
-  generateGuidedAffirmation: (input: { goalArea: string; goalText?: string }) =>
+  /**
+   * The guided studio's one generation per pass (07 §1, product 09 §9.3b).
+   *
+   * Premium, like Manifest: three flagship candidates make a pass the most
+   * expensive generation, and the server now refuses non-premium callers. The
+   * pass key is generated when the sheet opens, so a double-tap (or a network
+   * retry of the same pass) returns the same job instead of a second spend.
+   */
+  generateGuidedAffirmation: (input: { goalArea: string; goalText?: string }, passKey: string) =>
     request({
       path: '/v1/generation/affirmation/guided',
       method: 'POST',
       body: input,
+      idempotencyKey: passKey,
       schema: jobAcceptedSchema,
     }),
 

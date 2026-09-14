@@ -90,7 +90,11 @@ export type OnboardingScreenId =
   | 's11-arrival-time'
   | 's13-commit'
   | 's12-why-notifications'
-  | 's12-notifications';
+  | 's12-notifications'
+  // The second-chance notification ask (design 27) — shown only when the OS
+  // prompt was declined/granted, so it is not part of the linear SCREEN_ORDER
+  // and gets its own id rather than reusing `s12-notifications`.
+  | 's12b-notifications';
 
 export type OnboardingAnswerType = 'text' | 'choice' | 'multi_choice' | 'people' | 'time' | 'none';
 
@@ -178,8 +182,15 @@ export interface EventCatalog {
    * row succeeded — most often a column a migration hasn't reached this
    * environment yet. Non-fatal (the answer is on the server); recorded so a
    * lagging schema is visible rather than a silently dead completion button.
+   *
+   * `cause` is a closed union, never a free-text message: the catalog's whole
+   * point is that user content cannot reach PostHog and a DB error must not
+   * echo a column value or path (M26).
    */
-  onboarding_profile_patch_failed: { screen_id: OnboardingScreenId; message: string };
+  onboarding_profile_patch_failed: {
+    screen_id: OnboardingScreenId;
+    cause: 'column_missing' | 'constraint' | 'timeout' | 'other';
+  };
   /** Mobile. She tapped "I'm ready" on the commitment beat (s13-commit, 2026-08-10). */
   commitment_accepted: Record<string, never>;
   /** Mobile. The one-time first-Home welcome/orientation card was shown (2026-08-10). */
@@ -240,6 +251,8 @@ export interface EventCatalog {
   trial_started: { sku: string };
   /** Mobile + backend. */
   purchase_completed: { sku: string };
+  /** Mobile. A store purchase failed (declined card / store error), as distinct from `cancelled`. */
+  purchase_failed: Record<string, never>;
   /** Mobile. Which gated feature she reached for — tells us what to build next. */
   locked_feature_touched: { feature: GatedFeature };
   /** Backend, from the RC webhook. */
@@ -302,6 +315,8 @@ export interface EventCatalog {
   moment_arrival_notification_sent: Record<string, never>;
   /** Mobile. Attribution for the soften counter (11 §5). */
   moment_arrival_notification_opened: Record<string, never>;
+  /** Mobile. An affirmation-nudge open must not reset the arrival counter. */
+  affirmation_nudge_opened: Record<string, never>;
   /** Mobile. */
   notification_permission_result: { granted: boolean };
   /** Mobile. The warm second-chance screen was reached (she declined S12 first). */
@@ -327,9 +342,14 @@ export type PlaybackErrorReason = 'network' | 'decode' | 'missing_audio' | 'unkn
 /** Where a paywall was shown (12 §3). */
 export type PaywallSurface = 'post_letter' | 'locked_feature' | 'settings';
 
-/** The five features the free tier gates (12 §4). */
+/** The features the free tier gates (12 §4). */
 export type GatedFeature =
-  'manifest_anything' | 'refine' | 'favorites' | 'collections' | 'share_export';
+  | 'manifest_anything'
+  | 'refine'
+  | 'favorites'
+  | 'collections'
+  | 'share_export'
+  | 'guided_affirmation';
 
 /**
  * `email` is the magic link; `password` is the email+password pair added when

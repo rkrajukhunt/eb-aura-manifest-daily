@@ -1,4 +1,4 @@
-import { charCountBucket } from './client';
+import { charCountBucket, type AnalyticsClient } from './client';
 
 describe('charCountBucket', () => {
   it('buckets a length into a safe coarse label', () => {
@@ -19,3 +19,11 @@ describe('charCountBucket', () => {
     expect([...buckets].every((b) => ['empty', 'short', 'medium', 'long'].includes(b))).toBe(true);
   });
 });
+
+// Compile-time contract (13 §2): a payload on a no-payload event is a TYPE error,
+// not a runtime concern. These lines must fail to compile — if tsc starts passing
+// them, the catalog's "Record<string, never>" enforcement has silently loosened.
+const capture = (() => {}) as unknown as AnalyticsClient['capture'];
+
+// @ts-expect-error — app_first_open is a no-payload event; a payload must not type-check.
+capture('app_first_open', { unexpected: 1 });

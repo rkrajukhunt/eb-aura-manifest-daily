@@ -42,6 +42,13 @@ interface PlayerState {
   speed: Speed;
   mode: PlayerMode;
 
+  /**
+   * Bumped on every `open`. Identifies a listen intent: consumers can key on
+   * it to distinguish a NEW open of the same moment from the previous one (a
+   * repeat listen is a separate session in drop-off analytics).
+   */
+  session: number;
+
   /** Ambient bed on/off, persisted; default on (10 §4). */
   ambientEnabled: boolean;
   setAmbientEnabled: (enabled: boolean) => void;
@@ -86,6 +93,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   mode: 'listen',
   ambientEnabled: kv.get<boolean>(STORAGE_KEYS.ambientEnabled) ?? true,
   source: 'home',
+  session: 0,
   controls: null,
 
   setControls: (controls) => set({ controls }),
@@ -96,7 +104,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   open: (moment, source = 'home') =>
-    set({
+    set((state) => ({
       moment,
       source,
       minimized: false,
@@ -105,7 +113,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       positionMs: 0,
       durationMs: moment.durationMs ?? 0,
       mode: 'listen',
-    }),
+      session: state.session + 1,
+    })),
 
   close: () => set({ moment: null, minimized: false, playing: false, positionMs: 0 }),
   minimize: () => set({ minimized: true }),
@@ -134,6 +143,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       speed: 1.0,
       mode: 'listen',
       source: 'home',
+      session: 0,
     }),
 }));
 

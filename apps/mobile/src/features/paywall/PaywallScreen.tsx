@@ -43,11 +43,16 @@ export interface PaywallScreenProps {
   testID?: string;
 }
 
+/**
+ * The per-week figure on the annual card, derived from the store's real price.
+ * Null whenever the card has no store package behind it — a fake plan must
+ * never show a second, invented price next to its headline (product 15 #2).
+ */
 function weeklyEquivalent(plan: OfferedPlan): string | null {
-  if (plan.id === 'annual' && (plan.price === '$49.99' || !plan.pkg)) return '$0.96';
+  if (plan.id !== 'annual') return null;
   const price = plan.pkg?.product.price;
   const currency = plan.pkg?.product.currencyCode;
-  if (plan.id !== 'annual' || typeof price !== 'number' || !currency) return null;
+  if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0 || !currency) return null;
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',

@@ -6,7 +6,6 @@ import { BackHandler, Linking, Text, View } from 'react-native';
 import { Screen, TextButton } from '@/components';
 import { useGratitude } from '@/features/gratitude/useGratitude';
 import { goalKeyOf, primaryGoalOf } from '@/features/onboarding/flow';
-import { DiscountOfferScreen } from '@/features/paywall/DiscountOfferScreen';
 import { ClaimSheet } from '@/features/paywall/ClaimSheet';
 import { HandoffScreen } from '@/features/paywall/HandoffScreen';
 import { PaywallScreen } from '@/features/paywall/PaywallScreen';
@@ -50,7 +49,6 @@ export default function PaywallRoute() {
     : (goalKeyOf(profile?.values?.[0]) ?? null);
 
   const [handoff, setHandoff] = useState(false);
-  const [showDiscount, setShowDiscount] = useState(false);
   const [plans, setPlans] = useState<OfferedPlan[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -74,18 +72,31 @@ export default function PaywallRoute() {
     router.replace('/(tabs)/home');
   }, [router]);
 
+  /**
+   * Dismissal is a real exit to the free tier — the free tier stays available
+   * (product 15). The post-Letter cover is shown once per install (12 §3); a
+   * dismissed wall must never chase her with a second, quieter offer (product
+   * 01 §10), and boot's hard gate still re-evaluates live entitlement next
+   * cold start, so declining cannot silently bypass the wall.
+   */
   const onDismissCover = useCallback(() => {
     if (askedForPlans) {
       router.back();
       return;
     }
-    // Show discount offer (Screen 3) on first dismissal
-    setShowDiscount(true);
-  }, [askedForPlans, router]);
+    leaveToHome();
+  }, [askedForPlans, router, leaveToHome]);
 
   useEffect(() => {
-    if (hard && premium) router.replace('/(tabs)/home');
-  }, [hard, premium, router]);
+    if (hard && !handoff && premium) router.replace('/(tabs)/home');
+  }, [hard, handoff, premium, router]);
+
+  // M22: the after-purchase claim used to dead-end in hard mode — the handoff
+  // branch replaced the branch that mounted the sheet, so a user who just
+  // purchased was never offered the claim. Present it over the handoff instead.
+  useEffect(() => {
+    if (hard && handoff) claimRef.current?.present();
+  }, [hard, handoff]);
 
   useEffect(() => {
     if (plansResolved && hard && !purchasable) leaveToHome();
@@ -108,7 +119,16 @@ export default function PaywallRoute() {
       return;
     }
 
-    if (outcome.status !== 'purchased') {
+    // Cancelled: she tapped away from Apple's own sheet — silence is right.
+    if (outcome.status === 'cancelled') {
+      return;
+    }
+
+    // Failed: declined card or store error — a payment attempt deserves a
+    // surface, not a silent dead tap.
+    if (outcome.status === 'failed') {
+      analytics.capture('purchase_failed');
+      setNotice(paywallCopy.purchaseFailedNote);
       return;
     }
 
@@ -135,42 +155,28 @@ export default function PaywallRoute() {
     }
   }, [hard, router]);
 
+  const claimSheet = (
+    <ClaimSheet
+      ref={claimRef}
+      afterPurchase
+      appleAvailable={appleAvailable}
+      onDone={() => {
+        claimRef.current?.dismiss();
+        router.replace('/(tabs)/home');
+      }}
+    />
+  );
+
   if (handoff) {
     return (
-      <HandoffScreen
-        testID="paywall-handoff"
-        name={profile?.name?.trim() || null}
-        gratitudeSaved={todaysEntry !== null}
-        onStart={leaveToHome}
-      />
-    );
-  }
-
-  if (showDiscount) {
-    return (
       <LetterMotionProvider>
-        <Screen testID="paywall-discount" edgeToEdge>
-          <View style={{ flex: 1, paddingHorizontal: spacing.lg, paddingVertical: spacing.md }}>
-            <DiscountOfferScreen
-              busy={busy}
-              onAccept={() => {
-                const discountPlan = plans.find((p) => p.id === 'annual') ?? {
-                  id: 'annual',
-                  pkg: null,
-                  price: '$24.99',
-                  monthlyEquivalent: '$2.08',
-                  hasTrial: false,
-                  trialDays: null,
-                  purchasable: true,
-                };
-                void onPurchase(discountPlan);
-              }}
-              onDecline={() => {
-                setShowDiscount(false);
-              }}
-            />
-          </View>
-        </Screen>
+        <HandoffScreen
+          testID="paywall-handoff"
+          name={profile?.name?.trim() || null}
+          gratitudeSaved={todaysEntry !== null}
+          onStart={leaveToHome}
+        />
+        {claimSheet}
       </LetterMotionProvider>
     );
   }
@@ -197,15 +203,6 @@ export default function PaywallRoute() {
             {...(env.EXPO_PUBLIC_PRIVACY_URL
               ? { onPrivacy: () => void Linking.openURL(env.EXPO_PUBLIC_PRIVACY_URL as string) }
               : {})}
-          />
-          <ClaimSheet
-            ref={claimRef}
-            afterPurchase
-            appleAvailable={appleAvailable}
-            onDone={() => {
-              claimRef.current?.dismiss();
-              router.replace('/(tabs)/home');
-            }}
           />
         </View>
       ) : (
@@ -246,6 +243,7 @@ export default function PaywallRoute() {
           )}
         </Screen>
       )}
+      {claimSheet}
     </LetterMotionProvider>
   );
 }

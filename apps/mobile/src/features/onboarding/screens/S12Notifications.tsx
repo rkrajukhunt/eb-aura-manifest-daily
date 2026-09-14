@@ -61,6 +61,11 @@ export function S12Notifications() {
       }
       // Declined at the OS, or "Not now": one warm second chance, shown once.
       router.push('/(onboarding)/s12b-notifications');
+    } catch (err) {
+      // A failing completion (e.g. answers still draining) must leave her able
+      // to retry, never throw a silent unhandled rejection past the second
+      // chance (M13). Mirrors S12NotificationsMore's contract.
+      console.warn('[onboarding] s12 finish failed:', err);
     } finally {
       // Left un-busy on a sync failure so she can retry rather than stall.
       setBusy(false);

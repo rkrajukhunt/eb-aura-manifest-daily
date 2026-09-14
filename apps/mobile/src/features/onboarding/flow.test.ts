@@ -102,6 +102,18 @@ describe('onboarding v5 flow', () => {
     expect(progressOf('a04-goals', undefined, a)).toBeLessThan(progressOf('a04-goals') ?? 1);
   });
 
+  it('counts only answer-carrying screens — a beat inherits the last question', () => {
+    // Default walk (one goal): q-priority, q-context, q-calibration bypassed.
+    const questionOnlyTrackLength = visibleQuestionScreens(undefined, {}).filter(
+      (s) => SCREEN_ORDER.indexOf(s) <= SCREEN_ORDER.indexOf('v-consent'),
+    ).length;
+    // a11-affirmation is a beat: it draws a header but never advances it.
+    expect(progressOf('a11-affirmation')).toBe(progressOf('s03-name'));
+    // And the whole track is question screens only — the denominator above.
+    expect(progressOf('v-insight')).toBe(progressOf('a05-feeling'));
+    expect(questionOnlyTrackLength).toBeGreaterThan(0);
+  });
+
   it('softens the framing to process in gentle mode or after a false calibration', () => {
     expect(framingOf(answered({ 'q-belief': 'identity', 'a05-feeling': 'low' }))).toBe('process');
     expect(framingOf(answered({ 'q-belief': 'identity', 'q-calibration': 'fake' }))).toBe(

@@ -1,6 +1,6 @@
 {
   "name": "@aura/mobile",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
@@ -27,7 +27,6 @@
     "@tanstack/react-query": "^5.101.2",
     "expo": "~57.0.7",
     "expo-apple-authentication": "~57.0.1",
-    "expo-asset": "~57.0.6",
     "expo-audio": "~57.0.2",
     "expo-build-properties": "~57.0.8",
     "expo-constants": "~57.0.6",
@@ -45,7 +44,6 @@
     "expo-splash-screen": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.1",
-    "expo-system-ui": "~57.0.1",
     "expo-tracking-transparency": "~57.0.1",
     "expo-updates": "~57.0.10",
     "posthog-react-native": "^4.57.0",

@@ -10,10 +10,11 @@ import {
 /**
  * When the OS notification dialog may appear (11 §2).
  *
- * The deferral is not politeness, it is sequencing: product 08 forbids anything
- * between the letter and the paywall, and product 07 keeps the dialog out of
- * onboarding so S11 can capture her arrival time without a system alert
- * interrupting the conversation. These tests are what stop it drifting earlier.
+ * The ask lives in two warm places, never as a cold interrupt: inside
+ * onboarding at S12 / S12b (a reminder, not a pitch) and on the first Home
+ * landing after the paywall (home.tsx) — the earliest moment product 08's
+ * "nothing between the letter and the paywall" rule stops applying. These
+ * tests are what stop it drifting earlier.
  */
 describe('permissionGate', () => {
   beforeEach(() => kv.delete(STORAGE_KEYS.notificationGate));

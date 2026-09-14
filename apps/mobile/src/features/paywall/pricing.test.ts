@@ -24,6 +24,14 @@ describe('pricing', () => {
     it('never flatters the weekly plan', () => {
       expect(monthlyAmount('weekly', 6.99)).toBeGreaterThan(6.99 * 4);
     });
+
+    it('returns the monthly headline untouched for monthly plans', () => {
+      expect(monthlyAmount('monthly', 6.99)).toBe(6.99);
+    });
+
+    it('refuses to project a lifetime plan into a monthly figure', () => {
+      expect(monthlyAmount('lifetime', 199.99)).toBeNull();
+    });
   });
 
   describe('monthlyEquivalent', () => {
@@ -62,6 +70,14 @@ describe('pricing', () => {
 
     it('survives an invalid currency code from the store', () => {
       expect(monthlyEquivalent('annual', 39.99, 'NOT_A_CURRENCY')).toBeNull();
+    });
+
+    it('returns null for a monthly plan — the headline is already the monthly figure', () => {
+      expect(monthlyEquivalent('monthly', 6.99, 'USD')).toBeNull();
+    });
+
+    it('returns null for a lifetime plan — no monthly cadence exists to project', () => {
+      expect(monthlyEquivalent('lifetime', 199.99, 'USD')).toBeNull();
     });
   });
 

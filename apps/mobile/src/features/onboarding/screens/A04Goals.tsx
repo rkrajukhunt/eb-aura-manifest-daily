@@ -61,6 +61,7 @@ export function A04Goals() {
             icon={GOAL_ICON[choice.key]}
             selected={selected.includes(choice.label)}
             onPress={() => toggle(choice.label)}
+            multi
             testID={`a04-goals-${choice.key}`}
           />
         ))}

@@ -7,6 +7,7 @@ import { memoryCopy } from '@/copy/memory';
 import { useAppState } from '@/stores/appState';
 import { useTheme } from '@/theme/ThemeProvider';
 
+import { NEVER_INCLUDE_MAX_TERM } from './api';
 import { useAddNeverInclude, useNeverInclude, useRemoveNeverInclude } from './hooks';
 
 /**
@@ -64,6 +65,7 @@ export function NeverIncludeScreen({ onBack }: NeverIncludeScreenProps = {}) {
             value={draft}
             onChangeText={setDraft}
             placeholder={memoryCopy.neverInclude.addPlaceholder}
+            maxLength={NEVER_INCLUDE_MAX_TERM}
             // This screen is a list she adds to repeatedly, so the return key
             // has to add — reaching for "Add" between every term is the whole
             // friction. `submit` already no-ops on an empty draft and clears

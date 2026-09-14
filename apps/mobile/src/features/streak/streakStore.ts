@@ -49,14 +49,22 @@ function hydrate(): StreakState {
   const stored = kv.get<StreakState>(STORAGE_KEYS.streak);
   if (!stored) return emptyStreak(localDay(new Date()));
 
-  // A partially-written or hand-edited value must not brick Home. Anything that
-  // fails this shape check is discarded rather than migrated — the cost is one
-  // lost count, and the alternative is a crash on the first screen she sees.
+  // A partially-written or hand-edited value must not brick Home. Validate the
+  // ARRAYS and the null-able field too, not just the scalars (M19): a string in
+  // `countedDays` passes `typeof number` checks and later breaks `countDay`/
+  // `weekFrom`. Anything failing the shape check is discarded rather than
+  // migrated — the cost is one lost count, the alternative a crash on the
+  // first screen she sees.
   const shaped =
     typeof stored.current === 'number' &&
     typeof stored.longest === 'number' &&
     typeof stored.heldDaysUsed === 'number' &&
-    typeof stored.heldMonth === 'string';
+    typeof stored.heldMonth === 'string' &&
+    (stored.lastCountedDay === null || typeof stored.lastCountedDay === 'string') &&
+    Array.isArray(stored.countedDays) &&
+    stored.countedDays.every((d) => typeof d === 'string') &&
+    Array.isArray(stored.heldDays) &&
+    stored.heldDays.every((d) => typeof d === 'string');
 
   return shaped ? stored : emptyStreak(localDay(new Date()));
 }

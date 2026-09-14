@@ -79,6 +79,27 @@ describe('SegmentedProgressBar', () => {
     expect(screen.queryByTestId('discrete-bar-segment-fill-4')).toBeNull();
   });
 
+  it('announces the same percentage it draws in discrete mode', async () => {
+    // 50% of 5 segments is 2.5 — which rounds to 3 lit segments (60%). Screens
+    // read "60%" then; announcing a stale "50%" would contradict what is drawn.
+    await render(
+      <SegmentedProgressBar progress={0.5} segments={5} fillMode="discrete" testID="disc-label" />,
+      { wrapper },
+    );
+
+    expect(screen.getByTestId('disc-label').props.accessibilityValue.now).toBe(60);
+    expect(screen.getByTestId('disc-label-segment-fill-2')).toBeTruthy();
+    expect(screen.queryByTestId('disc-label-segment-fill-3')).toBeNull();
+  });
+
+  it('gives the bar a spoken name when a label is provided', async () => {
+    await render(<SegmentedProgressBar progress={0.5} label="Progress" testID="named-bar" />, {
+      wrapper,
+    });
+
+    expect(screen.getByTestId('named-bar').props.accessibilityLabel).toBe('Progress');
+  });
+
   it('clamps progress to [0, 1]', async () => {
     await render(<SegmentedProgressBar progress={1.5} segments={3} testID="clamped-high" />, {
       wrapper,

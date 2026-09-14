@@ -77,7 +77,11 @@ export class GenerationController {
     const existingLetter = await this.findExistingLetterJob(userId);
     if (existingLetter) return jobAcceptedSchema.parse({ jobId: existingLetter });
 
-    const { jobId } = await this.jobs.enqueue(userId, 'letter', idempotencyKey);
+    const { jobId } = await this.jobs.enqueue(
+      userId,
+      'letter',
+      idempotencyKey ?? `letter:${userId}`,
+    );
     return jobAcceptedSchema.parse({ jobId });
   }
 
@@ -138,7 +142,7 @@ export class GenerationController {
       throw new ApiException('crisis_support', 'Crisis content detected in refine note');
     }
 
-    const { jobId } = await this.jobs.enqueue(userId, 'refine', undefined, {
+    const { jobId } = await this.jobs.enqueue(userId, 'refine', `refine:${momentId}`, {
       refine: { momentId, previousBody: moment.body ?? '', direction, ...(note ? { note } : {}) },
     });
 
@@ -215,12 +219,23 @@ export class GenerationController {
   /**
    * `POST /v1/generation/affirmation/guided` (07 §1, product 09 §9.3b).
    *
-   * Yields three candidates for her to choose between, which is why the flow is
-   * capped at one generation per pass: three candidates is three times the cost.
+   * Premium, like the rest of the creation surfaces: each pass yields three
+   * flagship-model candidates, so an ungated free account could sustain
+   * unbounded vendor spend (the 12/min shared lane was all that bounded it).
+   * The free tier keeps today's one daily affirmation (product 15).
+   *
+   * Idempotency-Key is the mobile "one generation per pass" guard: a replayed
+   * request returns the existing job instead of a second, identical spend.
    */
   @Post('affirmation/guided')
+  @RequiresPremium()
+  @UseGuards(EntitlementGuard)
   @HttpCode(HttpStatus.ACCEPTED)
-  async affirmationGuided(@UserId() userId: string, @Body() body: unknown) {
+  async affirmationGuided(
+    @UserId() userId: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
     const input = affirmationGuidedRequestSchema.parse(body ?? {});
 
     // Her free-text goal reaches the model, so it screens like any other free
@@ -229,7 +244,7 @@ export class GenerationController {
       throw new ApiException('crisis_support', 'Crisis content detected in goal text');
     }
 
-    const { jobId } = await this.jobs.enqueue(userId, 'affirmation_guided', undefined, {
+    const { jobId } = await this.jobs.enqueue(userId, 'affirmation_guided', idempotencyKey, {
       guided: input,
     });
 

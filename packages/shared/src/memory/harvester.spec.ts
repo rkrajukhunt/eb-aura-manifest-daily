@@ -25,6 +25,17 @@ describe('harvestPhrases', () => {
 
       expect(result).toContain('you will find your way');
     });
+
+    it('an apostrophe inside single quotes harvests nothing, not a mangled fragment', () => {
+      // Regression (M27): `/([^']{4,})/` once turned "He said 'it's fine'" into
+      // the fragment "s fine", which the Letter then echoed verbatim. A missing
+      // echo is acceptable; a garbled one breaks the verbatim illusion.
+      expect(harvestPhrases("He said 'it's fine' to me")).not.toContain('s fine');
+    });
+
+    it('single-quoted spans still harvest when cleanly bounded', () => {
+      expect(harvestPhrases("She kept saying 'small steps'")).toContain('small steps');
+    });
   });
 
   describe('proper nouns', () => {

@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { ICON_TILE_SIZE } from '@/components/RowGroup';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
 
@@ -21,15 +20,15 @@ export interface IconTileProps {
  * that tells the row's category at a glance — never an action.
  */
 export function IconTile({ tint, icon, glyph, testID }: IconTileProps) {
-  const { colors, radii } = useTheme();
+  const { colors, layout, radii } = useTheme();
   const scale = clampedFontScale();
 
   // On the ember orb the glyph reads cream; on the soft washes it reads ink.
   const contentColor = tint === 'orb' ? colors.text.onCta : colors.text.primary;
 
   const frame = {
-    width: ICON_TILE_SIZE,
-    height: ICON_TILE_SIZE,
+    width: layout.iconTileSize,
+    height: layout.iconTileSize,
     borderRadius: radii.chip - 4,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,

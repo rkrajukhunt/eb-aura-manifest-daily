@@ -102,7 +102,12 @@ describe('gratitudeStore', () => {
       const index = upsertLocal({}, entry({ entry: 'what she actually wrote' }), NOW);
 
       const merged = mergeRemote(index, [
-        { entryDate: '2026-07-20', entry: 'an older server copy', promptShown: null },
+        {
+          entryDate: '2026-07-20',
+          entry: 'an older server copy',
+          promptShown: null,
+          promptWasPersonalized: false,
+        },
       ]);
 
       expect(merged['2026-07-20']?.entry).toBe('what she actually wrote');
@@ -113,25 +118,46 @@ describe('gratitudeStore', () => {
       index = markSynced(index, '2026-07-20', 'the coffee on the balcony');
 
       const merged = mergeRemote(index, [
-        { entryDate: '2026-07-20', entry: 'edited on another device', promptShown: null },
+        {
+          entryDate: '2026-07-20',
+          entry: 'edited on another device',
+          promptShown: null,
+          promptWasPersonalized: false,
+        },
       ]);
 
       expect(merged['2026-07-20']?.entry).toBe('edited on another device');
     });
 
-    it('pulls in days this device has never seen', () => {
+    it('pulls in days this device has never seen — and their personalization flag', () => {
+      // M18 regression: a fresh install / wiped storage must not silently drop
+      // the server's truth that the prompt WAS personalized.
       const merged = mergeRemote({}, [
-        { entryDate: '2026-07-01', entry: 'from the old phone', promptShown: null },
+        {
+          entryDate: '2026-07-01',
+          entry: 'from the old phone',
+          promptShown: null,
+          promptWasPersonalized: true,
+        },
       ]);
 
-      expect(merged['2026-07-01']).toMatchObject({ entry: 'from the old phone', synced: true });
+      expect(merged['2026-07-01']).toMatchObject({
+        entry: 'from the old phone',
+        synced: true,
+        promptWasPersonalized: true,
+      });
     });
 
     it('leaves untouched days alone', () => {
       const index = upsertLocal({}, entry({ entryDate: '2026-07-19' }), NOW);
 
       const merged = mergeRemote(index, [
-        { entryDate: '2026-07-01', entry: 'older', promptShown: null },
+        {
+          entryDate: '2026-07-01',
+          entry: 'older',
+          promptShown: null,
+          promptWasPersonalized: false,
+        },
       ]);
 
       expect(merged['2026-07-19']?.entry).toBe('the coffee on the balcony');

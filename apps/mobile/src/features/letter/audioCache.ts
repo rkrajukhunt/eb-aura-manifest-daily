@@ -83,7 +83,16 @@ export async function cacheAudio(
   if (existing) return existing;
 
   const destination = new File(audioDirectory(), `${momentId}.mp3`);
-  const downloaded = await File.downloadFileAsync(remoteUrl, destination);
+  let downloaded;
+  try {
+    downloaded = await File.downloadFileAsync(remoteUrl, destination);
+  } catch (error) {
+    // A throw mid-download leaves a partial file behind that is not in the
+    // index — invisible to the sweep and orphaned on disk forever. Remove it
+    // before rethrowing so a retry starts clean.
+    if (destination.exists) destination.delete();
+    throw error;
+  }
 
   const index = readIndex();
   index[momentId] = {

@@ -61,7 +61,6 @@ export default function CollectionRoute() {
         contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.lg }}
         showsVerticalScrollIndicator={false}
       >
-        {/* A collection name is data, not a heading — no ember mark. */}
         {/* A collection's name is DATA, so the header carries no ember mark. */}
         <ScreenHeader title={title} onBack={() => router.back()} emberMark={false} />
 

@@ -41,7 +41,6 @@ export function OnboardingHeader({
   testID,
 }: OnboardingHeaderProps) {
   const { colors, shadows, spacing } = useTheme();
-  const clamped = Math.min(1, Math.max(0, progress));
 
   return (
     <View
@@ -91,13 +90,12 @@ export function OnboardingHeader({
       )}
 
       <SegmentedProgressBar
-        progress={clamped}
+        progress={progress}
         segments={segments}
         fillMode={fillMode}
         height={SEGMENT_HEIGHT}
         gap={SEGMENT_GAP}
-        activeColor={colors.accent.emberDeep}
-        inactiveColor={colors.surface.border}
+        label={onboardingCopy.header.progress}
         {...(testID ? { testID: `${testID}-track` } : {})}
         style={{ flex: 1 }}
       />

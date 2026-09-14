@@ -89,7 +89,10 @@ export function useGratitude(userId: string | undefined) {
     void (async () => {
       const { data } = await supabase
         .from('gratitude_entries')
-        .select('entry, entry_date, prompt_shown')
+        // prompt_was_personalized rides along (M18): the server copy is the only
+        // source on a fresh install / wiped storage, and a silent `false` there
+        // used to mislabel hindsight awareness for every returned entry.
+        .select('entry, entry_date, prompt_shown, prompt_was_personalized')
         .eq('user_id', userId)
         .order('entry_date', { ascending: false })
         .limit(60);
@@ -102,6 +105,7 @@ export function useGratitude(userId: string | undefined) {
           entryDate: row.entry_date,
           entry: row.entry,
           promptShown: row.prompt_shown,
+          promptWasPersonalized: row.prompt_was_personalized,
         })),
       );
 

@@ -86,11 +86,15 @@ function maskSpans(text: string, spans: string[]): string {
  */
 function extractQuoted(text: string): string[] {
   const results: string[] = [];
-  const patterns = [/"([^"]+)"/g, /“([^”]+)”/g, /'([^']{4,})'/g];
+  // M27: single-quoted spans require a non-word boundary on BOTH sides, so a
+  // stray opener inside "it's" cannot harvest a mangled fragment ("s fine").
+  // `'it's fine'` harvests nothing — conservative beats garbled (see docstring).
+  const patterns = [/"([^"]+)"/g, /“([^”]+)”/g, /(^|[^\w])'([^']{4,}?)'(?=[^\w]|$)/g];
 
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {
-      const inner = match[1]?.trim();
+      // The single-quote rule has a leading boundary in group 1.
+      const inner = (match[2] ?? match[1])?.trim();
       if (inner && isReasonableLength(inner)) results.push(inner);
     }
   }

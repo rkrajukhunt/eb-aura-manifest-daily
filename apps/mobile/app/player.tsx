@@ -1,8 +1,9 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { RefineSheet } from '@/features/moments/RefineSheet';
+import { fetchMomentById } from '@/features/moments/useMoments';
 import { LockedFeatureSheet } from '@/features/paywall/LockedFeatureSheet';
 import { canUse } from '@/features/paywall/gating';
 import { useEntitlement } from '@/features/paywall/useEntitlement';
@@ -12,6 +13,7 @@ import { analytics } from '@/lib/analytics';
 import { api } from '@/lib/api';
 import { errorCopyFor, errorKeyOf } from '@/lib/errorCopy';
 import { supabase } from '@/lib/supabase';
+import { useAppState } from '@/stores/appState';
 
 /**
  * `/player` — the full-screen cover (06 §1, §2).
@@ -34,6 +36,32 @@ export default function PlayerRoute() {
   const lockedRef = useRef<BottomSheetModal>(null);
   const [busy, setBusy] = useState(false);
   const [refineError, setRefineError] = useState<string | null>(null);
+
+  // Moment-push deep link (`/player?momentId=…`, 06 §5): the store starts empty
+  // on a cold-start tap, so fetch the moment this route was asked for and open
+  // it. Without this the cover rendered with nothing loaded — a blank player.
+  const userId = useAppState((s) => s.userId);
+  const { momentId } = useLocalSearchParams<{ momentId?: string }>();
+
+  useEffect(() => {
+    if (!userId || !momentId || moment?.id === momentId) return;
+    let active = true;
+    void fetchMomentById(userId, momentId)
+      .then((loaded) => {
+        if (!active || !loaded) return;
+        usePlayerStore.getState().open(loaded, 'notification');
+        // open() swaps the source underneath the shared player; nothing plays
+        // until told, so a deep-linked moment must hit play with the new source.
+        usePlayerStore.getState().controls?.play();
+      })
+      .catch(() => {
+        // Nothing to play from a bad link; the cover stays quiet rather than
+        // erroring on a tap she can't fix.
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId, momentId, moment?.id]);
 
   // Playback lives only while the cover is open. Closing it — the chevron, the
   // hardware back, or the swipe-down dismiss — pauses the voice, so nothing plays

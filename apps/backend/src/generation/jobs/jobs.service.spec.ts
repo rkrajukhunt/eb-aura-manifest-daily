@@ -70,6 +70,21 @@ describe('JobsService', () => {
       expect(table.rows).toHaveLength(1);
     });
 
+    it('returns the existing job when a racing insert hits the unique index (23505)', async () => {
+      service.registerRunner(async () => new Promise(() => {}));
+
+      const first = await service.enqueue('user-1', 'letter', 'key-abc');
+
+      // Two requests both missed the read above and both inserted; the loser's
+      // insert trips `generation_jobs_idempotency_key` → 23505. That is a
+      // duplicate-in-progress, not an error: re-read and hand back the winner's job.
+      table.failNextInsert('duplicate key value violates unique constraint');
+      const raced = await service.enqueue('user-1', 'letter', 'key-abc');
+
+      expect(raced).toEqual({ jobId: first.jobId, existing: true });
+      expect(table.rows).toHaveLength(1);
+    });
+
     it('scopes idempotency to the user — two users may reuse a key', async () => {
       service.registerRunner(async () => new Promise(() => {}));
 

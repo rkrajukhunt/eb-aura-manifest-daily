@@ -133,6 +133,16 @@ function seedProfileFromDraft(
   };
 }
 
+/** Coarse PGRST/Postgres failure class for the typed event (M26). */
+function patchFailureCause(
+  code: string | undefined,
+): 'column_missing' | 'constraint' | 'timeout' | 'other' {
+  if (code === '42703' || code === 'PGRST204') return 'column_missing';
+  if (code?.startsWith('23')) return 'constraint';
+  if (code === '57014' || code === '57001') return 'timeout';
+  return 'other';
+}
+
 /** Writes one answer to the audit log and its working copy. */
 async function syncAnswer(
   userId: string,
@@ -162,9 +172,10 @@ async function syncAnswer(
       // backfilled. In production the column exists before the client writes it
       // (expand-migrate-contract, 16 §2), so this is a safety net, not a
       // data-loss path.
+      // M26: the event carries a cause CLASS, not the free-text message.
       analytics.capture('onboarding_profile_patch_failed', {
         screen_id: screen,
-        message: error.message,
+        cause: patchFailureCause(error.code),
       });
       console.warn(`[onboarding] profile patch for ${screen} skipped: ${error.message}`);
     }
@@ -202,10 +213,17 @@ function profileFieldFor(screen: OnboardingScreenId, value: unknown): Update<'pr
         struggle: Array.isArray(value) ? (value as string[]).join(', ') : (value as string),
       };
     case 'a08-ritual-time': {
-      const rawKey = typeof value === 'string' ? value : ((value as { key?: string })?.key ?? '');
-      const rawTime =
-        typeof value === 'string' ? value : ((value as { time?: string })?.time ?? '');
-      return { arrival_time: ARRIVAL_PRESETS[rawKey] ?? formatTimeTo24H(rawTime) ?? rawTime };
+      const isObject = typeof value === 'object' && value !== null;
+      const rawKey = isObject ? ((value as { key?: string })?.key ?? '') : String(value);
+      const rawTime = isObject ? ((value as { time?: string })?.time ?? '') : '';
+      const preset = ARRIVAL_PRESETS[rawKey];
+      // A fine-tuned slot wins: the reminder must run when she chose, even if
+      // that is not the category's tone timestamp. The choice defaults equal
+      // their presets (8:00am ↔ 08:00), so preferring the time never regresses
+      // a plain pick.
+      if (rawTime) return { arrival_time: formatTimeTo24H(rawTime) };
+      if (preset) return { arrival_time: preset };
+      return { arrival_time: rawKey };
     }
     case 's03-name':
       return { name: value as string };

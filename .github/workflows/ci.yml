@@ -130,4 +130,7 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
           EXPO_PUBLIC_API_URL: http://127.0.0.1:3000
-        run: npx -y expo-doctor@latest
+        # Pinned, not @latest: the doctor's rules move between versions, so an
+        # unpinned check is a moving target that can fail a PR for a rule change
+        # it never saw. Bump deliberately after upgrading the Expo SDK.
+        run: npx -y expo-doctor@1.20.4

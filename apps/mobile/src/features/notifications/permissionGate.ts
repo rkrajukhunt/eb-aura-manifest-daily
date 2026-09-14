@@ -3,12 +3,16 @@ import { kv, STORAGE_KEYS } from '@/lib/storage';
 /**
  * When the notification permission may be asked (11 §2).
  *
- * The OS dialog is deliberately deferred all the way to the first Home landing
- * AFTER the paywall. Product 08 forbids anything between the letter and the
- * paywall — no permission dialog, no rating prompt — and product 07 keeps it
- * out of onboarding so S11 can capture her arrival time without a system alert
- * interrupting the conversation. By the time it appears she has already told us
- * when she wants her moments, so the ask is a reminder rather than a pitch.
+ * The ask happens in two warm places, never as a cold interrupt:
+ *  - during onboarding at S12 (S12Notifications / S12b second chance), the
+ *    "reminder not a pitch" moment after she has told us her arrival time, and
+ *  - on the first Home landing after the paywall (home.tsx), the earliest
+ *    moment product 08's "nothing between the letter and the paywall" rule
+ *    stops applying.
+ *
+ * `markPermissionAsked` is written by both so the dialog never returns
+ * uninvited. The denied-state hint is at most one quiet line a week (11 §2),
+ * never a modal — denial is a legitimate answer the product works without.
  */
 
 interface PermissionGateState {

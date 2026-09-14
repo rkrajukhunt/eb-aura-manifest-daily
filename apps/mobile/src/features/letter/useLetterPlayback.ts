@@ -136,7 +136,12 @@ export function useLetterPlayback(
   const [audioFailed, setAudioFailed] = useState(false);
   const attemptedRef = useRef(false);
 
-  if (status.playbackState === 'buffering' || status.isLoaded) attemptedRef.current = true;
+  // M24: this assignment used to run mid-render (fragile under concurrent
+  // rendering); it lives in an effect now. A load is "attempted" once the
+  // platform reports either a buffer or a loaded asset.
+  useEffect(() => {
+    if (status.playbackState === 'buffering' || status.isLoaded) attemptedRef.current = true;
+  }, [status.playbackState, status.isLoaded]);
 
   useEffect(() => {
     if (status.error) setAudioFailed(true);

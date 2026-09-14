@@ -15,9 +15,16 @@ describe('gating', () => {
   const free = { premium: false, loading: false };
   const premium = { premium: true, loading: false };
 
-  it('gates exactly the five features product 15 lists', () => {
+  it('gates exactly the six features product 15 lists', () => {
     expect([...GATED_FEATURES].sort()).toEqual(
-      ['collections', 'favorites', 'manifest_anything', 'refine', 'share_export'].sort(),
+      [
+        'collections',
+        'favorites',
+        'guided_affirmation',
+        'manifest_anything',
+        'refine',
+        'share_export',
+      ].sort(),
     );
   });
 

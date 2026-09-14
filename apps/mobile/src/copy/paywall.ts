@@ -64,16 +64,6 @@ export const paywallCopy = {
       progress: '1 of 4',
       cta: 'Start day 1',
     },
-    discount: {
-      badge: 'ONCE ONLY, FIRST DISMISSAL',
-      title: 'Take the first year at half.',
-      discountPrice: '$24.99',
-      originalPrice: '$49.99',
-      subtext: 'First year only. Renews at $49.99/yr on {date}. Cancel any time.',
-      gentleNote: 'Suppressed entirely when gentle_mode is true.',
-      cta: 'Take the offer',
-      decline: 'No thanks',
-    },
   },
 
   /**
@@ -142,6 +132,9 @@ export const paywallCopy = {
   /** Defensive: Continue tapped on a plan with no store package behind it. */
   purchaseUnavailableNote: 'Purchases aren’t set up on this build yet.',
 
+  /** A store purchase failed (declined card / store error). Cancel is silent; this is not. */
+  purchaseFailedNote: 'The purchase didn’t go through — you haven’t been charged. Try again?',
+
   footer: {
     restore: 'Restore purchase',
     terms: 'Terms',
@@ -160,6 +153,7 @@ export const paywallCopy = {
       favorites: 'Keep every moment that lands, not only the letter.',
       collections: 'Gather your moments into collections.',
       share_export: 'Save a moment as an image to keep or share.',
+      guided_affirmation: 'Create the words you need, by walking through what it’s for.',
     },
   },
 

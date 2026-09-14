@@ -49,6 +49,10 @@ export function useLetterGeneration(userId: string | undefined): LetterGeneratio
   const [startFailed, setStartFailed] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const startedAt = useRef(Date.now());
+  // M25: a request-sequence ref. Without it, a retry while the first
+  // `requestLetter` is still pending lets both promises resolve and the
+  // last-write-wins `setJobId` attaches the bumped attempt to the OLD job.
+  const requestSeq = useRef(0);
 
   const start = useCallback(
     async (attempt: number) => {
@@ -57,12 +61,13 @@ export function useLetterGeneration(userId: string | undefined): LetterGeneratio
       startedAt.current = Date.now();
       setElapsedMs(0);
 
+      const seq = ++requestSeq.current;
       try {
         const { jobId: id } = await api.requestLetter(idempotencyKeyFor(userId, attempt));
+        if (seq !== requestSeq.current) return; // Superseded by a retry.
         setJobId(id);
       } catch {
-        // The retry copy is in-voice and carries no code (product 08 §2), so the
-        // reason never reaches her — she just gets the in-voice retry.
+        if (seq !== requestSeq.current) return; // Superseded by a retry.
         setStartFailed(true);
       }
     },
@@ -87,6 +92,9 @@ export function useLetterGeneration(userId: string | undefined): LetterGeneratio
   const { data: job } = useGenerationJob(jobId);
 
   const retry = useCallback(() => {
+    // Invalidate any in-flight start before spawning the next one, so the old
+    // promise cannot overwrite the bump (M25).
+    requestSeq.current += 1;
     setJobId(undefined);
     void start(bumpAttempt());
   }, [start]);

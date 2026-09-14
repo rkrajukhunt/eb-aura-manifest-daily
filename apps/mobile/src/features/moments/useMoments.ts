@@ -65,6 +65,26 @@ export async function fetchTodaysMoment(userId: string): Promise<PlayableMoment 
   return data ? toPlayable(data) : null;
 }
 
+/**
+ * A single moment by id, for the moment-push deep link (`/player?momentId=…`).
+ * The player route holds no state of its own, so a cold-start tap has to fetch
+ * its own row before it can open anything.
+ */
+export async function fetchMomentById(
+  userId: string,
+  momentId: string,
+): Promise<PlayableMoment | null> {
+  const { data, error } = await supabase
+    .from('moments')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', momentId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? toPlayable(data) : null;
+}
+
 export function useTodaysMoment(userId: string | undefined): UseQueryResult<PlayableMoment | null> {
   return useQuery({
     queryKey: momentKeys.today(userId ?? 'anonymous'),

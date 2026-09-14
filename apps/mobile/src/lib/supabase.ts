@@ -46,7 +46,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * "can't reach" line). Every Supabase call gets this, not just auth — a query
  * that hangs forever is the same bug wearing a different hat.
  */
-const timeoutFetch: typeof fetch = (input, init) => {
+export const timeoutFetch: typeof fetch = (input, init) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 

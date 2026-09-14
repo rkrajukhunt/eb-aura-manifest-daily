@@ -129,36 +129,6 @@ function byPlanOrder(a: OfferedPlan, b: OfferedPlan): number {
   return PLAN_ORDER.indexOf(a.id) - PLAN_ORDER.indexOf(b.id);
 }
 
-export const FALLBACK_PLANS: OfferedPlan[] = [
-  {
-    id: 'annual',
-    pkg: null,
-    price: '$49.99',
-    monthlyEquivalent: '$4.16',
-    hasTrial: true,
-    trialDays: 7,
-    purchasable: false,
-  },
-  {
-    id: 'monthly',
-    pkg: null,
-    price: '$12.99',
-    monthlyEquivalent: null,
-    hasTrial: false,
-    trialDays: null,
-    purchasable: false,
-  },
-  {
-    id: 'lifetime',
-    pkg: null,
-    price: '$149',
-    monthlyEquivalent: null,
-    hasTrial: false,
-    trialDays: null,
-    purchasable: false,
-  },
-];
-
 export async function loadPlans(): Promise<OfferedPlan[]> {
   if (!configured) {
     return [];
@@ -167,7 +137,7 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
   try {
     const offerings = await Purchases.getOfferings();
     const current = offerings?.current;
-    if (!current) return FALLBACK_PLANS;
+    if (!current) return [];
 
     const plans: OfferedPlan[] = [];
 
@@ -190,11 +160,9 @@ export async function loadPlans(): Promise<OfferedPlan[]> {
       });
     }
 
-    if (plans.length === 0) return FALLBACK_PLANS;
-
     return plans.sort(byPlanOrder);
   } catch {
-    return FALLBACK_PLANS;
+    return [];
   }
 }
 

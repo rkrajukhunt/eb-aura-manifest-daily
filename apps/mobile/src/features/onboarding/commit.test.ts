@@ -17,15 +17,19 @@ const from = supabase.from as jest.Mock;
 const seed = seedMemoryForUser as jest.Mock;
 
 /** Chainable Supabase stub: every table op resolves ok unless a table is failed. */
+const profilePatches: Array<{ table: string; patch: Record<string, unknown> }> = [];
 function stubSupabase(failingTables: Set<string> = new Set()) {
   from.mockImplementation((table: string) => {
     const result = failingTables.has(table)
-      ? { error: { message: `${table} down` } }
+      ? { error: { message: `${table} down`, code: '42703' } }
       : { error: null };
 
     const chain = {
       insert: jest.fn(() => Promise.resolve(result)),
-      update: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve(result)) })),
+      update: jest.fn((patch: Record<string, unknown>) => {
+        if (table === 'profiles') profilePatches.push({ table, patch });
+        return { eq: jest.fn(() => Promise.resolve(result)) };
+      }),
       delete: jest.fn(() => ({ eq: jest.fn(() => Promise.resolve(result)) })),
     };
     return chain;
@@ -36,6 +40,7 @@ describe('onboarding commit path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useOnboardingDraft.getState().reset();
+    profilePatches.length = 0;
     stubSupabase();
   });
 
@@ -90,6 +95,20 @@ describe('onboarding commit path', () => {
         expect.objectContaining({ skipped: true }),
       );
     });
+
+    it('persists a fine-tuned ritual slot — the reminder runs when she chose, not the preset', async () => {
+      await submitAnswer('user-1', 'a08-ritual-time', { key: 'morning', time: '7:15am' });
+
+      const patch = profilePatches.find((p) => p.table === 'profiles')?.patch;
+      expect(patch?.arrival_time).toBe('07:15');
+    });
+
+    it('maps a bare ritual pick to its preset timestamp', async () => {
+      await submitAnswer('user-1', 'a08-ritual-time', 'morning');
+
+      const patch = profilePatches.find((p) => p.table === 'profiles')?.patch;
+      expect(patch?.arrival_time).toBe('08:00');
+    });
   });
 
   describe('flushPending', () => {
@@ -128,7 +147,7 @@ describe('onboarding commit path', () => {
       expect(useOnboardingDraft.getState().answers['a05-feeling']?.committedAt).not.toBeNull();
       expect(capture).toHaveBeenCalledWith(
         'onboarding_profile_patch_failed',
-        expect.objectContaining({ screen_id: 'a05-feeling' }),
+        expect.objectContaining({ screen_id: 'a05-feeling', cause: 'column_missing' }),
       );
     });
   });

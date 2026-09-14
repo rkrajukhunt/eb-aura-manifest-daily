@@ -84,9 +84,23 @@ describe('ga4', () => {
     expect(mockLogEvent).not.toHaveBeenCalled();
   });
 
+  /**
+   * The ATT gate (M11): GA4 is the ad-conversion sink, so a denied/restricted
+   * prompt keeps collection off even in a store build — a grant is the only
+   * way reports flow to Google.
+   */
+  it('stays off in a store build when she denied the ATT prompt', async () => {
+    setBuildEnv('production');
+    initGa4(false);
+
+    expect(isGa4Enabled()).toBe(false);
+    await logGa4Event('purchase');
+    expect(mockLogEvent).not.toHaveBeenCalled();
+  });
+
   it('logs a name-only event when enabled', async () => {
     setBuildEnv('production');
-    initGa4();
+    initGa4(true);
 
     await logGa4Event('purchase');
     expect(mockLogEvent).toHaveBeenCalledWith(expect.anything(), 'purchase');

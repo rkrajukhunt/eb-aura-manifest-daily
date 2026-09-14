@@ -15,12 +15,17 @@ export interface AnswerRowProps {
   selected: boolean;
   onPress: () => void;
   /**
-  * An icon makes it the design's tile row (goals, obstacles): an ember tile
-  * on the left and a ✓ circle on the right. Without one it is the plain
-    * radio row (priority, context, mood, language, calibration, time), with
-    * the selection indicator still on the right.
+   * An icon makes it the design's tile row (goals, obstacles): an ember tile
+   * on the left and a ✓ circle on the right. Without one it is the plain
+   * radio row (priority, context, mood, language, calibration, time), with
+   * the selection indicator still on the right.
    */
   icon?: keyof typeof Ionicons.glyphMap;
+  /**
+   * Multi-select semantics (goals, obstacles): announced as a checkbox with a
+   * `checked` state. Single-choice rows stay radios.
+   */
+  multi?: boolean;
   testID?: string;
 }
 
@@ -29,15 +34,22 @@ export interface AnswerRowProps {
  * white with a faint hairline; selected turns the hairline ink, the surface
  * solid white, and fills the dot (or lights the tile ember and draws the ✓).
  */
-export function AnswerRow({ label, selected, onPress, icon, testID }: AnswerRowProps) {
+export function AnswerRow({
+  label,
+  selected,
+  onPress,
+  icon,
+  multi = false,
+  testID,
+}: AnswerRowProps) {
   const { colors, radii, spacing } = useTheme();
   const tile = icon !== undefined;
 
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityRole={multi ? 'checkbox' : 'radio'}
+      accessibilityState={multi ? { checked: selected } : { selected }}
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({
@@ -108,7 +120,9 @@ export function AnswerRow({ label, selected, onPress, icon, testID }: AnswerRowP
           justifyContent: 'center',
         }}
       >
-        {selected && tile ? <Ionicons name="checkmark" size={12} color={colors.text.onCta} /> : null}
+        {selected && tile ? (
+          <Ionicons name="checkmark" size={12} color={colors.text.onCta} />
+        ) : null}
       </View>
     </Pressable>
   );

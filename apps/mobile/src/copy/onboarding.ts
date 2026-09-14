@@ -1,5 +1,5 @@
 /**
- * Onboarding v5 — the Aura Ember conversation (design "Aura Ember Onboarding
+ * Onboarding v5 the Aura Ember conversation (design "Aura Ember Onboarding
  * v5", 2026-09-01). Verbatim from the design's screen file; the copy lint
  * audits every string here.
  *
@@ -19,23 +19,24 @@ export const onboardingCopy = {
   header: {
     back: 'Back',
     skip: 'Skip',
+    progress: 'Progress',
   },
 
-  // 01 · Splash — the orb breathes once; auto-advances, or a faint Continue.
+  // 01 · Splash the orb breathes once; auto-advances, or a faint Continue.
   a01Splash: {
     brand: 'Aura',
     tagline: 'Written for you, not at you',
     continue: 'Continue',
   },
 
-  // 02 · What makes this different — the contract, before the first ask.
+  // 02 · What makes this different the contract, before the first ask.
   a02Value: {
     title: 'Everyone else hands you the same affirmations.',
-    body: 'Yours get written for you — in your words, at a level you can actually believe.',
+    body: 'Yours get written for you in your words, at a level you can actually believe.',
     primary: 'Continue',
   },
 
-  // Q1 · Goal — multi, max 3. The root node.
+  // Q1 · Goal multi, max 3. The root node.
   a04Goals: {
     question: 'What do you most want to bring into your life?',
     helper: 'Pick up to three.',
@@ -50,18 +51,18 @@ export const onboardingCopy = {
     ] as ReadonlyArray<{ key: GoalKey; label: string; phrase: string }>,
   },
 
-  // Q2 · Priority — piped from Q1. Auto-skipped at one selection.
+  // Q2 · Priority piped from Q1. Auto-skipped at one selection.
   qPriority: {
     question: 'Which one matters most right now, honestly?',
     helper: 'Piped from what you just picked.',
   },
 
-  // Q3 · Context — branched on the primary goal. Habits has no variant.
+  // Q3 · Context branched on the primary goal. Habits has no variant.
   qContext: {
     eyebrow: 'Because you chose {goal}',
     variants: {
       career: {
-        question: 'And the work you do now — how does it feel?',
+        question: 'And the work you do now how does it feel?',
         choices: [
           'Love it',
           'Fine for now',
@@ -100,7 +101,7 @@ export const onboardingCopy = {
     >,
   },
 
-  // Q4 · Name and pronoun — both skippable. Never infer pronoun from the name.
+  // Q4 · Name and pronoun both skippable. Never infer pronoun from the name.
   s03Name: {
     question: 'What should I call you?',
     placeholder: 'Your name',
@@ -108,10 +109,10 @@ export const onboardingCopy = {
     pronouns: ['she/her', 'he/him', 'they/them'] as readonly string[],
     primary: 'Continue',
     // Gentle trim, never harsh validation.
-    tooLong: 'That’s a lot of name — what do the people closest to you use?',
+    tooLong: 'That’s a lot of name what do the people closest to you use?',
   },
 
-  // VALUE · Your first one — a pre-written, process-framed line per goal.
+  // VALUE · Your first one a pre-written, process-framed line per goal.
   a11Affirmation: {
     eyebrow: 'Your first one',
     primary: 'This resonates',
@@ -150,7 +151,7 @@ export const onboardingCopy = {
     } as Readonly<Record<GoalKey, readonly string[]>>,
   },
 
-  // Q5 · Mood — the safety router. low / struggling set gentle_mode.
+  // Q5 · Mood the safety router. low / struggling set gentle_mode.
   a05Feeling: {
     question: 'How’s the last week or two actually been?',
     helper: 'There’s no wrong answer here.',
@@ -176,7 +177,7 @@ export const onboardingCopy = {
     fallback: 'We’ll aim at the part of the day that decides the rest.',
     support: {
       title:
-        'That’s a lot to be carrying. I’ll keep things short and gentle — no pressure, no scoreboard.',
+        'That’s a lot to be carrying. I’ll keep things short and gentle no pressure, no scoreboard.',
       label: 'Support',
       body: 'Aura is a mindset practice. It isn’t therapy. If you need someone now, these are free and open around the clock.',
       link: 'See support options →',
@@ -184,7 +185,7 @@ export const onboardingCopy = {
     },
   },
 
-  // Q6 · Obstacle — configures mechanics, not content. Stored as the label.
+  // Q6 · Obstacle configures mechanics, not content. Stored as the label.
   a06Obstacle: {
     question: 'What usually gets in the way?',
     helper: 'Select all that apply',
@@ -197,7 +198,7 @@ export const onboardingCopy = {
     primary: 'Continue',
   },
 
-  // Q7 · Belief language — the vocabulary fork.
+  // Q7 · Belief language the vocabulary fork.
   qLexicon: {
     question: 'What kind of language actually lands for you?',
     choices: [
@@ -209,7 +210,7 @@ export const onboardingCopy = {
     ] as ReadonlyArray<{ key: LexiconKey; label: string }>,
   },
 
-  // Q8 · Off limits — pre-filled from Q7. Continue works with zero picks.
+  // Q8 · Off limits pre-filled from Q7. Continue works with zero picks.
   qOffLimits: {
     question: 'Anything you’d rather I stayed away from?',
     helper: 'You can change this any time.',
@@ -231,7 +232,7 @@ export const onboardingCopy = {
     primary: 'Continue',
   },
 
-  // Q9 · Believability — one tap measures framing and tone.
+  // Q9 · Believability one tap measures framing and tone.
   qBelief: {
     question: 'Which of these could you actually say out loud and mean it?',
     cards: [
@@ -240,10 +241,10 @@ export const onboardingCopy = {
       { key: 'practical', label: 'I take one clear step, most days.', tag: 'practical, grounded' },
     ] as ReadonlyArray<{ key: BeliefKey; label: string; tag: string }>,
     afterPick:
-      'Good. Statements people don’t believe don’t work — there’s real research on that. Yours will be written at a level you can accept.',
+      'Good. Statements people don’t believe don’t work there’s real research on that. Yours will be written at a level you can accept.',
   },
 
-  // Q10 · Calibration — conditional. The contradiction resolver only.
+  // Q10 · Calibration conditional. The contradiction resolver only.
   qCalibration: {
     eyebrow: 'One more, just to be sure',
     question: 'When you read “I am confident,” what happens?',
@@ -254,7 +255,7 @@ export const onboardingCopy = {
     ] as ReadonlyArray<{ key: CalibrationKey; label: string }>,
   },
 
-  // Reflect-back — the mirror. Her actual answers, never a template.
+  // Reflect-back the mirror. Her actual answers, never a template.
   vReflect: {
     eyebrow: 'Here’s what I heard{name}',
     line1:
@@ -275,7 +276,7 @@ export const onboardingCopy = {
     secondary: 'Not quite',
   },
 
-  // Q11 · Time and commitment — the implementation intention is the button.
+  // Q11 · Time and commitment the implementation intention is the button.
   a08RitualTime: {
     question: 'When will you take your three minutes?',
     fineTune: 'Fine-tune',
@@ -290,7 +291,7 @@ export const onboardingCopy = {
     ] as ReadonlyArray<{ key: TimeKey; label: string; time: string; dayPart: string }>,
   },
 
-  // VALUE · First gratitude entry — seeds the journal before the money ask.
+  // VALUE · First gratitude entry seeds the journal before the money ask.
   vGratitude: {
     question: 'Name one thing you’re grateful for.',
     helper: 'Small counts. Small is usually better.',
@@ -307,7 +308,7 @@ export const onboardingCopy = {
     skip: 'Skip',
   },
 
-  // AI consent — explicit, unbundled, before anything is generated.
+  // AI consent explicit, unbundled, before anything is generated.
   vConsent: {
     question: 'How Aura writes your personal practice',
     helper:
@@ -318,15 +319,15 @@ export const onboardingCopy = {
       'Toggle AI personalization off anytime in Settings.',
     ] as readonly string[],
     primary: 'Yes, write my custom week',
-    secondary: 'No — use pre-written library',
+    secondary: 'No use pre-written library',
   },
 
-  // Notification pre-prompt — the preview, then the three promises.
+  // Notification pre-prompt the preview, then the three promises.
   s12Notifications: {
     previewApp: 'Aura',
     question: 'Want this to reach you at {time}?',
     promises: [
-      { title: 'At your time', body: 'Your moment arrives at the hour you chose — not whenever.' },
+      { title: 'At your time', body: 'Your moment arrives at the hour you chose not whenever.' },
       { title: 'Once a day', body: 'One gentle arrival. Never a stream, never a scorecard.' },
       { title: 'Always yours', body: 'Turn it off in a single tap, anytime.' },
     ] as ReadonlyArray<{ title: string; body: string }>,
@@ -334,16 +335,16 @@ export const onboardingCopy = {
     skip: 'Not now',
   },
 
-  // Notifications · second chance — only after “Not now”. Shown once.
+  // Notifications · second chance only after “Not now”. Shown once.
   s12NotificationsMore: {
     eyebrow: 'Before we go on',
     question: 'Your moment can’t reach you on its own.',
     helper:
-      'Without a reminder, the words written for you sit quietly in the app — and most mornings the day gets loud before you remember to open it. One gentle arrival at the time you chose is all it takes.',
+      'Without a reminder, the words written for you sit quietly in the app and most mornings the day gets loud before you remember to open it. One gentle arrival at the time you chose is all it takes.',
     previewLabel: 'Tomorrow, {time}',
     previewApp: 'Aura',
     previewWhen: 'now',
-    note: 'Still just one arrival a day. No nudges, no scorecards — off anytime.',
+    note: 'Still just one arrival a day. No nudges, no scorecards off anytime.',
     primary: 'Turn on notifications',
     // If the OS won't prompt again (already declined), we send her to Settings.
     openSettings: 'Open Settings',
@@ -351,7 +352,7 @@ export const onboardingCopy = {
   },
 
   /**
-   * The bold (identity) and grounded (practical) banks — the framed set the
+   * The bold (identity) and grounded (practical) banks the framed set the
    * reminder preview quotes from. Process-framed lines live in a11Affirmation.
    */
   framedBank: {
@@ -411,7 +412,7 @@ export const onboardingCopy = {
 
   editGuard: {
     entry: 'Fix an earlier answer',
-    /** Spoken label before anything is answered — plain back, nothing to fix. */
+    /** Spoken label before anything is answered plain back, nothing to fix. */
     back: 'Back',
     title: 'Which one?',
     // Edits revise, never restart (product 07 rules).

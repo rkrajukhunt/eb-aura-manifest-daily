@@ -17,9 +17,10 @@ const WEEKS_PER_YEAR = 52;
 const MONTHS_PER_YEAR = 12;
 
 /** Converts a plan's headline price into a per-month figure. */
-export function monthlyAmount(planId: PlanId, price: number): number {
+export function monthlyAmount(planId: PlanId, price: number): number | null {
   if (planId === 'annual') return price / MONTHS_PER_YEAR;
   if (planId === 'monthly') return price; // Already a monthly headline.
+  if (planId === 'lifetime') return null; // No monthly cadence exists to project.
   return (price * WEEKS_PER_YEAR) / MONTHS_PER_YEAR;
 }
 
@@ -41,13 +42,18 @@ export function monthlyEquivalent(
   // A monthly plan's headline IS the monthly figure — restating it would read as
   // a second, redundant price, the exact ambiguity this surface avoids.
   if (planId === 'monthly') return null;
+  // A lifetime plan has no monthly cadence at all — projecting one would invent
+  // a per-month figure out of thin air.
+  if (planId === 'lifetime') return null;
 
   try {
+    const perMonth = monthlyAmount(planId, price);
+    if (perMonth == null) return null;
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
       currency: currencyCode,
       maximumFractionDigits: 2,
-    }).format(monthlyAmount(planId, price));
+    }).format(perMonth);
   } catch {
     // An invalid currency code from the store is not worth crashing a paywall.
     return null;

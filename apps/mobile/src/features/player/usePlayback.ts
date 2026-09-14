@@ -12,6 +12,9 @@ import { analytics } from '@/lib/analytics';
 import { pickSource } from './pickSource';
 import { clampSeek, SKIP_MS, usePlayerStore } from './playerStore';
 
+/** How long a `!isLoaded` first tick may sit before we call it a decode failure. */
+const LOAD_GRACE_MS = 4000;
+
 /**
  * Drives the shared player and keeps the store in step (10 §4).
  *
@@ -26,6 +29,7 @@ export function usePlayback() {
   const speed = usePlayerStore((s) => s.speed);
   const source = usePlayerStore((s) => s.source);
   const ambientEnabled = usePlayerStore((s) => s.ambientEnabled);
+  const session = usePlayerStore((s) => s.session);
   const setPlaying = usePlayerStore((s) => s.setPlaying);
   const setPosition = usePlayerStore((s) => s.setPosition);
 
@@ -40,6 +44,7 @@ export function usePlayback() {
   const startedRef = useRef<string | null>(null);
   const completedRef = useRef<string | null>(null);
   const openedAtRef = useRef<number>(0);
+  const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The transport callbacks read position/duration through this ref so they stay
   // stable across the 4Hz status ticks — otherwise every tick would rebuild them
@@ -50,6 +55,19 @@ export function usePlayback() {
   useEffect(() => {
     void configureLetterAudio();
   }, []);
+
+  // Each `open` is a fresh listen intent — even a repeat open of the SAME
+  // moment (a re-tap). Before this, `startedRef`/`completedRef` were keyed by
+  // `moment.id` and never reset, so the second session was invisible to
+  // drop-off analytics. The same tick stamps `openedAtRef` at the OPEN, which
+  // is what `audio_start_latency_ms` must measure — stamped in `play()` it
+  // swallowed her reaction time and drifted from the <300ms budget it exists
+  // to validate (see the started effect below).
+  useEffect(() => {
+    startedRef.current = null;
+    completedRef.current = null;
+    if (moment) openedAtRef.current = Date.now();
+  }, [session, moment]);
 
   useEffect(() => {
     player.setPlaybackRate?.(speed);
@@ -94,6 +112,13 @@ export function usePlayback() {
 
   // Playback failure (product 09 §9.1 error state). Before this the player had
   // no error path: a missing file or a decode failure just sat silent forever.
+  //
+  // The first status tick of ANY healthy open is `isLoaded === false`, so the
+  // old predicate fired `playback_error {decode}` on every single moment — a
+  // critical event over-reported double-digit times per listen. A failure can
+  // only be claimed after the load had its chance: report only when the player
+  // is STILL unloaded after the grace window, re-checked against the freshest
+  // status (an arriving load cancels it).
   useEffect(() => {
     if (!moment) return;
 
@@ -102,9 +127,22 @@ export function usePlayback() {
       return;
     }
 
+    if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+    loadTimerRef.current = null;
+
     if (status.isLoaded === false && !status.playing && status.currentTime === 0) {
-      analytics.capture('playback_error', { reason: 'decode' });
+      loadTimerRef.current = setTimeout(() => {
+        const s = statusRef.current;
+        if (s.isLoaded === false && !s.playing && s.currentTime === 0) {
+          analytics.capture('playback_error', { reason: 'decode' });
+        }
+      }, LOAD_GRACE_MS);
     }
+
+    return () => {
+      if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+      loadTimerRef.current = null;
+    };
   }, [moment, status.isLoaded, status.playing, status.currentTime]);
 
   useEffect(() => {
@@ -120,7 +158,6 @@ export function usePlayback() {
 
   const play = useCallback(() => {
     if (moment?.audioSource) {
-      openedAtRef.current = Date.now();
       touchCachedAudio(moment.id);
     }
     player.play();

@@ -2,7 +2,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Text, View } from 'react-native';
 
 import { IconTile } from '@/components';
-import { ICON_TILE_SIZE } from '@/components/RowGroup';
 import { paywallCopy } from '@/copy/paywall';
 import { useTheme } from '@/theme/ThemeProvider';
 import { clampedFontScale, scaledType } from '@/theme/typography';
@@ -34,7 +33,7 @@ interface Step {
  * a longer trial than the store gives.
  */
 export function TrialTimeline({ trialDays, testID }: TrialTimelineProps) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const scale = clampedFontScale();
 
   const remindDay = Math.max(1, trialDays - 2);
@@ -63,9 +62,9 @@ export function TrialTimeline({ trialDays, testID }: TrialTimelineProps) {
         colors={[colors.accent.emberSoft, colors.accent.ember]}
         style={{
           position: 'absolute',
-          left: ICON_TILE_SIZE / 2 - 1,
-          top: ICON_TILE_SIZE / 2,
-          bottom: ICON_TILE_SIZE / 2,
+          left: layout.iconTileSize / 2 - 1,
+          top: layout.iconTileSize / 2,
+          bottom: layout.iconTileSize / 2,
           width: 2,
         }}
       />

@@ -1,9 +1,16 @@
 import { useEffect } from 'react';
 
-import Purchases from 'react-native-purchases';
+import Purchases, { type CustomerInfo } from 'react-native-purchases';
+
+import type { SubscriptionState } from '@aura/shared';
 
 import { sweepAudioCache } from '@/features/letter/audioCache';
-import { configurePurchases, hasPremium, isConfigured } from '@/features/paywall/purchases';
+import {
+  configurePurchases,
+  hasPremium,
+  isConfigured,
+  isInTrial,
+} from '@/features/paywall/purchases';
 import { analytics, initAnalytics, reloadFeatureFlags } from '@/lib/analytics';
 import { emitAppOpen } from '@/lib/appOpen';
 import { initGa4 } from '@/lib/ga4';
@@ -11,6 +18,16 @@ import { ensureSession } from '@/lib/auth';
 import { buildSuperProperties } from '@/lib/superProperties';
 import { requestTrackingPermission } from '@/lib/tracking';
 import { useAppState } from '@/stores/appState';
+
+/** The snapshot's best read on her subscription (13 §2), derived — never guessed. */
+function subscriptionStateOf(
+  customerInfo: CustomerInfo | null | undefined,
+  premium: boolean,
+): SubscriptionState {
+  if (!premium) return 'free';
+  if (isInTrial(customerInfo)) return 'trial';
+  return 'paid';
+}
 
 /**
  * The boot sequence (05 §9, reversed 2026-07-27):
@@ -44,9 +61,11 @@ export function useBoot(): void {
         // ATT must be resolved before any analytics SDK is initialized. Firebase
         // auto-collection is disabled in the iOS plist and enabled below only
         // after this request completes; a permission API failure must never
-        // prevent the app from launching.
+        // prevent the app from launching. GA4 (the ad-conversion sink) also only
+        // turns on when she granted the prompt (M11).
         step = 'requestTrackingPermission';
-        await requestTrackingPermission().catch(() => undefined);
+        const trackingAllowed = await requestTrackingPermission().catch(() => false);
+        if (cancelled) return;
 
         const session = await ensureSession();
         if (cancelled) return;
@@ -69,16 +88,7 @@ export function useBoot(): void {
         // native Firebase app is not configured, so ga4.ts wraps it in try/catch
         // and simply stays disabled. Analytics never breaks boot.
         step = 'initGa4';
-        initGa4();
-        // Super properties before identify so every event this session carries
-        // them (13 §2). subscription_state updates when RC lands (Phase 10).
-        step = 'superProperties';
-        analytics.register(buildSuperProperties());
-        analytics.identify(userId);
-        // Pull feature flags / experiment variants for this identity now, so a
-        // flagged surface has its variant by first render. Best-effort — a flag
-        // outage must never delay or fail boot (they degrade to control).
-        void reloadFeatureFlags();
+        initGa4(trackingAllowed);
 
         // Bound to her Supabase id, so a purchase made anonymously still belongs
         // to her after she claims. Never fatal: a build with no RevenueCat key
@@ -90,30 +100,45 @@ export function useBoot(): void {
         // configure, before setReady — so BootGate can route without the
         // useEntitlement-at-boot race: that hook latches "not configured → free"
         // if it mounts before RC is configured, which at boot it always would.
-        // A build with no key stays unenforceable, so everyone reaches Home and
-        // the launch is never bricked (12 §2). getCustomerInfo returns RC's
-        // cached info when offline, so an existing subscriber offline stays
-        // premium; a true never-cached edge can still Restore at the wall.
+        // A build with no key stays unenforceable: this snapshot is free, the
+        // gate routes to the paywall, and the PAYWALL route (the only place
+        // that can see the offering) resolves an absent looking to Home — NOT
+        // `resolveBootRoute`, which sends every non-premium user to the wall.
+        // getCustomerInfo returns RC's cached info when offline, so an existing
+        // subscriber offline stays premium; a true never-cached edge can still
+        // Restore at the wall.
         step = 'getCustomerInfo';
         const purchasesConfigured = isConfigured();
-        const premium = purchasesConfigured
-          ? await Purchases.getCustomerInfo()
-              .then(hasPremium)
-              .catch(() => false)
-          : false;
+        const customerInfo = purchasesConfigured
+          ? await Purchases.getCustomerInfo().catch(() => null)
+          : null;
+        const premium = hasPremium(customerInfo);
+
+        // Super properties + identify AFTER the entitlement snapshot, so a
+        // paying or trial user's very first event is not stamped `free` (13 §2,
+        // M9). `register` is a merge, so subsequent subscription-state updates
+        // layer cleanly over the session props.
+        step = 'superProperties';
+        analytics.register(buildSuperProperties(subscriptionStateOf(customerInfo, premium)));
+        analytics.identify(userId);
+        // Pull feature flags / experiment variants for this identity now, so a
+        // flagged surface has its variant by first render. Best-effort — a flag
+        // outage must never delay or fail boot (they degrade to control).
+        void reloadFeatureFlags();
 
         // The 7-day expiry and 200MB LRU (10 §6). The policy was written and
         // tested at Phase 7 but nothing ever called it, so the cache grew
         // without bound. Boot is the right moment: it is off the critical path
         // and runs exactly once per launch.
-        // The one that hides in plain sight: an unenforceable wall sends every
-        // user to Home, so "onboarding finished and no subscription screen
-        // appeared" looks like a routing bug rather than missing config.
+        // The one that hides in plain sight: paywall routes every free user to
+        // the wall, so "onboarding finished and no subscription screen
+        // appeared" looks like a routing bug rather than missing config — it is
+        // the paywall route's no-offering escape to Home that silently decides.
         if (__DEV__ && !purchasesConfigured) {
           console.warn(
-            '[boot] Purchases NOT configured — the paywall is unenforceable, so ' +
-              'resolveBootRoute will skip it and land on Home. Everyone reads as ' +
-              'free. Set the RevenueCat key and rebuild.',
+            '[boot] Purchases NOT configured — entitlement is free for everyone, ' +
+              'so the paywall hard-gates every launch and then self-escapes to ' +
+              'Home when no offering resolves. Set the RevenueCat key and rebuild.',
           );
         }
 

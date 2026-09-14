@@ -7,6 +7,13 @@ export type MemoryItem = Row<'memory_items'>;
 export type NeverIncludeTerm = Row<'never_include'>;
 
 /**
+ * Never-Include term cap (09 §6). A term is a short phrase, not a paragraph —
+ * an unbounded payload bloats the exclusion list stored per user and slows prompt
+ * assembly with junk. The UI enforces the same bound via the field's maxLength.
+ */
+export const NEVER_INCLUDE_MAX_TERM = 80;
+
+/**
  * Memory data access (09 §6). All Supabase-direct — no backend hop (00 §D1).
  * RLS scopes every query to her own rows; the `.eq(user_id)` filters exist for
  * the index, never as the security boundary.
@@ -55,7 +62,13 @@ export async function addNeverIncludeTerm(userId: string, term: string): Promise
   const trimmed = term.trim();
   if (trimmed === '') return;
 
-  const { error } = await supabase.from('never_include').insert({ user_id: userId, term: trimmed });
+  // Defense in depth: the Input's maxLength guards the UI, but the field is not
+  // the only path here (shared hook, future screens). Cap at the same constant
+  // so a rogue payload can never bloat the list.
+  const safe =
+    trimmed.length > NEVER_INCLUDE_MAX_TERM ? trimmed.slice(0, NEVER_INCLUDE_MAX_TERM) : trimmed;
+
+  const { error } = await supabase.from('never_include').insert({ user_id: userId, term: safe });
 
   // A duplicate is not a failure from her point of view — the term is already
   // excluded, which is exactly what she asked for. Don't show an error for a

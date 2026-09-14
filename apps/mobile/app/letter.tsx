@@ -8,6 +8,7 @@ import { LetterScreen } from '@/features/letter/LetterScreen';
 import { PauseSheet } from '@/features/letter/PauseSheet';
 import { keepLetter, markLetterSeen } from '@/features/letter/keepLetter';
 import { useLetter } from '@/features/letter/useLetter';
+import { useEntitlement } from '@/features/paywall/useEntitlement';
 import { useAppState } from '@/stores/appState';
 import { analytics } from '@/lib/analytics';
 import { haptic } from '@/theme/haptics';
@@ -29,9 +30,12 @@ export default function LetterRoute() {
   const router = useRouter();
   const navigation = useNavigation();
   const userId = useAppState((s) => s.userId);
-  // The race-free boot snapshot (see useBoot), so the hand-off never depends on
-  // useEntitlement resolving in time.
-  const premium = useAppState((s) => s.premium);
+  // Live entitlement decides the hand-off so a mid-session grant or expiry is
+  // honoured, not the boot-time snapshot. While RevenueCat is still resolving,
+  // fall back to that snapshot — the race-free guarantee stays (see useBoot):
+  // the hand-off never depends on useEntitlement resolving in time.
+  const { premium: livePremium, loading } = useEntitlement();
+  const premium = loading ? useAppState.getState().premium : livePremium;
   const { data: letter } = useLetter(userId ?? undefined);
   // A milestone letter arrives through the same cover (06 §2) but is its own
   // event: D7 retention is measured on whether the week-one letter is actually

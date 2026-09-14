@@ -157,7 +157,7 @@ if (STORE_BUILD_PROFILES.has(process.env.EAS_BUILD_PROFILE ?? '')) {
  * internal/preview, Play App Signing for the store) on the one Android app.
  */
 const config: ExpoConfig = {
-  owner: 'empreror-brains',
+  owner: 'emperor-brains',
   name: BRAND.displayName,
   description: BRAND.storeTitle,
   slug: 'aura',

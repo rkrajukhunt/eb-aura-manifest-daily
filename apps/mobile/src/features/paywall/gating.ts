@@ -22,6 +22,9 @@ export const GATED_FEATURES: readonly GatedFeature[] = [
   'favorites',
   'collections',
   'share_export',
+  // The guided studio spends three flagship candidates per pass — it is the
+  // spinning-up-the-magic upsell, not the daily free affirmation (product 15).
+  'guided_affirmation',
 ];
 
 /** Whether a feature needs premium. Unknown features are free by design. */

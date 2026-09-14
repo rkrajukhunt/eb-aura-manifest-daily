@@ -25,6 +25,11 @@ export interface InputProps {
    * all. Guidance arrives in the companion's voice, not as an alarm.
    */
   hint?: string;
+  /**
+   * Hard cap on the field length, passed to the host input. The UI guard — the
+   * API layer enforces the same bound so the two cannot drift.
+   */
+  maxLength?: number;
   multiline?: boolean;
   autoFocus?: boolean;
   /**
@@ -88,6 +93,7 @@ export function Input({
   onChangeText,
   placeholder,
   hint,
+  maxLength,
   multiline = false,
   autoFocus = false,
   keyboardType = 'default',
@@ -191,6 +197,7 @@ export function Input({
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry}
+          {...(maxLength !== undefined && { maxLength })}
           {...(autoComplete !== undefined && { autoComplete })}
           {...(returnKeyType !== undefined && { returnKeyType })}
           {...(onSubmitEditing !== undefined && { onSubmitEditing })}

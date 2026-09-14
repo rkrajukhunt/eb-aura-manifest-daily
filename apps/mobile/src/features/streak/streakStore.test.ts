@@ -81,6 +81,27 @@ describe('streakStore', () => {
     expect(fresh.getState().state.current).toBe(1);
   });
 
+  // M19 regression: the scalars alone passed the old shape check and a string
+  // in `countedDays` (structurally corrupt, e.g. from a hand-edited value)
+  // slipped through and broke `countDay`/`weekFrom` later.
+  it('discards a value whose countedDays is not an array', () => {
+    kv.set(STORAGE_KEYS.streak, {
+      current: 4,
+      longest: 4,
+      lastCountedDay: '2026-08-20',
+      heldDaysUsed: 0,
+      heldMonth: '2026-08',
+      countedDays: '2026-08-20',
+      heldDays: ['2026-08-18'],
+    });
+
+    jest.resetModules();
+    const fresh = require('./streakStore').useStreakStore as typeof useStreakStore;
+
+    expect(fresh.getState().state.current).toBe(0);
+    expect(() => fresh.getState().record(did, day('2026-08-20'))).not.toThrow();
+  });
+
   it('wipes everything on reset, for account deletion', () => {
     useStreakStore.getState().record(did, day('2026-08-20'));
     useStreakStore.getState().reset();
