@@ -8,6 +8,7 @@ import { fonts } from '@/theme/typography';
 
 import { AnswerRow } from '../AnswerRow';
 import { ConversationScreen } from '../ConversationScreen';
+import { RITUAL_TIME_ICON } from '../optionIcons';
 import { useConversation } from '../useConversation';
 
 export const SLOTS_BY_CATEGORY: Record<TimeKey, readonly string[]> = {
@@ -118,6 +119,7 @@ export function A08RitualTime() {
           <AnswerRow
             key={option.key}
             label={option.label}
+            {...(RITUAL_TIME_ICON[option.key] ? { icon: RITUAL_TIME_ICON[option.key] } : {})}
             selected={selectedKey === option.key}
             onPress={() => handleSelectCategory(option.key)}
             testID={`a08-ritual-time-${option.key}`}

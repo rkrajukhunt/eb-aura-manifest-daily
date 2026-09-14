@@ -1,6 +1,7 @@
 import { onboardingCopy } from '@/copy/onboarding';
 
 import { ChoiceScreen } from '../ChoiceScreen';
+import { CALIBRATION_ICON } from '../optionIcons';
 
 /**
  * Q10 — calibration. Conditional: shown only when the mood and believability
@@ -16,7 +17,10 @@ export function QCalibration() {
       screenId="q-calibration"
       eyebrow={c.eyebrow}
       question={c.question}
-      options={c.choices}
+      options={c.choices.map((choice) => ({
+        ...choice,
+        ...(CALIBRATION_ICON[choice.key] ? { icon: CALIBRATION_ICON[choice.key] } : {}),
+      }))}
     />
   );
 }

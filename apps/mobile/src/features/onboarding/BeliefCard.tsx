@@ -1,4 +1,6 @@
-import { Pressable, Text } from 'react-native';
+import type { Ionicons } from '@expo/vector-icons';
+import { Ionicons as IoniconsIcon } from '@expo/vector-icons';
+import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
@@ -10,11 +12,12 @@ export interface BeliefCardProps {
   tag: string;
   selected: boolean;
   onPress: () => void;
+  icon?: keyof typeof Ionicons.glyphMap;
   testID?: string;
 }
 
 /** Q9's card: a serif statement she could say out loud, with its framing tag under it. */
-export function BeliefCard({ label, tag, selected, onPress, testID }: BeliefCardProps) {
+export function BeliefCard({ label, tag, selected, onPress, icon, testID }: BeliefCardProps) {
   const { colors, radii, spacing } = useTheme();
 
   return (
@@ -44,17 +47,37 @@ export function BeliefCard({ label, tag, selected, onPress, testID }: BeliefCard
       >
         {`“${label}”`}
       </Text>
-      <Text
-        style={{
-          fontFamily: fonts.sans,
-          fontSize: 11.5,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-          color: selected ? colors.accent.emberDeep : colors.text.label,
-        }}
-      >
-        {tag}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {icon ? (
+          <View
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 13,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: selected ? colors.text.primary : colors.accent.parchment,
+            }}
+          >
+            <IoniconsIcon
+              name={icon}
+              size={15}
+              color={selected ? colors.surface.card : colors.text.label}
+            />
+          </View>
+        ) : null}
+        <Text
+          style={{
+            fontFamily: fonts.sans,
+            fontSize: 11.5,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase',
+            color: selected ? colors.accent.emberDeep : colors.text.label,
+          }}
+        >
+          {tag}
+        </Text>
+      </View>
     </Pressable>
   );
 }

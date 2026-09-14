@@ -4,6 +4,7 @@ import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
 import { ChoiceScreen } from '../ChoiceScreen';
 import { submitAnswer } from '../commit';
+import { GOAL_ICON_BY_LABEL } from '../optionIcons';
 
 /**
  * Q2 — priority, piped from Q1. Only reached when she picked more than one
@@ -17,7 +18,11 @@ export function QPriority() {
   const picked = Array.isArray(goals) ? (goals as string[]) : [];
   const c = onboardingCopy.qPriority;
 
-  const options = picked.map((label) => ({ key: label, label }));
+  const options = picked.map((label) => ({
+    key: label,
+    label,
+    ...(GOAL_ICON_BY_LABEL[label] ? { icon: GOAL_ICON_BY_LABEL[label] } : {}),
+  }));
 
   const reorderGoals = async (primary: string) => {
     if (!userId || !picked.includes(primary)) return;

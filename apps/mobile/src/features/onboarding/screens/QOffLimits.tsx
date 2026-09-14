@@ -9,6 +9,12 @@ import { fonts } from '@/theme/typography';
 
 import { ConversationScreen } from '../ConversationScreen';
 import { OptionChip } from '../OptionChip';
+import {
+  ADD_YOUR_OWN_ICON,
+  CUSTOM_WORD_ICON,
+  OFF_LIMITS_TOPIC_ICON,
+  OFF_LIMITS_WORD_ICON,
+} from '../optionIcons';
 import { useConversation } from '../useConversation';
 
 export interface OffLimits {
@@ -97,6 +103,7 @@ export function QOffLimits() {
               key={word}
               label={word}
               variant="block"
+              icon={OFF_LIMITS_WORD_ICON[word] ?? CUSTOM_WORD_ICON}
               selected={words.includes(word)}
               onPress={() => setWords((w) => toggle(w, word))}
               testID={`q-offlimits-word-${word}`}
@@ -106,6 +113,7 @@ export function QOffLimits() {
             <OptionChip
               label={c.addYourOwn}
               variant="block"
+              icon={ADD_YOUR_OWN_ICON}
               selected={false}
               onPress={() => setAdding(true)}
               testID="q-offlimits-add"
@@ -141,6 +149,7 @@ export function QOffLimits() {
               key={topic}
               label={topic}
               variant="block"
+              icon={OFF_LIMITS_TOPIC_ICON[topic] ?? CUSTOM_WORD_ICON}
               selected={topics.includes(topic)}
               onPress={() => setTopics((t) => toggle(t, topic))}
               testID={`q-offlimits-topic-${topic}`}

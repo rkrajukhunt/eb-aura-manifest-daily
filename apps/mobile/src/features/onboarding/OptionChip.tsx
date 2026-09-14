@@ -1,4 +1,6 @@
-import { Pressable, Text } from 'react-native';
+import type { Ionicons } from '@expo/vector-icons';
+import { Ionicons as IoniconsIcon } from '@expo/vector-icons';
+import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts } from '@/theme/typography';
@@ -13,6 +15,7 @@ export interface OptionChipProps {
    * it, because choosing it means "not this".
    */
   variant?: 'select' | 'block';
+  icon?: keyof typeof Ionicons.glyphMap;
   testID?: string;
 }
 
@@ -22,6 +25,7 @@ export function OptionChip({
   selected,
   onPress,
   variant = 'select',
+  icon,
   testID,
 }: OptionChipProps) {
   const { colors, radii, spacing } = useTheme();
@@ -34,6 +38,9 @@ export function OptionChip({
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
         paddingVertical: block ? spacing.sm + 1 : spacing.sm + 3,
         paddingHorizontal: block ? spacing.md + 3 : spacing.md + 5,
         borderRadius: radii.pill,
@@ -51,6 +58,24 @@ export function OptionChip({
         opacity: pressed ? 0.85 : 1,
       })}
     >
+      {icon ? (
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: selected ? colors.text.primary : colors.accent.parchment,
+          }}
+        >
+          <IoniconsIcon
+            name={icon}
+            size={13}
+            color={selected ? colors.surface.card : colors.text.label}
+          />
+        </View>
+      ) : null}
       <Text
         style={{
           fontFamily: fonts.sansMedium,

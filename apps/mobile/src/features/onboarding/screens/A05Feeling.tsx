@@ -1,6 +1,7 @@
 import { onboardingCopy } from '@/copy/onboarding';
 
 import { ChoiceScreen } from '../ChoiceScreen';
+import { MOOD_ICON } from '../optionIcons';
 
 /**
  * Q5 — mood, the safety router. The KEY persists to `profiles.feeling`;
@@ -16,7 +17,10 @@ export function A05Feeling() {
       screenId="a05-feeling"
       question={c.question}
       helper={c.helper}
-      options={c.choices}
+      options={c.choices.map((choice) => ({
+        ...choice,
+        ...(MOOD_ICON[choice.key] ? { icon: MOOD_ICON[choice.key] } : {}),
+      }))}
     />
   );
 }

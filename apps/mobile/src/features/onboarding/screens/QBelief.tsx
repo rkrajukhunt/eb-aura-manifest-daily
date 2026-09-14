@@ -8,6 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { BeliefCard } from '../BeliefCard';
 import { ConversationScreen } from '../ConversationScreen';
 import { isGentle } from '../flow';
+import { BELIEF_ICON } from '../optionIcons';
 import { useConversation } from '../useConversation';
 
 /**
@@ -48,6 +49,7 @@ export function QBelief() {
             key={card.key}
             label={card.label}
             tag={card.tag}
+            {...(BELIEF_ICON[card.key] ? { icon: BELIEF_ICON[card.key] } : {})}
             selected={picked === card.key}
             onPress={() => pick(card.key)}
             testID={`q-belief-${card.key}`}

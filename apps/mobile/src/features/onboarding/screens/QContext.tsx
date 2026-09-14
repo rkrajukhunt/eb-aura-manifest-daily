@@ -3,6 +3,7 @@ import { useOnboardingDraft } from '@/stores/onboardingDraft';
 
 import { ChoiceScreen } from '../ChoiceScreen';
 import { primaryGoalOf } from '../flow';
+import { CONTEXT_ICON_BY_LABEL } from '../optionIcons';
 import { useConversation } from '../useConversation';
 
 /**
@@ -25,7 +26,11 @@ export function QContext() {
       screenId="q-context"
       eyebrow={c.eyebrow.replace('{goal}', goalLabel)}
       question={variant.question}
-      options={variant.choices.map((label) => ({ key: label, label }))}
+      options={variant.choices.map((label) => ({
+        key: label,
+        label,
+        ...(CONTEXT_ICON_BY_LABEL[label] ? { icon: CONTEXT_ICON_BY_LABEL[label] } : {}),
+      }))}
       onSkip={() => void skip()}
     />
   );

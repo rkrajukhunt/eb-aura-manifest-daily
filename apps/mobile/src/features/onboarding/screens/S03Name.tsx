@@ -10,6 +10,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { submitAnswer } from '../commit';
 import { ConversationScreen } from '../ConversationScreen';
 import { OptionChip } from '../OptionChip';
+import { PRONOUN_ICON } from '../optionIcons';
 import { useConversation } from '../useConversation';
 
 /** Past this, it's probably a paste or a joke — nudge toward what friends use. */
@@ -85,6 +86,7 @@ export function S03Name() {
             <OptionChip
               key={option}
               label={option}
+              icon={PRONOUN_ICON}
               selected={pronoun === option}
               onPress={() => setPronoun((current) => (current === option ? null : option))}
               testID={`q-pronoun-${option}`}
