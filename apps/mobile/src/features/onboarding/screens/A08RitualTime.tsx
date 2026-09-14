@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 import { onboardingCopy, type TimeKey } from '@/copy/onboarding';
 import { haptic } from '@/theme/haptics';
@@ -127,16 +127,17 @@ export function A08RitualTime() {
         ))}
       </View>
 
-      {/* Fine-Tune Card with 15-minute slot selector */}
+      {/* Fine-Tune Card with wrapping slot grid — no sideways scroll */}
       <View
         style={{
           marginTop: spacing.md,
-          padding: spacing.md + 2,
+          paddingHorizontal: spacing.md + 2,
+          paddingTop: spacing.md + 2,
+          paddingBottom: spacing.md + 4,
           borderRadius: radii.card,
           backgroundColor: colors.surface.card,
           borderWidth: 1,
           borderColor: colors.surface.border,
-          gap: spacing.sm + 2,
           ...shadows.card,
         }}
       >
@@ -167,12 +168,16 @@ export function A08RitualTime() {
           </Text>
         </View>
 
-        {/* 15-Min Slots Scrollable Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.xs + 2, paddingVertical: 2 }}
-        >
+        <View
+          style={{
+            height: 1,
+            backgroundColor: colors.surface.border,
+            marginVertical: spacing.sm + 2,
+          }}
+        />
+
+        {/* 15-min slots wrap to new lines instead of scrolling sideways */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs + 2 }}>
           {availableSlots.map((slot) => {
             const isSelected = selectedTime === slot;
             return (
@@ -186,8 +191,13 @@ export function A08RitualTime() {
                 accessibilityLabel={`${c.fineTune}: ${slot}`}
                 testID={`a08-ritual-time-slot-${slot}`}
                 style={{
-                  paddingHorizontal: spacing.md,
-                  paddingVertical: spacing.xs + 3,
+                  width: '31%',
+                  flexGrow: 1,
+                  minHeight: 38,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: spacing.xs + 4,
                   borderRadius: radii.pill,
                   backgroundColor: isSelected ? colors.accent.emberDeep : colors.accent.parchment,
                   borderWidth: 1,
@@ -206,7 +216,7 @@ export function A08RitualTime() {
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
       </View>
     </ConversationScreen>
   );
