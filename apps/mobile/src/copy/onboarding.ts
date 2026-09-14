@@ -227,7 +227,7 @@ export const onboardingCopy = {
     topics: ['Money', 'Work', 'My body', 'Relationships', 'Family', 'Health'] as readonly string[],
     // Pre-selected when her language answer is neuroscience or practical.
     prefill: ['Manifest', 'The universe', 'Vibration', 'Energy'] as readonly string[],
-    addYourOwn: '+ add your own',
+    addYourOwn: 'add your own',
     addPlaceholder: 'A word to leave out',
     primary: 'Continue',
   },
