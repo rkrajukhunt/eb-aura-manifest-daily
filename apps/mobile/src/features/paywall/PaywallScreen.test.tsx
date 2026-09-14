@@ -97,15 +97,15 @@ describe('PaywallScreen', () => {
     it('leads with the yearly trial as the hero, badged, with its per-week arithmetic', async () => {
       await renderPaywall();
 
-      expect(screen.getByText('Yearly · 7-day trial')).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.cardTitle)).toBeTruthy();
       expect(screen.getByText(paywallCopy.trial.badge)).toBeTruthy();
-      expect(screen.getByText('$49.99/yr')).toBeTruthy();
+      expect(screen.getByText('$49.99/year')).toBeTruthy();
       // 49.99 / 52 weeks.
       expect(screen.getByText(/\$0\.96/)).toBeTruthy();
     });
 
     it('lists the monthly and weekly plans with their store prices', async () => {
-      await renderPaywall();
+      await renderPaywall({ plans: [plan('annual'), plan('monthly'), plan('weekly')] });
 
       expect(screen.getByText(paywallCopy.v5.monthly)).toBeTruthy();
       expect(screen.getByText('$12.99')).toBeTruthy();
@@ -179,8 +179,8 @@ describe('PaywallScreen', () => {
   });
 
   describe('the free tier is a real outcome', () => {
-    it('says so under the CTA', async () => {
-      await renderPaywall();
+    it('says so above the CTA when there is no trial', async () => {
+      await renderPaywall({ plans: noTrialPlans });
       expect(screen.getByText(paywallCopy.v5.freeTier)).toBeTruthy();
     });
   });

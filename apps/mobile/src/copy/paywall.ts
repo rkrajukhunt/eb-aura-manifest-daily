@@ -76,14 +76,15 @@ export const paywallCopy = {
   trial: {
     headline: 'We’ll remind you before your trial ends',
     subhead: 'Nothing will be charged today',
-    badge: 'Free trial',
+    badge: 'FREE TRIAL',
     todayTitle: 'Today',
-    today: 'Full access to everything, completely free.',
+    today: '{days} days of full access, completely free.',
     remindTitle: 'In {remind} days',
-    remind: 'A gentle reminder lands before your trial ends.',
+    remind: 'We’ll send you a reminder before your trial ends.',
     billTitle: 'In {days} days',
-    bill: 'Your subscription begins, unless you’ve cancelled by then.',
-    cardTitle: 'Try it free',
+    bill: 'Continue with full access unless you cancel before.',
+    cardTitle: 'Try It Free',
+    ctaMain: 'Try for FREE',
     noCommitment: 'No commitment. Cancel anytime.',
     /** The auto-renew + price disclosure store review requires, said plainly. */
     renewal: 'Free for {days} days, then {price}. Renews automatically.',
@@ -136,7 +137,7 @@ export const paywallCopy = {
   purchaseFailedNote: 'The purchase didn’t go through — you haven’t been charged. Try again?',
 
   footer: {
-    restore: 'Restore purchase',
+    restore: 'Restore Purchases',
     terms: 'Terms',
     privacy: 'Privacy',
   },

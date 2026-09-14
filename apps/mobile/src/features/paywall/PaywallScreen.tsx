@@ -1,4 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -119,11 +119,8 @@ export function PaywallScreen({
   // the one plan that actually carries the store intro offer. All day counts and
   // amounts stay the store's real ones, never fixed numbers.
   const heroTrialDays = hero.hasTrial && hero.trialDays ? hero.trialDays : null;
+  const heroWeekly = weeklyEquivalent(hero);
   const t = paywallCopy.trial;
-  const renewal =
-    selected.hasTrial && selected.trialDays
-      ? t.renewal.replace('{days}', String(selected.trialDays)).replace('{price}', selected.price)
-      : null;
 
   const start = () => {
     if (withTrial) setShowTransparency(true);
@@ -143,12 +140,6 @@ export function PaywallScreen({
 
   return (
     <View testID={testID} style={{ flex: 1, backgroundColor: colors.bg.base }}>
-      {/* The Letter's own gradient — same world, not a new one (product 15). */}
-      <LinearGradient
-        colors={[colors.bg.gradientMid, colors.bg.gradientBottom, colors.bg.base]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      />
-
       <SafeAreaView style={{ flex: 1, paddingHorizontal: layout.screenMargin }}>
         {showTransparency && selected.trialDays ? (
           <TrialTransparency
@@ -161,280 +152,307 @@ export function PaywallScreen({
           />
         ) : (
           <ScrollView
-            contentContainerStyle={{ paddingBottom: spacing.xl, gap: spacing.lg }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'space-between',
+              paddingBottom: spacing.lg,
+            }}
             showsVerticalScrollIndicator={false}
+            bounces={false}
           >
-            {/* The ✕ sits top-left once the offer has been readable. */}
-            <View style={{ height: CLOSE_SIZE, alignItems: 'flex-start', marginTop: spacing.sm }}>
-              {dismissable && onDismiss && (
-                <Pressable
-                  testID="paywall-dismiss"
-                  accessibilityRole="button"
-                  accessibilityLabel={c.close}
-                  hitSlop={spacing.sm}
-                  onPress={() => {
-                    analytics.capture('paywall_dismissed');
-                    onDismiss();
-                  }}
-                  style={{
-                    width: CLOSE_SIZE,
-                    height: CLOSE_SIZE,
-                    borderRadius: CLOSE_SIZE / 2,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: colors.surface.divider,
-                  }}
-                >
-                  <Text style={{ fontSize: 17, color: colors.text.secondary }}>×</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {/* Trial promise when the hero carries one, else the goal headline. */}
-            <View style={{ alignItems: 'center', gap: spacing.xs }}>
-              <Text
-                allowFontScaling={false}
-                style={[
-                  scaledType('display', scale),
-                  { color: colors.text.primary, textAlign: 'center' },
-                ]}
-              >
-                {heroTrialDays ? t.headline : headline}
-              </Text>
-              {heroTrialDays && (
-                <Text
-                  allowFontScaling={false}
-                  style={[
-                    scaledType('body', scale),
-                    { color: colors.text.secondary, textAlign: 'center' },
-                  ]}
-                >
-                  {t.subhead}
-                </Text>
-              )}
-            </View>
-
-            {heroTrialDays && <TrialTimeline trialDays={heroTrialDays} testID="paywall-timeline" />}
-
-            <View style={{ gap: spacing.sm + 1 }}>
-              {plans.map((plan) => {
-                const isHero = plan.id === hero.id;
-                const isSelected = plan.id === selected.id;
-                const weekly = weeklyEquivalent(plan);
-                const showTrialBanner = isHero && heroTrialDays !== null;
-                return (
+            <View>
+              {/* The ✕ sits top-left */}
+              <View style={{ height: CLOSE_SIZE, alignItems: 'flex-start', marginTop: spacing.xs }}>
+                {dismissable && onDismiss && (
                   <Pressable
-                    key={plan.id}
-                    testID={`paywall-plan-${plan.id}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: isSelected }}
-                    accessibilityLabel={`${planName(plan)}, ${plan.price}`}
-                    onPress={() => setSelectedId(plan.id)}
+                    testID="paywall-dismiss"
+                    accessibilityRole="button"
+                    accessibilityLabel={c.close}
+                    hitSlop={spacing.md}
+                    onPress={() => {
+                      analytics.capture('paywall_dismissed');
+                      onDismiss();
+                    }}
                     style={{
-                      borderRadius: radii.card - 4,
-                      paddingVertical: spacing.md + 4,
-                      paddingHorizontal: spacing.md + 6,
-                      ...(showTrialBanner ? { paddingTop: spacing.md + 16 } : {}),
-                      borderWidth: isSelected ? 1.5 : 1,
-                      borderColor: isSelected ? colors.accent.emberDeep : colors.surface.border,
-                      backgroundColor: isSelected ? colors.surface.card : colors.surface.cardGlassy,
+                      width: CLOSE_SIZE,
+                      height: CLOSE_SIZE,
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    {showTrialBanner && (
-                      <View
-                        pointerEvents="none"
+                    <Ionicons name="close" size={24} color={colors.text.primary} />
+                  </Pressable>
+                )}
+              </View>
+
+              {/* Headline & Subhead */}
+              <View style={{ alignItems: 'center', gap: 6, marginVertical: spacing.xs }}>
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: fonts.sansBold,
+                    fontSize: 27,
+                    lineHeight: 33,
+                    color: colors.text.primary,
+                    textAlign: 'center',
+                    maxWidth: 320,
+                  }}
+                >
+                  {heroTrialDays ? t.headline : headline}
+                </Text>
+                {heroTrialDays && (
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: fonts.sans,
+                      fontSize: 15,
+                      lineHeight: 20,
+                      color: colors.text.secondary,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {t.subhead}
+                  </Text>
+                )}
+              </View>
+
+              {/* 3-Step Timeline */}
+              {heroTrialDays && (
+                <View style={{ marginVertical: spacing.md }}>
+                  <TrialTimeline trialDays={heroTrialDays} testID="paywall-timeline" />
+                </View>
+              )}
+
+              {/* Plan Card Section */}
+              {heroTrialDays ? (
+                /* Hero trial card matching reference image exactly */
+                <View style={{ gap: spacing.xs, marginVertical: spacing.xs }}>
+                  <Pressable
+                    testID={`paywall-plan-${hero.id}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: true }}
+                    accessibilityLabel={`${planName(hero)}, ${hero.price}`}
+                    onPress={() => setSelectedId(hero.id)}
+                    style={{
+                      borderRadius: 14,
+                      borderWidth: 2,
+                      borderColor: colors.accent.ember,
+                      backgroundColor: colors.surface.card,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Top banner tab: FREE TRIAL */}
+                    <View
+                      style={{
+                        backgroundColor: colors.accent.ember,
+                        paddingVertical: 6,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text
+                        allowFontScaling={false}
                         style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          backgroundColor: colors.accent.emberDeep,
-                          borderTopLeftRadius: radii.card - 5,
-                          borderTopRightRadius: radii.card - 5,
-                          paddingVertical: 5,
-                          alignItems: 'center',
+                          fontFamily: fonts.sansBold,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                          textTransform: 'uppercase',
+                          color: colors.text.onCta,
                         }}
                       >
-                        <Text
-                          allowFontScaling={false}
-                          style={{
-                            fontFamily: fonts.sansSemiBold,
-                            fontSize: 10,
-                            letterSpacing: 0.8,
-                            textTransform: 'uppercase',
-                            color: colors.text.onCta,
-                          }}
-                        >
-                          {t.badge}
-                        </Text>
-                      </View>
-                    )}
-                    {isHero && !showTrialBanner && (
-                      <View
-                        pointerEvents="none"
-                        style={{
-                          position: 'absolute',
-                          top: -9,
-                          right: spacing.md + 4,
-                          backgroundColor: colors.accent.emberDeep,
-                          borderRadius: 9,
-                          paddingHorizontal: 9,
-                          paddingVertical: 3,
-                        }}
-                      >
-                        <Text
-                          allowFontScaling={false}
-                          style={{
-                            fontFamily: fonts.sansSemiBold,
-                            fontSize: 10,
-                            letterSpacing: 0.8,
-                            textTransform: 'uppercase',
-                            color: colors.text.onCta,
-                          }}
-                        >
-                          {c.mostPopular}
-                        </Text>
-                      </View>
-                    )}
+                        {t.badge}
+                      </Text>
+                    </View>
+
+                    {/* Card body content */}
                     <View
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: spacing.md,
+                        justifyContent: 'space-between',
+                        paddingHorizontal: spacing.md + 4,
+                        paddingVertical: spacing.md + 2,
                       }}
                     >
                       <View
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 11,
-                          borderWidth: 1.5,
-                          borderColor: isSelected ? colors.accent.emberDeep : colors.surface.border,
-                          backgroundColor: isSelected ? colors.accent.emberDeep : 'transparent',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}
                       >
-                        {isSelected && (
-                          <Text
-                            allowFontScaling={false}
-                            style={{ fontSize: 12, color: colors.text.onCta }}
-                          >
-                            ✓
-                          </Text>
-                        )}
-                      </View>
-                      <View style={{ flex: 1, gap: 3 }}>
-                        <Text
-                          allowFontScaling={false}
+                        <View
                           style={{
-                            fontFamily: isHero ? fonts.sansSemiBold : fonts.sansMedium,
-                            fontSize: 16,
-                            color: colors.text.primary,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            backgroundColor: colors.accent.ember,
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
-                          {planName(plan)}
-                        </Text>
-                        {plan.id === 'annual' && weekly && (
+                          <Ionicons name="checkmark" size={14} color={colors.text.onCta} />
+                        </View>
+                        <View style={{ gap: 2 }}>
                           <Text
                             allowFontScaling={false}
                             style={{
-                              fontFamily: fonts.sans,
-                              fontSize: 12.5,
-                              color: colors.text.secondary,
+                              fontFamily: fonts.sansBold,
+                              fontSize: 18,
+                              color: colors.text.primary,
                             }}
                           >
-                            {`Only ${weekly} per week`}
+                            {t.cardTitle}
                           </Text>
-                        )}
-                        {plan.id === 'annual' && !weekly && (
-                          <Text
-                            allowFontScaling={false}
-                            style={{
-                              fontFamily: fonts.sans,
-                              fontSize: 12.5,
-                              color: colors.text.secondary,
-                            }}
-                          >
-                            {`${plan.price}${c.perYear}`}
-                          </Text>
-                        )}
-                      </View>
-                      <Text
-                        allowFontScaling={false}
-                        style={{
-                          fontFamily: fonts.serifSemiBold,
-                          fontSize: 22,
-                          color: colors.text.primary,
-                        }}
-                      >
-                        {plan.id === 'annual' && !weekly ? (
-                          plan.price
-                        ) : plan.id === 'annual' ? (
-                          <>
-                            {plan.price}
+                          {heroWeekly && (
                             <Text
+                              allowFontScaling={false}
                               style={{
                                 fontFamily: fonts.sans,
                                 fontSize: 13,
                                 color: colors.text.secondary,
                               }}
                             >
-                              {c.perYear}
+                              {`Only ${heroWeekly} per week`}
                             </Text>
-                          </>
-                        ) : (
-                          plan.price
-                        )}
+                          )}
+                        </View>
+                      </View>
+
+                      <Text
+                        allowFontScaling={false}
+                        style={{
+                          fontFamily: fonts.sansBold,
+                          fontSize: 16.5,
+                          color: colors.text.primary,
+                        }}
+                      >
+                        {`${hero.price}${paywallCopy.plans.perYear}`}
                       </Text>
                     </View>
                   </Pressable>
-                );
-              })}
+                </View>
+              ) : (
+                /* Fallback when store has no intro trial configured: list available plans */
+                <View style={{ gap: spacing.sm + 1 }}>
+                  {plans.map((plan) => {
+                    const isSelected = plan.id === selected.id;
+                    const weekly = weeklyEquivalent(plan);
+                    return (
+                      <Pressable
+                        key={plan.id}
+                        testID={`paywall-plan-${plan.id}`}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: isSelected }}
+                        accessibilityLabel={`${planName(plan)}, ${plan.price}`}
+                        onPress={() => setSelectedId(plan.id)}
+                        style={{
+                          borderRadius: radii.card - 4,
+                          paddingVertical: spacing.md + 4,
+                          paddingHorizontal: spacing.md + 6,
+                          borderWidth: isSelected ? 2 : 1,
+                          borderColor: isSelected ? colors.accent.ember : colors.surface.border,
+                          backgroundColor: isSelected
+                            ? colors.surface.card
+                            : colors.surface.cardGlassy,
+                        }}
+                      >
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: spacing.md,
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: 11,
+                              borderWidth: 1.5,
+                              borderColor: isSelected ? colors.accent.ember : colors.surface.border,
+                              backgroundColor: isSelected ? colors.accent.ember : 'transparent',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {isSelected && (
+                              <Ionicons name="checkmark" size={14} color={colors.text.onCta} />
+                            )}
+                          </View>
+                          <View style={{ flex: 1, gap: 3 }}>
+                            <Text
+                              allowFontScaling={false}
+                              style={{
+                                fontFamily: fonts.sansSemiBold,
+                                fontSize: 16,
+                                color: colors.text.primary,
+                              }}
+                            >
+                              {planName(plan)}
+                            </Text>
+                            {plan.id === 'annual' && weekly && (
+                              <Text
+                                allowFontScaling={false}
+                                style={{
+                                  fontFamily: fonts.sans,
+                                  fontSize: 12.5,
+                                  color: colors.text.secondary,
+                                }}
+                              >
+                                {`Only ${weekly} per week`}
+                              </Text>
+                            )}
+                            {plan.id === 'weekly' && plan.monthlyEquivalent && (
+                              <Text
+                                allowFontScaling={false}
+                                style={{
+                                  fontFamily: fonts.sans,
+                                  fontSize: 12.5,
+                                  color: colors.text.secondary,
+                                }}
+                              >
+                                {`about ${plan.monthlyEquivalent}/month`}
+                              </Text>
+                            )}
+                          </View>
+                          <Text
+                            allowFontScaling={false}
+                            style={{
+                              fontFamily: fonts.sansSemiBold,
+                              fontSize: 17,
+                              color: colors.text.primary,
+                            }}
+                          >
+                            {plan.price}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
             </View>
 
-            {heroTrialDays && (
-              <View style={{ alignItems: 'center', gap: 2 }}>
-                <Text
-                  allowFontScaling={false}
-                  style={[
-                    scaledType('bodySmall', scale),
-                    { color: colors.text.secondary, textAlign: 'center' },
-                  ]}
-                >
-                  {t.noCommitment}
-                </Text>
-                {renewal && (
-                  <Text
-                    allowFontScaling={false}
-                    style={[
-                      scaledType('bodySmall', scale),
-                      { color: colors.text.secondary, textAlign: 'center' },
-                    ]}
-                  >
-                    {renewal}
-                  </Text>
-                )}
-              </View>
-            )}
+            {/* Bottom Actions Section */}
+            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: fonts.sans,
+                  fontSize: 13.5,
+                  color: colors.text.secondary,
+                  textAlign: 'center',
+                  marginBottom: 2,
+                }}
+              >
+                {heroTrialDays ? t.noCommitment : c.freeTier}
+              </Text>
 
-            <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
               <PillButton
-                title={withTrial ? c.ctaTrial : c.cta}
+                title={withTrial ? t.ctaMain : c.cta}
                 tint={withTrial ? 'ember' : 'ink'}
                 loading={busy}
                 onPress={start}
                 testID="paywall-continue"
               />
-              <Text
-                allowFontScaling={false}
-                style={[
-                  scaledType('bodySmall', scale),
-                  { color: colors.text.disabled, textAlign: 'center' },
-                ]}
-              >
-                {c.freeTier}
-              </Text>
+
               {notice && (
                 <Text
                   testID="paywall-notice"
@@ -447,35 +465,36 @@ export function PaywallScreen({
                   {notice}
                 </Text>
               )}
-            </View>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: spacing.md,
-              }}
-            >
-              <TextButton
-                title={paywallCopy.footer.restore}
-                onPress={onRestore}
-                testID="paywall-restore"
-              />
-              {onTerms && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: spacing.lg,
+                  marginTop: spacing.xs,
+                }}
+              >
                 <TextButton
-                  title={paywallCopy.footer.terms}
-                  onPress={onTerms}
-                  testID="paywall-terms"
+                  title={paywallCopy.footer.restore}
+                  onPress={onRestore}
+                  testID="paywall-restore"
                 />
-              )}
-              {onPrivacy && (
-                <TextButton
-                  title={paywallCopy.footer.privacy}
-                  onPress={onPrivacy}
-                  testID="paywall-privacy"
-                />
-              )}
+                {onTerms && (
+                  <TextButton
+                    title={paywallCopy.footer.terms}
+                    onPress={onTerms}
+                    testID="paywall-terms"
+                  />
+                )}
+                {onPrivacy && (
+                  <TextButton
+                    title={paywallCopy.footer.privacy}
+                    onPress={onPrivacy}
+                    testID="paywall-privacy"
+                  />
+                )}
+              </View>
             </View>
           </ScrollView>
         )}
