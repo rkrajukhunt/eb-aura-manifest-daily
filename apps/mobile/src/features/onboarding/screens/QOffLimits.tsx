@@ -84,7 +84,14 @@ export function QOffLimits() {
     >
       <View>
         {section(c.wordsLabel)}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: spacing.sm,
+            alignItems: 'flex-start',
+          }}
+        >
           {[...c.words, ...custom].map((word) => (
             <OptionChip
               key={word}
@@ -98,6 +105,7 @@ export function QOffLimits() {
           {!adding && (
             <OptionChip
               label={c.addYourOwn}
+              variant="block"
               selected={false}
               onPress={() => setAdding(true)}
               testID="q-offlimits-add"
@@ -120,7 +128,14 @@ export function QOffLimits() {
       </View>
       <View style={{ marginTop: spacing.md }}>
         {section(c.topicsLabel)}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: spacing.sm,
+            alignItems: 'flex-start',
+          }}
+        >
           {c.topics.map((topic) => (
             <OptionChip
               key={topic}
