@@ -75,21 +75,18 @@ describe('PaywallScreen', () => {
   });
 
   describe('the headline', () => {
-    it('leads with the trial promise when the hero carries a trial', async () => {
+    it('always presents the trial promise and timeline', async () => {
       await renderPaywall({ goal: 'calm' });
       expect(screen.getByText(paywallCopy.trial.headline)).toBeTruthy();
       expect(screen.getByText(paywallCopy.trial.subhead)).toBeTruthy();
       expect(screen.getByTestId('paywall-timeline')).toBeTruthy();
     });
 
-    it('is keyed to her primary goal when the store has no trial', async () => {
-      await renderPaywall({ plans: noTrialPlans, goal: 'calm' });
-      expect(screen.getByText(paywallCopy.v5.headlines.calm)).toBeTruthy();
-    });
-
-    it('falls back to the generic line without a goal or trial', async () => {
+    it('presents the trial promise even with fallback plans', async () => {
       await renderPaywall({ plans: noTrialPlans });
-      expect(screen.getByText(paywallCopy.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.headline)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.subhead)).toBeTruthy();
+      expect(screen.getByTestId('paywall-timeline')).toBeTruthy();
     });
   });
 
@@ -102,15 +99,6 @@ describe('PaywallScreen', () => {
       expect(screen.getByText('$49.99/year')).toBeTruthy();
       // 49.99 / 52 weeks.
       expect(screen.getByText(/\$0\.96/)).toBeTruthy();
-    });
-
-    it('lists the monthly and weekly plans with their store prices', async () => {
-      await renderPaywall({ plans: [plan('annual'), plan('monthly'), plan('weekly')] });
-
-      expect(screen.getByText(paywallCopy.v5.monthly)).toBeTruthy();
-      expect(screen.getByText('$12.99')).toBeTruthy();
-      expect(screen.getByText(paywallCopy.v5.weekly)).toBeTruthy();
-      expect(screen.getByText('$3.99')).toBeTruthy();
     });
 
     it('speaks each plan with its price to assistive tech', async () => {
@@ -156,32 +144,22 @@ describe('PaywallScreen', () => {
   });
 
   describe('a plan without a trial', () => {
-    it('buys directly on Continue — no timeline that promises a trial the store lacks', async () => {
+    it('buys directly on CTA without intermediate transparency', async () => {
       const onPurchase = jest.fn();
       await renderPaywall({ plans: noTrialPlans, onPurchase });
 
-      expect(screen.getByText(paywallCopy.v5.cta)).toBeTruthy();
+      expect(screen.getByText(paywallCopy.trial.ctaMain)).toBeTruthy();
       await fireEvent.press(screen.getByTestId('paywall-continue'));
 
       expect(screen.queryByTestId('paywall-transparency')).toBeNull();
       expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'annual' }));
     });
-
-    it('buys the plan she selected', async () => {
-      const onPurchase = jest.fn();
-      await renderPaywall({ plans: noTrialPlans, onPurchase });
-
-      await fireEvent.press(screen.getByTestId('paywall-plan-monthly'));
-      await fireEvent.press(screen.getByTestId('paywall-continue'));
-
-      expect(onPurchase).toHaveBeenCalledWith(expect.objectContaining({ id: 'monthly' }));
-    });
   });
 
-  describe('the free tier is a real outcome', () => {
-    it('says so above the CTA when there is no trial', async () => {
-      await renderPaywall({ plans: noTrialPlans });
-      expect(screen.getByText(paywallCopy.v5.freeTier)).toBeTruthy();
+  describe('the reassurance is prominent', () => {
+    it('shows no commitment reassurance above the CTA', async () => {
+      await renderPaywall();
+      expect(screen.getByText(paywallCopy.trial.noCommitment)).toBeTruthy();
     });
   });
 

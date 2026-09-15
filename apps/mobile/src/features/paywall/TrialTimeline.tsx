@@ -23,13 +23,13 @@ interface Step {
  * Sizing, placement, and spine gradient match the trial-reminder design reference,
  * rendered in Aura's own tokenized theme palette.
  */
-const DOT = 40;
+const DOT = 52;
 
 export function TrialTimeline({ trialDays, testID }: TrialTimelineProps) {
   const { colors, spacing } = useTheme();
   const scale = clampedFontScale();
 
-  const remindDay = Math.max(1, trialDays - 2);
+  const remindDay = trialDays <= 3 ? trialDays - 1 : Math.max(1, trialDays - 2);
   const t = paywallCopy.trial;
 
   const steps: Step[] = [
@@ -58,19 +58,19 @@ export function TrialTimeline({ trialDays, testID }: TrialTimelineProps) {
         colors={[colors.accent.ember, colors.accent.ember, colors.accent.emberSoft, 'transparent']}
         style={{
           position: 'absolute',
-          left: DOT / 2 - 1.5,
+          left: DOT / 2 - 1.75,
           top: DOT / 2,
-          bottom: -10,
-          width: 3,
-          borderRadius: 1.5,
+          bottom: -20,
+          width: 3.5,
+          borderRadius: 1.75,
         }}
       />
 
-      <View style={{ gap: spacing.lg + 4 }}>
+      <View style={{ gap: 36 }}>
         {steps.map((step) => (
           <View
             key={step.title}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md + 2 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md + 4 }}
           >
             <View
               style={{
@@ -82,15 +82,15 @@ export function TrialTimeline({ trialDays, testID }: TrialTimelineProps) {
                 backgroundColor: colors.accent.ember,
               }}
             >
-              <Ionicons name={step.icon} size={20} color={colors.text.onCta} />
+              <Ionicons name={step.icon} size={26} color={colors.text.onCta} />
             </View>
-            <View style={{ flex: 1, gap: 2 }}>
+            <View style={{ flex: 1, gap: 3 }}>
               <Text
                 allowFontScaling={false}
                 style={{
                   fontFamily: fonts.sansBold,
-                  fontSize: 17,
-                  lineHeight: 22,
+                  fontSize: 18,
+                  lineHeight: 23,
                   color: colors.text.primary,
                 }}
               >

@@ -80,14 +80,14 @@ export function PaywallScreen({
   onPurchase,
   onDismiss,
   onRestore,
-  goal = null,
+  goal: _goal = null,
   notice = null,
   onTerms,
   onPrivacy,
   busy = false,
   testID,
 }: PaywallScreenProps) {
-  const { colors, spacing, layout, radii } = useTheme();
+  const { colors, spacing, layout } = useTheme();
   const scale = clampedFontScale();
   const c = paywallCopy.v5;
 
@@ -113,12 +113,8 @@ export function PaywallScreen({
     return <View testID={testID} style={{ flex: 1, backgroundColor: colors.bg.base }} />;
   }
 
-  const headline = goal ? c.headlines[goal] : paywallCopy.headline;
   const withTrial = Boolean(selected.hasTrial && selected.trialDays);
-  // The trial story (timeline, banner, renewal line) belongs to the hero offer —
-  // the one plan that actually carries the store intro offer. All day counts and
-  // amounts stay the store's real ones, never fixed numbers.
-  const heroTrialDays = hero.hasTrial && hero.trialDays ? hero.trialDays : null;
+  const heroTrialDays = hero.trialDays ?? 3;
   const heroWeekly = weeklyEquivalent(hero);
   const t = paywallCopy.trial;
 
@@ -160,278 +156,165 @@ export function PaywallScreen({
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-            <View>
-              {/* The ✕ sits top-left */}
-              <View style={{ height: CLOSE_SIZE, alignItems: 'flex-start', marginTop: spacing.xs }}>
-                {dismissable && onDismiss && (
-                  <Pressable
-                    testID="paywall-dismiss"
-                    accessibilityRole="button"
-                    accessibilityLabel={c.close}
-                    hitSlop={spacing.md}
-                    onPress={() => {
-                      analytics.capture('paywall_dismissed');
-                      onDismiss();
-                    }}
-                    style={{
-                      width: CLOSE_SIZE,
-                      height: CLOSE_SIZE,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Ionicons name="close" size={24} color={colors.text.primary} />
-                  </Pressable>
-                )}
-              </View>
-
-              {/* Headline & Subhead */}
-              <View style={{ alignItems: 'center', gap: 6, marginVertical: spacing.xs }}>
-                <Text
-                  allowFontScaling={false}
+            {/* Top Bar: Close */}
+            <View style={{ height: CLOSE_SIZE, alignItems: 'flex-start', marginTop: spacing.xs }}>
+              {dismissable && onDismiss && (
+                <Pressable
+                  testID="paywall-dismiss"
+                  accessibilityRole="button"
+                  accessibilityLabel={c.close}
+                  hitSlop={spacing.md}
+                  onPress={() => {
+                    analytics.capture('paywall_dismissed');
+                    onDismiss();
+                  }}
                   style={{
-                    fontFamily: fonts.sansBold,
-                    fontSize: 27,
-                    lineHeight: 33,
-                    color: colors.text.primary,
-                    textAlign: 'center',
-                    maxWidth: 320,
+                    width: CLOSE_SIZE,
+                    height: CLOSE_SIZE,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  {heroTrialDays ? t.headline : headline}
-                </Text>
-                {heroTrialDays && (
+                  <Ionicons name="close" size={26} color={colors.text.primary} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Headline & Subhead */}
+            <View style={{ alignItems: 'center', gap: 6, marginVertical: spacing.xs }}>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: fonts.sansBold,
+                  fontSize: 27,
+                  lineHeight: 33,
+                  color: colors.text.primary,
+                  textAlign: 'center',
+                  maxWidth: 320,
+                }}
+              >
+                {t.headline}
+              </Text>
+              <Text
+                allowFontScaling={false}
+                style={{
+                  fontFamily: fonts.sans,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: colors.text.secondary,
+                  textAlign: 'center',
+                }}
+              >
+                {t.subhead}
+              </Text>
+            </View>
+
+            {/* 3-Step Timeline */}
+            <View style={{ marginVertical: spacing.xs }}>
+              <TrialTimeline trialDays={heroTrialDays} testID="paywall-timeline" />
+            </View>
+
+            {/* Bottom Actions Section: Card + Reassurance + Button + Footer */}
+            <View style={{ gap: 14 }}>
+              {/* Plan Card Section */}
+              <Pressable
+                testID={`paywall-plan-${hero.id}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: true }}
+                accessibilityLabel={`${planName(hero)}, ${hero.price}`}
+                onPress={() => setSelectedId(hero.id)}
+                style={{
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  borderColor: colors.accent.ember,
+                  backgroundColor: colors.surface.card,
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Top banner tab: FREE TRIAL */}
+                <View
+                  style={{
+                    backgroundColor: colors.accent.ember,
+                    paddingVertical: 9.5,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   <Text
                     allowFontScaling={false}
                     style={{
-                      fontFamily: fonts.sans,
-                      fontSize: 15,
-                      lineHeight: 20,
-                      color: colors.text.secondary,
-                      textAlign: 'center',
+                      fontFamily: fonts.sansBold,
+                      fontSize: 13.5,
+                      letterSpacing: 1.4,
+                      textTransform: 'uppercase',
+                      color: colors.text.onCta,
                     }}
                   >
-                    {t.subhead}
+                    {t.badge}
                   </Text>
-                )}
-              </View>
-
-              {/* 3-Step Timeline */}
-              {heroTrialDays && (
-                <View style={{ marginVertical: spacing.md }}>
-                  <TrialTimeline trialDays={heroTrialDays} testID="paywall-timeline" />
                 </View>
-              )}
 
-              {/* Plan Card Section */}
-              {heroTrialDays ? (
-                /* Hero trial card matching reference image exactly */
-                <View style={{ gap: spacing.xs, marginVertical: spacing.xs }}>
-                  <Pressable
-                    testID={`paywall-plan-${hero.id}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: true }}
-                    accessibilityLabel={`${planName(hero)}, ${hero.price}`}
-                    onPress={() => setSelectedId(hero.id)}
-                    style={{
-                      borderRadius: 14,
-                      borderWidth: 2,
-                      borderColor: colors.accent.ember,
-                      backgroundColor: colors.surface.card,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Top banner tab: FREE TRIAL */}
+                {/* Card body content */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: spacing.lg,
+                    paddingVertical: 22,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
                     <View
                       style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 14,
                         backgroundColor: colors.accent.ember,
-                        paddingVertical: 6,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Text
-                        allowFontScaling={false}
-                        style={{
-                          fontFamily: fonts.sansBold,
-                          fontSize: 12,
-                          letterSpacing: 1,
-                          textTransform: 'uppercase',
-                          color: colors.text.onCta,
-                        }}
-                      >
-                        {t.badge}
-                      </Text>
+                      <Ionicons name="checkmark" size={18} color={colors.text.onCta} />
                     </View>
-
-                    {/* Card body content */}
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        paddingHorizontal: spacing.md + 4,
-                        paddingVertical: spacing.md + 2,
-                      }}
-                    >
-                      <View
-                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}
-                      >
-                        <View
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 11,
-                            backgroundColor: colors.accent.ember,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Ionicons name="checkmark" size={14} color={colors.text.onCta} />
-                        </View>
-                        <View style={{ gap: 2 }}>
-                          <Text
-                            allowFontScaling={false}
-                            style={{
-                              fontFamily: fonts.sansBold,
-                              fontSize: 18,
-                              color: colors.text.primary,
-                            }}
-                          >
-                            {t.cardTitle}
-                          </Text>
-                          {heroWeekly && (
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: fonts.sans,
-                                fontSize: 13,
-                                color: colors.text.secondary,
-                              }}
-                            >
-                              {`Only ${heroWeekly} per week`}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-
+                    <View style={{ gap: 3 }}>
                       <Text
                         allowFontScaling={false}
                         style={{
                           fontFamily: fonts.sansBold,
-                          fontSize: 16.5,
+                          fontSize: 21,
                           color: colors.text.primary,
                         }}
                       >
-                        {`${hero.price}${paywallCopy.plans.perYear}`}
+                        {t.cardTitle}
                       </Text>
-                    </View>
-                  </Pressable>
-                </View>
-              ) : (
-                /* Fallback when store has no intro trial configured: list available plans */
-                <View style={{ gap: spacing.sm + 1 }}>
-                  {plans.map((plan) => {
-                    const isSelected = plan.id === selected.id;
-                    const weekly = weeklyEquivalent(plan);
-                    return (
-                      <Pressable
-                        key={plan.id}
-                        testID={`paywall-plan-${plan.id}`}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: isSelected }}
-                        accessibilityLabel={`${planName(plan)}, ${plan.price}`}
-                        onPress={() => setSelectedId(plan.id)}
-                        style={{
-                          borderRadius: radii.card - 4,
-                          paddingVertical: spacing.md + 4,
-                          paddingHorizontal: spacing.md + 6,
-                          borderWidth: isSelected ? 2 : 1,
-                          borderColor: isSelected ? colors.accent.ember : colors.surface.border,
-                          backgroundColor: isSelected
-                            ? colors.surface.card
-                            : colors.surface.cardGlassy,
-                        }}
-                      >
-                        <View
+                      {heroWeekly && (
+                        <Text
+                          allowFontScaling={false}
                           style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: spacing.md,
+                            fontFamily: fonts.sans,
+                            fontSize: 14,
+                            color: colors.text.secondary,
                           }}
                         >
-                          <View
-                            style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: 11,
-                              borderWidth: 1.5,
-                              borderColor: isSelected ? colors.accent.ember : colors.surface.border,
-                              backgroundColor: isSelected ? colors.accent.ember : 'transparent',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            {isSelected && (
-                              <Ionicons name="checkmark" size={14} color={colors.text.onCta} />
-                            )}
-                          </View>
-                          <View style={{ flex: 1, gap: 3 }}>
-                            <Text
-                              allowFontScaling={false}
-                              style={{
-                                fontFamily: fonts.sansSemiBold,
-                                fontSize: 16,
-                                color: colors.text.primary,
-                              }}
-                            >
-                              {planName(plan)}
-                            </Text>
-                            {plan.id === 'annual' && weekly && (
-                              <Text
-                                allowFontScaling={false}
-                                style={{
-                                  fontFamily: fonts.sans,
-                                  fontSize: 12.5,
-                                  color: colors.text.secondary,
-                                }}
-                              >
-                                {`Only ${weekly} per week`}
-                              </Text>
-                            )}
-                            {plan.id === 'weekly' && plan.monthlyEquivalent && (
-                              <Text
-                                allowFontScaling={false}
-                                style={{
-                                  fontFamily: fonts.sans,
-                                  fontSize: 12.5,
-                                  color: colors.text.secondary,
-                                }}
-                              >
-                                {`about ${plan.monthlyEquivalent}/month`}
-                              </Text>
-                            )}
-                          </View>
-                          <Text
-                            allowFontScaling={false}
-                            style={{
-                              fontFamily: fonts.sansSemiBold,
-                              fontSize: 17,
-                              color: colors.text.primary,
-                            }}
-                          >
-                            {plan.price}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
+                          {`Only ${heroWeekly} per week`}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
 
-            {/* Bottom Actions Section */}
-            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+                  <Text
+                    allowFontScaling={false}
+                    style={{
+                      fontFamily: fonts.sansBold,
+                      fontSize: 19.5,
+                      color: colors.text.primary,
+                    }}
+                  >
+                    {`${hero.price}${paywallCopy.plans.perYear}`}
+                  </Text>
+                </View>
+              </Pressable>
               <Text
                 allowFontScaling={false}
                 style={{
@@ -442,12 +325,12 @@ export function PaywallScreen({
                   marginBottom: 2,
                 }}
               >
-                {heroTrialDays ? t.noCommitment : c.freeTier}
+                {t.noCommitment}
               </Text>
 
               <PillButton
-                title={withTrial ? t.ctaMain : c.cta}
-                tint={withTrial ? 'ember' : 'ink'}
+                title={t.ctaMain}
+                tint="ember"
                 loading={busy}
                 onPress={start}
                 testID="paywall-continue"
